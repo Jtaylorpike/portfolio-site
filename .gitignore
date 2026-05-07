@@ -11,3 +11,10 @@ portfolio-debug-pack/
 portfolio-debug-pack.zip
 portfolio-cleanup-pack/
 portfolio-cleanup-pack.zip
+
+# Local browser/debug files
+.drive-browser-profile/
+
+# Temporary project packs
+portfolio-*-pack/
+portfolio-*-pack.zip
