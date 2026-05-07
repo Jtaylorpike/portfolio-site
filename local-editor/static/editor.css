@@ -105,7 +105,7 @@ img {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: rgba(255, 253, 248, 0.76);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   backdrop-filter: blur(18px);
 }
 
@@ -166,22 +166,30 @@ h3 {
 }
 
 .button {
-  min-height: 42px;
+  height: 42px;
+  width: auto;
+  max-width: 100%;
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 0 15px;
+  padding: 0 16px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
+  appearance: none;
   background: rgba(255, 255, 255, 0.56);
   color: var(--text);
   font-size: 14px;
   font-weight: 650;
   line-height: 1;
+  white-space: nowrap;
+  text-align: center;
   text-decoration: none;
   cursor: pointer;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  overflow: hidden;
+  box-shadow: none;
+  vertical-align: middle;
   transition: transform 140ms ease, background 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 
@@ -191,7 +199,7 @@ h3 {
   background: var(--accent);
   color: var(--surface-strong);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .button.primary {
@@ -225,6 +233,38 @@ h3 {
   box-shadow: none;
 }
 
+
+/* Button vertical-alignment reset.
+   Native buttons and links use different default font metrics across browsers.
+   Keeping every pill at a fixed height with zero vertical padding prevents the
+   text from appearing low in the pill and removes the white inset highlight that
+   previously looked like extra space at the top of dark buttons. */
+.button > * {
+  line-height: 1;
+}
+
+/* Button layout safeguards. These prevent pill buttons from clipping their text
+   or squeezing into awkward half-width shapes inside generated editor rows. */
+.header .actions,
+.category-row-actions,
+.image-overview-actions,
+.category-actions,
+.category-page-actions,
+.crop-shortcuts {
+  min-width: 0;
+  align-items: center;
+}
+
+.header .actions {
+  justify-content: flex-end;
+}
+
+.header .actions .button,
+.category-row-actions .button,
+.image-overview-actions .button {
+  flex: 0 0 auto;
+}
+
 /* Navigation. These hash links switch between editor screens without leaving
    the Flask page. The active route is set by JavaScript. */
 .editor-nav {
@@ -239,7 +279,7 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 999px;
   background: rgba(255, 253, 248, 0.78);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   backdrop-filter: blur(18px);
 }
 
@@ -284,7 +324,7 @@ h3 {
   color: var(--muted-strong);
   font-size: 14px;
   line-height: 1.45;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .status::before {
@@ -341,13 +381,26 @@ body[data-editor-dirty="true"] .status::before {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: rgba(255, 253, 248, 0.76);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   backdrop-filter: blur(12px);
 }
 
 .panel {
   margin-bottom: 28px;
   padding: clamp(18px, 2.5vw, 26px);
+}
+
+/* Generated content can contain long file paths, labels, or button rows. These
+   rules keep cards from forcing horizontal overflow or visually clipping their
+   first characters at narrow widths. */
+.panel,
+.image-card,
+.import-card,
+.category-row,
+.crop-editor-panel,
+.backup-card {
+  min-width: 0;
+  overflow: visible;
 }
 
 .panel-grid,
@@ -465,7 +518,7 @@ input[type="range"] {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface-strong);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .image-overview-thumb {
@@ -632,9 +685,11 @@ input[type="range"] {
 
 .image-overview-actions .button,
 .category-row-actions .button {
-  min-height: 34px;
-  padding: 0 11px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 13px;
   font-size: 12px;
+  line-height: 1;
 }
 
 .hero-target-control {
@@ -939,6 +994,16 @@ input[type="range"] {
 
 /* Responsive layout. On smaller screens the editor becomes single-column, the
    crop controls move below the preview, and sticky panels become normal blocks. */
+@media (max-width: 1100px) {
+  .header {
+    grid-template-columns: 1fr;
+  }
+
+  .header .actions {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 900px) {
   .header,
   .image-detail-header,
@@ -985,16 +1050,23 @@ input[type="range"] {
     border-radius: var(--radius-md);
   }
 
-  .editor-nav a,
-  .button {
+  .editor-nav a {
     width: 100%;
   }
 
+  .button {
+    white-space: normal;
+  }
+
   .actions .button,
+  .category-actions .button,
   .category-page-actions .button,
+  .category-row-actions .button,
+  .image-overview-actions .button,
   .crop-shortcuts .button,
   .mode-button-row .button {
     width: auto;
+    white-space: nowrap;
   }
 
   .framing-header,
