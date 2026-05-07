@@ -30,10 +30,28 @@ let state = {
 };
 
 let pendingImportItems = [];
+let hasUnsavedChanges = false;
 
 // Updates the short status message shown near the top of the editor.
-function setStatus(message) {
+// The optional state value controls the small status indicator color in CSS.
+function setStatus(message, statusState = "neutral") {
   elements.statusText.textContent = message;
+  elements.statusText.dataset.statusState = statusState;
+}
+
+// Tracks whether the visible editor data has changed since the last save.
+// This gives the user clearer feedback before leaving or reloading the editor.
+function setDirtyState(isDirty, message = null) {
+  hasUnsavedChanges = isDirty;
+  document.body.dataset.editorDirty = isDirty ? "true" : "false";
+
+  if (elements.saveButton) {
+    elements.saveButton.textContent = isDirty ? "Save Changes *" : "Save Changes";
+  }
+
+  if (message) {
+    setStatus(message, isDirty ? "warning" : "success");
+  }
 }
 
 // Updates the import workflow message shown below the import controls.
@@ -177,11 +195,12 @@ async function loadData() {
   const nextState = await loadDataApi();
 
   applyLoadedState(nextState);
-  setStatus(`Loaded ${state.images.length} images and ${state.categories.length} categories.`);
+  setDirtyState(false);
+  setStatus(`Loaded ${state.images.length} images and ${state.categories.length} categories.`, "success");
 }
 
 async function refreshBackups(message = "Backups refreshed.") {
-  setStatus("Loading backups...");
+  setStatus("Loading backups...", "neutral");
 
   const result = await listBackupsApi();
 
@@ -194,7 +213,7 @@ async function refreshBackups(message = "Backups refreshed.") {
 
   renderAll(state, elements, route);
   setEditorRoute(route);
-  setStatus(message);
+  setStatus(message, "success");
 }
 
 async function restoreBackup(backupFolder) {
@@ -206,21 +225,23 @@ async function restoreBackup(backupFolder) {
     return;
   }
 
-  setStatus("Restoring backup...");
+  setStatus("Restoring backup...", "neutral");
 
   const restoredData = await restoreBackupApi(backupFolder);
 
   applyLoadedState(restoredData);
-  setStatus(`Restored ${backupFolder}.${getBackupStatusText(restoredData)}`);
+  setDirtyState(false);
+  setStatus(`Restored ${backupFolder}.${getBackupStatusText(restoredData)}`, "success");
 }
 
 async function savePayload(payload) {
-  setStatus("Saving data...");
+  setStatus("Saving data...", "neutral");
 
   const savedData = await saveDataApi(payload);
 
   applyLoadedState(savedData);
-  setStatus(`Saved ${state.images.length} images and ${state.categories.length} categories.${getBackupStatusText(savedData)}`);
+  setDirtyState(false);
+  setStatus(`Saved ${state.images.length} images and ${state.categories.length} categories.${getBackupStatusText(savedData)}`, "success");
 }
 
 async function saveData() {
@@ -271,12 +292,13 @@ function getCropPageUpdatesFromDom() {
 async function saveCropPage() {
   const { imageId, updates } = getCropPageUpdatesFromDom();
 
-  setStatus("Saving crop settings...");
+  setStatus("Saving crop settings...", "neutral");
 
   const savedData = await saveImageUpdatesApi(imageId, updates);
 
   applyLoadedState(savedData);
-  setStatus(`Saved crop settings.${getBackupStatusText(savedData)}`);
+  setDirtyState(false);
+  setStatus(`Saved crop settings.${getBackupStatusText(savedData)}`, "success");
 }
 
 // Moves image cards in the DOM before the user saves the new order.
@@ -290,7 +312,7 @@ function moveGridCard(card, direction, successMessage) {
 
     if (parent) {
       parent.prepend(card);
-      setStatus(successMessage);
+      setDirtyState(true, successMessage);
     }
 
     return;
@@ -301,7 +323,7 @@ function moveGridCard(card, direction, successMessage) {
 
     if (previousCard) {
       card.parentElement.insertBefore(card, previousCard);
-      setStatus(successMessage);
+      setDirtyState(true, successMessage);
     }
 
     return;
@@ -312,7 +334,7 @@ function moveGridCard(card, direction, successMessage) {
 
     if (nextCard) {
       card.parentElement.insertBefore(nextCard, card);
-      setStatus(successMessage);
+      setDirtyState(true, successMessage);
     }
   }
 }
@@ -325,7 +347,7 @@ function moveCategoryRow(row, direction) {
 
   if (direction === "top") {
     elements.categoryList.prepend(row);
-    setStatus("Moved category to top. Click Save Category Settings to preserve it.");
+    setDirtyState(true, "Moved category to top. Click Save Category Settings to preserve it.");
     return;
   }
 
@@ -334,7 +356,7 @@ function moveCategoryRow(row, direction) {
 
     if (previousRow) {
       elements.categoryList.insertBefore(row, previousRow);
-      setStatus("Moved category up. Click Save Category Settings to preserve it.");
+      setDirtyState(true, "Moved category up. Click Save Category Settings to preserve it.");
     }
 
     return;
@@ -345,7 +367,7 @@ function moveCategoryRow(row, direction) {
 
     if (nextRow) {
       elements.categoryList.insertBefore(nextRow, row);
-      setStatus("Moved category down. Click Save Category Settings to preserve it.");
+      setDirtyState(true, "Moved category down. Click Save Category Settings to preserve it.");
     }
   }
 }
@@ -356,6 +378,7 @@ function prepareImportReview() {
 
   if (!elements.importFiles.files.length) {
     setImportSummary("Choose at least one image file first.");
+    setStatus("Choose at least one image file before preparing an import.", "warning");
     return;
   }
 
@@ -404,6 +427,7 @@ function prepareImportReview() {
 
   renderImportReview(state, elements, pendingImportItems);
   setImportSummary(`Prepared ${pendingImportItems.length} images for review.`);
+  setDirtyState(true, `Prepared ${pendingImportItems.length} images for review. Review each card, then save the import.`);
 }
 
 async function saveReviewedImport() {
@@ -412,7 +436,7 @@ async function saveReviewedImport() {
     return;
   }
 
-  setStatus("Importing reviewed images...");
+  setStatus("Importing reviewed images...", "neutral");
   setImportSummary("Copying files and saving JSON...");
 
   const formData = new FormData();
@@ -435,7 +459,8 @@ async function saveReviewedImport() {
 
   window.location.hash = "#/images";
 
-  setStatus(`Imported ${result.importedImages.length} images.${getBackupStatusText(result)}`);
+  setDirtyState(false);
+  setStatus(`Imported ${result.importedImages.length} images.${getBackupStatusText(result)}`, "success");
   setImportSummary(importedTitles);
 }
 
@@ -449,7 +474,7 @@ window.addEventListener("hashchange", () => {
   if (route.name === "backups") {
     refreshBackups().catch((error) => {
       console.error(error);
-      setStatus(error.message);
+      setStatus(error.message, "error");
     });
   }
 });
@@ -468,13 +493,14 @@ elements.addCategoryButton.addEventListener("click", () => {
     label: label.trim()
   });
 
+  setDirtyState(true, "Added category. Click Save Category Settings to preserve it.");
   rerenderCurrentRoute();
 });
 
 elements.saveCategorySettingsButton.addEventListener("click", () => {
   saveData().catch((error) => {
     console.error(error);
-    setStatus(error.message);
+    setStatus(error.message, "error");
   });
 });
 
@@ -549,6 +575,7 @@ elements.categoryList.addEventListener("click", (event) => {
     };
   });
 
+  setDirtyState(true, "Removed category. Click Save JSON to preserve it.");
   rerenderCurrentRoute();
 });
 
@@ -556,13 +583,20 @@ elements.categoryList.addEventListener("click", (event) => {
 elements.editorList.addEventListener("input", (event) => {
   const slider = event.target.closest("[data-position-axis]");
   const gallerySizeRange = event.target.closest("[data-gallery-size-range]");
+  const editableField = event.target.closest("[data-field], [data-category-field]");
 
   if (slider) {
     updateFramingControl(slider);
+    setDirtyState(true, "Preview updated. Save the crop or JSON to keep this change.");
   }
 
   if (gallerySizeRange) {
     updateGallerySizeControl(gallerySizeRange);
+    setDirtyState(true, "Gallery size updated. Click Save Changes or Save Crop to preserve it.");
+  }
+
+  if (editableField && !slider && !gallerySizeRange) {
+    setDirtyState(true, "Unsaved changes. Click Save Changes to preserve them.");
   }
 });
 
@@ -570,13 +604,15 @@ elements.editorList.addEventListener("input", (event) => {
 elements.editorList.addEventListener("change", (event) => {
   const cropSetting = event.target.closest("[data-crop-setting]");
   const imageEditorSetting = event.target.closest('[data-field="galleryFrameStyle"], [data-field="galleryFitMode"], [data-field="heroFrameStyle"], [data-field="heroFitMode"]');
+  const editableField = event.target.closest("[data-field], [data-category-field]");
 
-  if (!cropSetting && !imageEditorSetting) {
+  if (!cropSetting && !imageEditorSetting && !editableField) {
     return;
   }
 
   updateStateFromCurrentDom();
-  rerenderCurrentRoute("Preview updated. Click Save JSON or Save Crop to preserve it.");
+  setDirtyState(true, "Preview updated. Click Save Changes or Save Crop to preserve it.");
+  rerenderCurrentRoute();
 });
 
 elements.importReviewList.addEventListener("input", (event) => {
@@ -584,7 +620,11 @@ elements.importReviewList.addEventListener("input", (event) => {
 
   if (slider) {
     updateFramingControl(slider);
+    setDirtyState(true, "Import crop preview updated. Save the reviewed import to keep it.");
+    return;
   }
+
+  setDirtyState(true, "Import review has unsaved changes. Save the reviewed import to keep it.");
 });
 
 // Handles backup page actions separately from image editor actions.
@@ -595,7 +635,7 @@ elements.backupList?.addEventListener("click", (event) => {
   if (refreshButton) {
     refreshBackups().catch((error) => {
       console.error(error);
-      setStatus(error.message);
+      setStatus(error.message, "error");
     });
     return;
   }
@@ -609,7 +649,7 @@ elements.backupList?.addEventListener("click", (event) => {
 
     restoreBackup(backupFolder).catch((error) => {
       console.error(error);
-      setStatus(error.message);
+      setStatus(error.message, "error");
     });
   }
 });
@@ -635,7 +675,8 @@ elements.editorList.addEventListener("click", (event) => {
     if (input && value) {
       input.value = value;
       updateStateFromCurrentDom();
-      rerenderCurrentRoute("Crop preview updated. Click Save Crop to preserve it.");
+      setDirtyState(true, "Crop preview updated. Click Save Crop to preserve it.");
+      rerenderCurrentRoute();
     }
 
     return;
@@ -662,7 +703,7 @@ elements.editorList.addEventListener("click", (event) => {
 
     if (card) {
       card.remove();
-      setStatus("Removed image from hero slideshow. Click Save Hero Order to preserve it.");
+      setDirtyState(true, "Removed image from hero slideshow. Click Save Hero Order to preserve it.");
     }
 
     return;
@@ -671,7 +712,7 @@ elements.editorList.addEventListener("click", (event) => {
   if (saveCropButton) {
     saveCropPage().catch((error) => {
       console.error(error);
-      setStatus(error.message);
+      setStatus(error.message, "error");
     });
 
     return;
@@ -680,7 +721,7 @@ elements.editorList.addEventListener("click", (event) => {
   if (saveCategoryOrderButton || saveHeroOrderButton) {
     saveData().catch((error) => {
       console.error(error);
-      setStatus(error.message);
+      setStatus(error.message, "error");
     });
 
     return;
@@ -689,7 +730,7 @@ elements.editorList.addEventListener("click", (event) => {
   if (saveButton) {
     saveData().catch((error) => {
       console.error(error);
-      setStatus(error.message);
+      setStatus(error.message, "error");
     });
 
     return;
@@ -718,7 +759,7 @@ elements.editorList.addEventListener("click", (event) => {
       window.location.hash = "#/images";
     }).catch((error) => {
       console.error(error);
-      setStatus(error.message);
+      setStatus(error.message, "error");
     });
   }
 });
@@ -730,7 +771,7 @@ elements.prepareImportButton.addEventListener("click", () => {
 elements.saveReviewedImportButton.addEventListener("click", () => {
   saveReviewedImport().catch((error) => {
     console.error(error);
-    setStatus(error.message);
+    setStatus(error.message, "error");
     setImportSummary(error.message);
   });
 });
@@ -742,7 +783,7 @@ elements.clearImportReviewButton.addEventListener("click", () => {
 elements.saveButton.addEventListener("click", () => {
   saveData().catch((error) => {
     console.error(error);
-    setStatus(error.message);
+    setStatus(error.message, "error");
   });
 });
 
@@ -751,8 +792,18 @@ elements.reloadButton.addEventListener("click", () => {
 
   loadData().catch((error) => {
     console.error(error);
-    setStatus(error.message);
+    setStatus(error.message, "error");
   });
+});
+
+// Warn before closing or refreshing if the user has unsaved editor changes.
+window.addEventListener("beforeunload", (event) => {
+  if (!hasUnsavedChanges) {
+    return;
+  }
+
+  event.preventDefault();
+  event.returnValue = "";
 });
 
 // Start the editor by selecting the initial route and loading JSON data.
@@ -766,5 +817,5 @@ loadData().then(() => {
   return null;
 }).catch((error) => {
   console.error(error);
-  setStatus(error.message);
+  setStatus(error.message, "error");
 });

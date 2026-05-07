@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taylor Pike Portfolio Editor</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=10" />
-  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=11"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=12" />
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=12"></script>
 </head>
 
 <body>
@@ -14,16 +14,15 @@
     <header class="header">
       <div>
         <p class="eyebrow">Local Editor</p>
-        <h1>Image data editor</h1>
+        <h1>Portfolio control room</h1>
         <p class="intro">
-          This local editor reads and writes the JSON data files used by the portfolio.
-          Images can be browsed from a grid, edited individually, and ordered by category hierarchy.
+          Manage portfolio images, hero slides, virtual gallery framing, imports, categories, and restore points from one local dashboard.
         </p>
       </div>
 
       <div class="actions">
-        <button class="button" type="button" id="reloadButton">Reload</button>
-        <button class="button primary" type="button" id="saveButton">Save JSON</button>
+        <button class="button" type="button" id="reloadButton">Reload Data</button>
+        <button class="button primary" type="button" id="saveButton">Save Changes</button>
       </div>
     </header>
 
@@ -35,7 +34,7 @@
       <a href="#/backups" data-editor-route-link="backups">Backups</a>
     </nav>
 
-    <p class="status" id="statusText">Loading data...</p>
+    <p class="status" id="statusText" data-status-state="neutral">Loading data...</p>
 
     <!-- Images page: populated dynamically by render.js based on the active route. -->
     <section class="editor-page-section" data-editor-page="images">
