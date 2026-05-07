@@ -1,3 +1,9 @@
+"""Read, normalize, and write the portfolio JSON data files.
+
+The Flask editor uses this module as the single place where raw browser input is
+cleaned before it reaches the source JSON files used by the public Vite site.
+"""
+
 from __future__ import annotations
 
 import json
@@ -23,6 +29,7 @@ DEFAULT_CATEGORIES = [
 ]
 
 
+# Reads a JSON file from disk and returns an empty list when the file does not exist yet.
 def read_json(path: Path) -> Any:
     if not path.exists():
         return []
@@ -31,6 +38,7 @@ def read_json(path: Path) -> Any:
         return json.load(file)
 
 
+# Writes normalized JSON with stable indentation so diffs stay readable.
 def write_json(path: Path, data: Any) -> None:
     path.write_text(
         json.dumps(data, indent=2, ensure_ascii=False) + "\n",
@@ -38,6 +46,7 @@ def write_json(path: Path, data: Any) -> None:
     )
 
 
+# Cleans category records and guarantees each category has a unique ID.
 def normalize_categories(raw_categories: list[Any]) -> list[dict[str, str]]:
     categories: list[dict[str, str]] = []
     used_ids: set[str] = set()
@@ -68,6 +77,7 @@ def normalize_categories(raw_categories: list[Any]) -> list[dict[str, str]]:
     return categories
 
 
+# Converts incoming values into positive integers for image dimensions.
 def clean_positive_int(value: Any) -> int | None:
     try:
         number = int(float(value))
@@ -80,6 +90,7 @@ def clean_positive_int(value: Any) -> int | None:
     return number
 
 
+# Converts incoming values into positive floats for aspect ratios and sizes.
 def clean_positive_float(value: Any) -> float | None:
     try:
         number = float(value)
@@ -92,6 +103,7 @@ def clean_positive_float(value: Any) -> float | None:
     return round(number, 6)
 
 
+# Keeps virtual gallery frame size inside the allowed editor range.
 def clean_gallery_size(value: Any) -> float:
     try:
         size = float(value)
@@ -104,6 +116,7 @@ def clean_gallery_size(value: Any) -> float:
     return round(min(1.35, max(0.55, size)), 3)
 
 
+# Infers image orientation from measured pixel dimensions.
 def get_orientation_from_dimensions(width: int | None, height: int | None) -> str | None:
     if not width or not height:
         return None
@@ -119,6 +132,7 @@ def get_orientation_from_dimensions(width: int | None, height: int | None) -> st
     return "portrait"
 
 
+# Uses a valid saved orientation or falls back to measured dimensions.
 def normalize_orientation(value: Any, width: int | None, height: int | None) -> str | None:
     orientation = clean_string(value)
 
@@ -128,6 +142,7 @@ def normalize_orientation(value: Any, width: int | None, height: int | None) -> 
     return get_orientation_from_dimensions(width, height)
 
 
+# Normalizes virtual gallery fit mode to cover or contain.
 def normalize_gallery_fit_mode(value: Any) -> str:
     fit_mode = clean_string(value)
 
@@ -137,6 +152,7 @@ def normalize_gallery_fit_mode(value: Any) -> str:
     return "cover"
 
 
+# Normalizes hero fit mode to cover or contain.
 def normalize_hero_fit_mode(value: Any) -> str:
     fit_mode = clean_string(value)
 
@@ -146,6 +162,7 @@ def normalize_hero_fit_mode(value: Any) -> str:
     return "cover"
 
 
+# Normalizes frame style to auto, landscape, portrait, or square.
 def normalize_frame_style(value: Any) -> str:
     frame_style = clean_string(value)
 
@@ -155,6 +172,7 @@ def normalize_frame_style(value: Any) -> str:
     return "auto"
 
 
+# Cleans one image record and preserves only supported fields.
 def normalize_image(
     raw_image: dict[str, Any],
     valid_category_ids: set[str],
@@ -219,6 +237,7 @@ def normalize_image(
     return image
 
 
+# Cleans one hero slide record and validates its target category.
 def normalize_hero_slide(
     raw_slide: dict[str, Any],
     valid_category_ids: set[str],
@@ -235,6 +254,7 @@ def normalize_hero_slide(
     }
 
 
+# Reads all JSON data files and returns normalized categories, images, and hero slides.
 def get_current_data() -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]]:
     categories = read_json(CATEGORIES_PATH)
 
@@ -268,6 +288,7 @@ def get_current_data() -> tuple[list[dict[str, str]], list[dict[str, Any]], list
     return categories, images, hero_slides
 
 
+# Saves the entire editor state after normalizing categories, images, and hero slides.
 def save_full_data(
     raw_categories: list[Any],
     raw_images: list[Any],
@@ -320,6 +341,7 @@ DIRECT_IMAGE_UPDATE_FIELDS = {
 }
 
 
+# Cleans the limited set of fields that can be saved from crop/detail pages.
 def normalize_direct_image_updates(raw_updates: dict[str, Any]) -> dict[str, Any]:
     updates: dict[str, Any] = {}
 
@@ -356,6 +378,7 @@ def normalize_direct_image_updates(raw_updates: dict[str, Any]) -> dict[str, Any
     return updates
 
 
+# Updates one image record without rewriting data from hidden editor pages.
 def save_image_updates(image_id: str, raw_updates: dict[str, Any]) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], dict[str, Any]]:
     """Update one image record and persist the normalized JSON files.
 

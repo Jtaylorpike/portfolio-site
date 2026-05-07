@@ -25,10 +25,12 @@ type ResolvedHeroSlide = {
   image: GalleryImage;
 };
 
+// Looks up a portfolio image by the ID stored in JSON.
 function getImageById(imageId: string): GalleryImage | undefined {
   return galleryImages.find((image) => image.id === imageId);
 }
 
+// Combines hero slide records with their full image records.
 function getResolvedHeroSlides(): ResolvedHeroSlide[] {
   // heroSlides.json stores image IDs instead of full image objects. This resolves
   // those IDs so the hero can read each image's source, category, crop, and fit data.
@@ -49,6 +51,7 @@ function getResolvedHeroSlides(): ResolvedHeroSlide[] {
     .filter((slide): slide is ResolvedHeroSlide => slide !== null);
 }
 
+// Chooses the initial hero slide and falls back to the first image if needed.
 function getFirstHeroSlide(): ResolvedHeroSlide {
   const firstSlide = getResolvedHeroSlides()[0];
 
@@ -69,6 +72,7 @@ function getFirstHeroSlide(): ResolvedHeroSlide {
   };
 }
 
+// Filters portfolio images for the selected category route.
 function getImagesForCategory(category: PortfolioCategoryFilter): GalleryImage[] {
   if (category === 'all') {
     return galleryImages;
@@ -77,6 +81,7 @@ function getImagesForCategory(category: PortfolioCategoryFilter): GalleryImage[]
   return galleryImages.filter((image) => image.category === category);
 }
 
+// Builds the shared top navigation shown on every traditional website page.
 function renderTopNav(activePage: PageName): string {
   return `
     <header class="modern-header">
@@ -95,6 +100,7 @@ function renderTopNav(activePage: PageName): string {
   `;
 }
 
+// Builds one hero slide using the stable layer, frame, and image structure.
 function renderHeroImageLayer(image: GalleryImage, extraClassName = ''): string {
   // A hero slide is a layer containing a frame containing an image. The layer
   // covers the whole 16:9 hero stage. The frame controls the crop shape in cover
@@ -124,6 +130,7 @@ function renderHeroImageLayer(image: GalleryImage, extraClassName = ''): string 
   `;
 }
 
+// Builds the home-page hero carousel shell and click targets.
 function renderHomeHeroSlideshow(): string {
   const firstSlide = getFirstHeroSlide();
   const categoryLabel = getCategoryLabel(firstSlide.targetCategory);
@@ -165,6 +172,7 @@ function renderHomeHeroSlideshow(): string {
   `;
 }
 
+// Builds the masonry-style portfolio grid for the selected category.
 function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): string {
   const images = getImagesForCategory(initialCategory);
   const cards = images
@@ -204,6 +212,7 @@ function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): 
   `;
 }
 
+// Builds the portfolio category filter buttons.
 function renderCategoryButtons(initialCategory: PortfolioCategoryFilter): string {
   const categoryButtons = portfolioCategories
     .map((category) => {
@@ -226,6 +235,7 @@ function renderCategoryButtons(initialCategory: PortfolioCategoryFilter): string
   `;
 }
 
+// Builds the first landing screen that lets visitors choose website or virtual gallery.
 export function renderEntryPage(): string {
   return `
     <main class="entry-page modern-entry-page" data-page="entry">
@@ -249,6 +259,7 @@ export function renderEntryPage(): string {
   `;
 }
 
+// Builds the traditional website home page.
 export function renderHomePage(): string {
   return `
     <div class="modern-site" data-page="home">
@@ -275,6 +286,7 @@ export function renderHomePage(): string {
   `;
 }
 
+// Builds the portfolio page with sidebar filters and image grid.
 export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = 'all'): string {
   return `
     <div class="modern-site" data-page="portfolio">
@@ -294,6 +306,7 @@ export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = '
   `;
 }
 
+// Builds the about/contact page.
 export function renderAboutPage(): string {
   return `
     <div class="modern-site" data-page="about">

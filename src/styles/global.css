@@ -915,63 +915,6 @@ button:focus-visible {
   }
 }
 
-/* Carousel transition polish */
-
-.home-hero-image-shell img,
-.home-hero-meta,
-.modern-carousel-frame img,
-.modern-carousel-meta {
-  transition: opacity 160ms ease;
-}
-
-.home-hero-slideshow.is-transitioning .home-hero-image-shell img,
-.home-hero-slideshow.is-transitioning .home-hero-meta,
-.modern-carousel.is-transitioning .modern-carousel-frame img,
-.modern-carousel.is-transitioning .modern-carousel-meta {
-  opacity: 0;
-}
-/* Softer carousel transition override */
-
-.home-hero-meta,
-.modern-carousel-meta {
-  transition: none !important;
-}
-
-.home-hero-image-shell img,
-.modern-carousel-frame img {
-  transition: opacity 85ms ease-out !important;
-}
-
-.home-hero-slideshow.is-transitioning .home-hero-image-shell img,
-.modern-carousel.is-transitioning .modern-carousel-frame img {
-  opacity: 0.86 !important;
-}
-
-.home-hero-slideshow.is-transitioning .home-hero-meta,
-.modern-carousel.is-transitioning .modern-carousel-meta {
-  opacity: 1 !important;
-}
-
-/* Smoother carousel transition override */
-
-.home-hero-image-shell img,
-.modern-carousel-frame img {
-  transition: opacity 180ms ease-in-out !important;
-}
-
-.home-hero-slideshow.is-transitioning .home-hero-image-shell img,
-.modern-carousel.is-transitioning .modern-carousel-frame img {
-  opacity: 0.92 !important;
-}
-
-.home-hero-meta,
-.modern-carousel-meta,
-.home-hero-slideshow.is-transitioning .home-hero-meta,
-.modern-carousel.is-transitioning .modern-carousel-meta {
-  opacity: 1 !important;
-  transition: none !important;
-}
-
 /* Portfolio cascading gallery override */
 
 .home-hero-meta,
@@ -1040,36 +983,6 @@ button:focus-visible {
     columns: 1;
   }
 }
-/* Hero crossfade refinement */
-
-.home-hero-transition-image {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 360ms ease-in-out;
-}
-
-.home-hero-transition-image.is-visible {
-  opacity: 1;
-}
-
-/* Disable older hero opacity-transition overrides. */
-.home-hero-slideshow.is-transitioning .home-hero-image-shell img,
-.home-hero-image-shell img {
-  opacity: 1 !important;
-}
-
-/* Slower hero crossfade override */
-
-.home-hero-transition-image {
-  transition: opacity 650ms cubic-bezier(0.22, 1, 0.36, 1) !important;
-}
-
 /* Dev image editor */
 
 .image-editor-main {
@@ -1217,146 +1130,27 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
-/* Public home hero slideshow: stable layer and frame model
+/* Public home hero framing system.
 
-   The home hero is a fixed 16:9 stage. Each slide is rendered as a full-size
-   layer that contains a frame, and the frame contains the image. This separates
-   three concerns that should not be mixed together:
-   1. The layer covers the whole hero area and controls crossfades.
-   2. The frame decides whether the slide is landscape, portrait, or square.
-   3. The image decides whether it crops to the frame or fits entirely inside it.
-
-   Keeping these pieces separate prevents portrait slides from showing the old
-   image in the side gutters during fades, and it makes the editor preview match
-   the public carousel more reliably.
+   This section is intentionally separate from the basic home-page layout above.
+   The hero carousel uses a three-part structure: stage -> slide layer -> image frame -> image.
+   The stage stays 16:9. The frame can become landscape, portrait, or square.
+   The image itself is absolutely pinned to the frame so object-fit and object-position
+   behave consistently in the browser.
 */
-.home-hero-image-shell {
-  isolation: isolate;
-  background: var(--surface);
-}
-
-.home-hero-image-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: var(--surface);
-}
-
-.home-hero-image-frame {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: var(--surface);
-}
-
-.home-hero-image-layer[data-hero-frame-style='portrait'] .home-hero-image-frame {
-  width: auto;
-  height: 100%;
-  max-width: 100%;
-  aspect-ratio: 2 / 3;
-}
-
-.home-hero-image-layer[data-hero-frame-style='square'] .home-hero-image-frame {
-  width: auto;
-  height: 100%;
-  max-width: 100%;
-  aspect-ratio: 1 / 1;
-}
-
-.home-hero-image-layer[data-hero-frame-style='landscape'] .home-hero-image-frame {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: auto;
-}
-
-.home-hero-image-layer .home-hero-image {
-  display: block !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  padding: 0 !important;
-  opacity: 1;
-  transition: none !important;
-}
-
-.home-hero-image-layer[data-hero-fit-mode='cover'] .home-hero-image {
-  object-fit: cover !important;
-}
-
-.home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image {
-  object-fit: contain !important;
-}
-
-.home-hero-transition-layer {
-  z-index: 2;
-  pointer-events: none;
-}
-
-/*
-   Landscape cover slides fill the whole 16:9 stage, so the entire layer can
-   fade in normally. The image itself does not need a separate opacity change.
-*/
-.home-hero-transition-layer[data-hero-frame-style='landscape'][data-hero-fit-mode='cover'] {
-  opacity: 0;
-  transition: opacity 650ms cubic-bezier(0.22, 1, 0.36, 1) !important;
-}
-
-.home-hero-transition-layer[data-hero-frame-style='landscape'][data-hero-fit-mode='cover'].is-visible {
-  opacity: 1;
-}
-
-.home-hero-transition-layer[data-hero-frame-style='landscape'][data-hero-fit-mode='cover'] .home-hero-image {
-  opacity: 1 !important;
-}
-
-/*
-   Portrait, square, and contain-mode slides have visible empty space around the
-   image. Their layer background becomes opaque immediately so the outgoing slide
-   cannot show through that space; only the incoming image fades in.
-*/
-.home-hero-transition-layer:not([data-hero-frame-style='landscape']),
-.home-hero-transition-layer[data-hero-fit-mode='contain'] {
-  opacity: 1;
-}
-
-.home-hero-transition-layer:not([data-hero-frame-style='landscape']) .home-hero-image,
-.home-hero-transition-layer[data-hero-fit-mode='contain'] .home-hero-image {
-  opacity: 0 !important;
-  transition: opacity 650ms cubic-bezier(0.22, 1, 0.36, 1) !important;
-}
-
-.home-hero-transition-layer:not([data-hero-frame-style='landscape']).is-visible .home-hero-image,
-.home-hero-transition-layer[data-hero-fit-mode='contain'].is-visible .home-hero-image {
-  opacity: 1 !important;
-}
-
-.home-hero-click-zone {
-  z-index: 4;
-}
-
-.home-hero-center-link {
-  z-index: 3;
-}
-
-/* Final public hero framing rules.
-   These rules define the stable three-part layout used by the home carousel:
-   stage -> slide layer -> image frame -> image. Inline styles generated by
-   heroFraming.ts carry the exact fit and crop values for each image; these CSS
-   rules provide the structural layout and transition behavior. */
 .home-hero-image-shell {
   position: relative !important;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
   overflow: hidden !important;
   border: 0 !important;
   background: var(--surface) !important;
   isolation: isolate !important;
 }
 
+/* Each slide layer covers the complete 16:9 stage. The controller fades layers
+   in and out without changing the layout of the outgoing slide. */
 .home-hero-image-layer {
   position: absolute !important;
   inset: 0 !important;
@@ -1367,13 +1161,19 @@ button:focus-visible {
   background: var(--surface) !important;
 }
 
+/* The image frame is the visible crop box. Inline styles from heroFraming.ts
+   set the exact frame shape for landscape, portrait, square, and contain mode. */
 .home-hero-image-frame {
-  display: grid !important;
-  place-items: center !important;
+  position: relative !important;
+  display: block !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
   overflow: hidden !important;
   background: var(--surface) !important;
 }
 
+/* Fit Entire Image always uses the full 16:9 stage. The portrait/square frame
+   setting only affects cover mode, where the image is intentionally cropped. */
 .home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image-frame {
   width: 100% !important;
   height: 100% !important;
@@ -1382,25 +1182,37 @@ button:focus-visible {
   aspect-ratio: auto !important;
 }
 
-.home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image {
+/* The actual image is pinned to the frame. This was the critical fix: without
+   absolute sizing, the image could keep its natural height and appear cropped
+   even when object-fit: contain was applied. */
+.home-hero-image-layer .home-hero-image {
+  position: absolute !important;
+  inset: 0 !important;
   display: block !important;
   width: 100% !important;
   height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
   max-width: none !important;
   max-height: none !important;
+  padding: 0 !important;
+  opacity: 1;
+  transition: none !important;
+}
+
+/* Cover mode allows cropping. object-position comes from the editor's X/Y crop sliders. */
+.home-hero-image-layer[data-hero-fit-mode='cover'] .home-hero-image {
+  object-fit: cover !important;
+}
+
+/* Contain mode shows the whole image and ignores crop position because no crop exists. */
+.home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image {
   object-fit: contain !important;
   object-position: 50% 50% !important;
 }
 
-.home-hero-image-layer[data-hero-fit-mode='cover'] .home-hero-image {
-  display: block !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  object-fit: cover !important;
-}
-
+/* Transition layers sit above the base layer during crossfade, then get removed
+   by siteInteractionsController.ts after the fade finishes. */
 .home-hero-transition-layer {
   z-index: 2 !important;
   pointer-events: none !important;
@@ -1412,57 +1224,11 @@ button:focus-visible {
   opacity: 1 !important;
 }
 
+/* Controls stay above the visual slide layers so clicks always reach them. */
 .home-hero-click-zone {
   z-index: 4 !important;
 }
 
 .home-hero-center-link {
   z-index: 3 !important;
-}
-
-/* Definitive hero image sizing override.
-
-   Replaced images have browser-specific sizing behavior when they sit directly
-   inside CSS grid containers. In this carousel the image must be the same size
-   as its frame so object-fit can do the real work. Positioning the image
-   absolutely inside the frame makes the math deterministic:
-   - the frame chooses the visible rectangle;
-   - object-fit: cover crops within that rectangle;
-   - object-fit: contain shows the full image within that rectangle;
-   - object-position moves the crop only when cover mode is active.
-*/
-.home-hero-image-frame {
-  position: relative !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-}
-
-.home-hero-image-layer .home-hero-image {
-  position: absolute !important;
-  inset: 0 !important;
-  display: block !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  max-width: none !important;
-  max-height: none !important;
-  padding: 0 !important;
-}
-
-.home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image-frame {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  aspect-ratio: auto !important;
-}
-
-.home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image {
-  object-fit: contain !important;
-  object-position: 50% 50% !important;
-}
-
-.home-hero-image-layer[data-hero-fit-mode='cover'] .home-hero-image {
-  object-fit: cover !important;
 }

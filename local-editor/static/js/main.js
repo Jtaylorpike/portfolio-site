@@ -1,3 +1,6 @@
+// Main controller for the local image editor.
+// It owns routing, in-memory state, save actions, import workflow, and event delegation.
+
 import { importReviewedImagesApi, loadDataApi, saveDataApi, saveImageUpdatesApi } from "./api.js";
 import { elements } from "./dom.js";
 import { collectEditorData, collectImportReviewRecords } from "./collect.js";
@@ -20,14 +23,17 @@ let state = {
 
 let pendingImportItems = [];
 
+// Updates the short status message shown near the top of the editor.
 function setStatus(message) {
   elements.statusText.textContent = message;
 }
 
+// Updates the import workflow message shown below the import controls.
 function setImportSummary(message) {
   elements.importSummary.textContent = message;
 }
 
+// Parses the hash URL into an editor route object.
 function getCurrentRoute() {
   const rawRoute = window.location.hash.replace(/^#\/?/, "");
   const routeParts = rawRoute.split("/");
@@ -80,6 +86,7 @@ function getCurrentRoute() {
   };
 }
 
+// Shows the correct editor page and highlights the matching nav item.
 function setEditorRoute(route = getCurrentRoute()) {
   elements.editorPages.forEach((page) => {
     page.classList.toggle("is-active", page.dataset.editorPage === route.page);
@@ -94,6 +101,7 @@ function setEditorRoute(route = getCurrentRoute()) {
   }
 }
 
+// Stores data returned by the backend and re-renders the current editor route.
 function applyLoadedState(nextState) {
   state = {
     categories: nextState.categories ?? [],
@@ -107,6 +115,7 @@ function applyLoadedState(nextState) {
   setEditorRoute(route);
 }
 
+// Refreshes in-memory state from the currently visible editor forms.
 function updateStateFromCurrentDom() {
   const nextState = collectEditorData(state);
 
@@ -117,6 +126,7 @@ function updateStateFromCurrentDom() {
   };
 }
 
+// Rebuilds the current editor screen after state changes.
 function rerenderCurrentRoute(message) {
   const route = getCurrentRoute();
 
@@ -128,6 +138,7 @@ function rerenderCurrentRoute(message) {
   }
 }
 
+// Clears temporary browser preview URLs and resets the import review UI.
 function clearPendingImportItems() {
   pendingImportItems.forEach((item) => {
     URL.revokeObjectURL(item.previewUrl);
@@ -161,6 +172,7 @@ async function saveData() {
   await savePayload(collectEditorData(state));
 }
 
+// Reads only the crop/framing controls from the open crop page.
 function getCropPageUpdatesFromDom() {
   const cropEditor = document.querySelector("[data-crop-editor]");
 
@@ -212,6 +224,7 @@ async function saveCropPage() {
   setStatus("Saved crop settings.");
 }
 
+// Moves image cards in the DOM before the user saves the new order.
 function moveGridCard(card, direction, successMessage) {
   if (!card) {
     return;
@@ -249,6 +262,7 @@ function moveGridCard(card, direction, successMessage) {
   }
 }
 
+// Moves category rows in the DOM before saving category order.
 function moveCategoryRow(row, direction) {
   if (!row) {
     return;
@@ -281,6 +295,7 @@ function moveCategoryRow(row, direction) {
   }
 }
 
+// Creates editable preview records for selected image files before import.
 function prepareImportReview() {
   state = collectEditorData(state);
 
@@ -369,6 +384,7 @@ async function saveReviewedImport() {
   setImportSummary(importedTitles);
 }
 
+// Re-render the editor when the hash route changes, such as moving from Images to Import.
 window.addEventListener("hashchange", () => {
   const route = getCurrentRoute();
 
@@ -474,6 +490,7 @@ elements.categoryList.addEventListener("click", (event) => {
   rerenderCurrentRoute();
 });
 
+// Live-preview slider changes without saving them yet.
 elements.editorList.addEventListener("input", (event) => {
   const slider = event.target.closest("[data-position-axis]");
   const gallerySizeRange = event.target.closest("[data-gallery-size-range]");
@@ -487,6 +504,7 @@ elements.editorList.addEventListener("input", (event) => {
   }
 });
 
+// Re-render preview sections when fit/frame dropdowns change.
 elements.editorList.addEventListener("change", (event) => {
   const cropSetting = event.target.closest("[data-crop-setting]");
   const imageEditorSetting = event.target.closest('[data-field="galleryFrameStyle"], [data-field="galleryFitMode"], [data-field="heroFrameStyle"], [data-field="heroFitMode"]');
@@ -507,6 +525,7 @@ elements.importReviewList.addEventListener("input", (event) => {
   }
 });
 
+// Route clicks inside the dynamic editor list to the correct action handler.
 elements.editorList.addEventListener("click", (event) => {
   const cropSettingButton = event.target.closest("[data-set-crop-setting]");
   const categoryMoveButton = event.target.closest("[data-move-category-image]");
@@ -647,6 +666,7 @@ elements.reloadButton.addEventListener("click", () => {
   });
 });
 
+// Start the editor by selecting the initial route and loading JSON data.
 setEditorRoute();
 
 loadData().catch((error) => {

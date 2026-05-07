@@ -1,5 +1,9 @@
+// DOM-to-JSON collector for the local image editor.
+// It reads visible form controls and converts them into data records that Flask can save.
+
 import { getFallbackCategoryId, slugify } from "./utils.js";
 
+// Reads a field value from one editor card and trims it for JSON output.
 export function getFieldValue(card, field) {
   const input = card.querySelector(`[data-field="${field}"]`);
   return String(input?.value ?? "").trim();
@@ -10,11 +14,13 @@ export function getImportFieldValue(card, field) {
   return String(input?.value ?? "").trim();
 }
 
+// Reads a checkbox state when a card uses boolean controls.
 export function getCheckboxValue(card, field) {
   const input = card.querySelector(`[data-field="${field}"]`);
   return Boolean(input?.checked);
 }
 
+// Collects category rows from the category settings page.
 export function collectCategories() {
   const rows = Array.from(document.querySelectorAll("[data-category-row]"));
 
@@ -244,6 +250,7 @@ function collectHeroPageOrder(categories) {
     .filter(Boolean);
 }
 
+// Builds the full JSON payload for normal Save JSON actions.
 export function collectEditorData(state) {
   const categories = collectCategories();
   const validCategoryIds = new Set(categories.map((category) => category.id));
@@ -313,6 +320,7 @@ export function collectEditorData(state) {
   };
 }
 
+// Builds image metadata records for files waiting to be imported.
 export function collectImportReviewRecords(state) {
   const cards = Array.from(document.querySelectorAll("[data-import-card]"));
   const categories = collectCategories();

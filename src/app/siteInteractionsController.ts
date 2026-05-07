@@ -36,10 +36,12 @@ const HERO_INPUT_COOLDOWN_MS = 180;
 
 const heroTransitionStates = new WeakMap<HTMLElement, HeroTransitionState>();
 
+// Looks up a portfolio image by ID for hero slides and lightbox actions.
 function getImageById(imageId: string): GalleryImage | undefined {
   return galleryImages.find((image) => image.id === imageId);
 }
 
+// Converts hero slide JSON records into render-ready slide objects.
 function getResolvedHeroSlides(): ResolvedHeroSlide[] {
   return heroSlides
     .map((slide) => {
@@ -58,6 +60,7 @@ function getResolvedHeroSlides(): ResolvedHeroSlide[] {
     .filter((slide): slide is ResolvedHeroSlide => slide !== null);
 }
 
+// Stores transition timing data for one hero slideshow element.
 function getHeroTransitionState(slideshow: HTMLElement): HeroTransitionState {
   let state = heroTransitionStates.get(slideshow);
 
@@ -75,6 +78,7 @@ function getHeroTransitionState(slideshow: HTMLElement): HeroTransitionState {
   return state;
 }
 
+// Reads the current hero index and returns the matching slide.
 function getCurrentHeroSlide(slideshow: HTMLElement): ResolvedHeroSlide | null {
   const slides = getResolvedHeroSlides();
 
@@ -90,6 +94,7 @@ function getCurrentHeroSlide(slideshow: HTMLElement): ResolvedHeroSlide | null {
   return slides[safeIndex];
 }
 
+// Temporarily disables or enables hero navigation buttons during transitions.
 function setHeroNavigationEnabled(slideshow: HTMLElement, isEnabled: boolean): void {
   slideshow.querySelectorAll<HTMLButtonElement>('[data-hero-prev], [data-hero-next]').forEach((button) => {
     button.disabled = !isEnabled;
@@ -98,6 +103,7 @@ function setHeroNavigationEnabled(slideshow: HTMLElement, isEnabled: boolean): v
   slideshow.dataset.heroTransitioning = isEnabled ? 'false' : 'true';
 }
 
+// Creates the incoming slide layer used during crossfade.
 function createTransitionLayer(image: GalleryImage): { layerElement: HTMLElement; imageElement: HTMLImageElement } {
   // The temporary layer uses the same DOM structure and inline styles as the
   // permanent layer. That keeps crossfades visually identical to the final slide.
@@ -126,6 +132,7 @@ function createTransitionLayer(image: GalleryImage): { layerElement: HTMLElement
   return { layerElement, imageElement };
 }
 
+// Updates the center hero link so it routes to the active slide category.
 function updateHeroLink(slideshow: HTMLElement, slide: ResolvedHeroSlide): void {
   const categoryLabel = getCategoryLabel(slide.targetCategory);
   const linkElement = slideshow.querySelector<HTMLAnchorElement>('[data-hero-link]');
@@ -144,6 +151,7 @@ function updateHeroLink(slideshow: HTMLElement, slide: ResolvedHeroSlide): void 
   }
 }
 
+// Cancels any unfinished transition before starting a new one.
 function clearActiveHeroTransition(slideshow: HTMLElement): void {
   const state = getHeroTransitionState(slideshow);
 
@@ -158,6 +166,7 @@ function clearActiveHeroTransition(slideshow: HTMLElement): void {
   }
 }
 
+// Promotes the incoming slide to the permanent base slide after fade-in.
 function finishHeroTransition(slideshow: HTMLElement, baseLayer: HTMLElement, transitionLayer: HTMLElement, slide: ResolvedHeroSlide): void {
   const state = getHeroTransitionState(slideshow);
 
@@ -172,6 +181,7 @@ function finishHeroTransition(slideshow: HTMLElement, baseLayer: HTMLElement, tr
   setHeroNavigationEnabled(slideshow, true);
 }
 
+// Runs the visual transition from the current hero slide to the requested slide.
 function crossfadeHeroImage(slideshow: HTMLElement, slide: ResolvedHeroSlide): void {
   const imageShell = slideshow.querySelector<HTMLElement>('[data-hero-image-shell]');
   const baseLayer = slideshow.querySelector<HTMLElement>('[data-hero-layer]');
@@ -211,6 +221,7 @@ function crossfadeHeroImage(slideshow: HTMLElement, slide: ResolvedHeroSlide): v
   imageElement.addEventListener('error', completeTransition, { once: true });
 }
 
+// Moves the carousel one slide while protecting against double-triggered inputs.
 function requestHeroSlideMove(slideshow: HTMLElement, direction: number): void {
   // A strict input guard prevents a single key press or double-click from being
   // interpreted as multiple slide advances.
@@ -233,6 +244,7 @@ function requestHeroSlideMove(slideshow: HTMLElement, direction: number): void {
   crossfadeHeroImage(slideshow, nextSlide);
 }
 
+// Opens a fullscreen view of a portfolio image.
 function openImageLightbox(image: GalleryImage): void {
   const existingLightbox = document.querySelector('.image-lightbox');
 
@@ -287,6 +299,7 @@ function openImageLightbox(image: GalleryImage): void {
   closeButton?.focus();
 }
 
+// Connects mouse controls to every hero slideshow on the page.
 function setupHeroSlideshows(): void {
   document.querySelectorAll<HTMLElement>('[data-hero-slideshow]').forEach((slideshow) => {
     if (slideshow.dataset.heroControllerBound === 'true') {
@@ -314,6 +327,7 @@ function setupHeroSlideshows(): void {
   });
 }
 
+// Connects portfolio category buttons to hash routes.
 function setupPortfolioFilters(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-carousel-filter]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -326,6 +340,7 @@ function setupPortfolioFilters(): void {
   });
 }
 
+// Connects portfolio image buttons to the fullscreen lightbox.
 function setupPortfolioLightbox(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-lightbox-image-id]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -339,6 +354,7 @@ function setupPortfolioLightbox(): void {
   });
 }
 
+// Prevents keyboard shortcuts from interfering with forms and overlays.
 function shouldIgnoreKeyboardEvent(event: KeyboardEvent): boolean {
   const target = event.target as HTMLElement | null;
   const tagName = target?.tagName.toLowerCase();
@@ -360,6 +376,7 @@ function shouldIgnoreKeyboardEvent(event: KeyboardEvent): boolean {
   );
 }
 
+// Adds left/right keyboard control for the hero carousel.
 function setupKeyboardNavigation(): void {
   if (keyboardNavigationBound) {
     return;
@@ -387,6 +404,7 @@ function setupKeyboardNavigation(): void {
   });
 }
 
+// Initializes all traditional website behavior after each route render.
 export function setupSiteInteractions(): void {
   setupHeroSlideshows();
   setupPortfolioFilters();

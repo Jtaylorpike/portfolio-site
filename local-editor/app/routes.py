@@ -1,3 +1,9 @@
+"""HTTP routes for the local portfolio editor.
+
+The frontend talks to these endpoints to load data, save JSON, save one image's
+framing settings, import new images, and preview local image files.
+"""
+
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, render_template, request, send_from_directory
@@ -10,11 +16,13 @@ bp = Blueprint("editor_routes", __name__)
 
 
 @bp.route("/")
+# Serves the local editor HTML shell.
 def editor_page():
     return render_template("editor.html")
 
 
 @bp.route("/api/data")
+# Returns normalized JSON data for the editor frontend.
 def get_data():
     categories, images, hero_slides = get_current_data()
 
@@ -28,6 +36,7 @@ def get_data():
 
 
 @bp.route("/api/save", methods=["POST"])
+# Validates and saves the full editor state.
 def save_data():
     payload = request.get_json(silent=True)
 
@@ -67,6 +76,7 @@ def save_data():
 
 
 @bp.route("/api/image-updates", methods=["POST"])
+# Saves a small set of updates for one image record.
 def update_image_record():
     payload = request.get_json(silent=True)
 
@@ -102,6 +112,7 @@ def update_image_record():
 
 
 @bp.route("/api/import-reviewed", methods=["POST"])
+# Handles reviewed image uploads and metadata creation.
 def import_reviewed_images():
     response, status_code = import_reviewed_images_from_request(request)
 
@@ -109,5 +120,6 @@ def import_reviewed_images():
 
 
 @bp.route("/images/<path:filename>")
+# Serves public image files through Flask so the local editor can preview them.
 def serve_images(filename: str):
     return send_from_directory(PUBLIC_DIR / "images", filename)

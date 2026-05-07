@@ -13,9 +13,8 @@
     "imageAspectRatio": 1.293801,
     "imageOrientation": "landscape",
     "fullSrc": "/images/imported/climbing/full/climbing-workbook-05.webp",
-    "heroPosition": "62% 100%",
     "heroFrameStyle": "landscape",
-    "heroFitMode": "cover",
+    "heroFitMode": "contain",
     "galleryFitMode": "contain",
     "galleryFrameStyle": "auto",
     "gallerySize": 1.0

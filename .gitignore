@@ -1,13 +1,13 @@
-node_modules
-dist
-.env
-.DS_Store
-.drive-browser-profile
+# Build dependencies and generated outputs
+node_modules/
+dist/
 
-# Python cache files
+# Python runtime cache files
 __pycache__/
 *.py[cod]
 
-# Local debug packages
+# Local editor/debug packages generated during development
 portfolio-debug-pack/
 portfolio-debug-pack.zip
+portfolio-cleanup-pack/
+portfolio-cleanup-pack.zip

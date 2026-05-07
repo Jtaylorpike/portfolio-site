@@ -10,6 +10,7 @@
 
 <body>
   <main class="page">
+    <!-- Header: identifies the tool and exposes global reload/save actions. -->
     <header class="header">
       <div>
         <p class="eyebrow">Local Editor</p>
@@ -26,6 +27,7 @@
       </div>
     </header>
 
+    <!-- Navigation: hash links switch between editor pages without reloading Flask. -->
     <nav class="editor-nav" aria-label="Editor navigation">
       <a href="#/images" data-editor-route-link="images">Images</a>
       <a href="#/import" data-editor-route-link="import">Import</a>
@@ -34,6 +36,7 @@
 
     <p class="status" id="statusText">Loading data...</p>
 
+    <!-- Images page: populated dynamically by render.js based on the active route. -->
     <section class="editor-page-section" data-editor-page="images">
       <div class="section-heading">
         <p class="eyebrow" id="imagesPageEyebrow">Images</p>
@@ -46,6 +49,7 @@
       <section class="editor-list" id="editorList"></section>
     </section>
 
+    <!-- Import page: collects files and default metadata before the review step. -->
     <section class="editor-page-section" data-editor-page="import">
       <section class="panel" aria-label="Image import">
         <p class="eyebrow">Import Images</p>
@@ -103,6 +107,7 @@
       </section>
     </section>
 
+    <!-- Categories page: manages the order and labels used throughout the site. -->
     <section class="editor-page-section" data-editor-page="categories">
       <section class="panel" aria-label="Category editor">
         <p class="eyebrow">Categories</p>

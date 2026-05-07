@@ -773,67 +773,11 @@ textarea {
 .hero-fit-panel {
   border-style: solid;
 }
+/* Hero crop preview framing system.
 
-/* Final hero crop preview rules.
-   The editor preview uses the same stage -> layer -> frame -> image model as the
-   public carousel. Fit Entire Image always uses the full 16:9 stage. Cover mode
-   uses the selected frame style and allows the crop sliders to change position. */
-.crop-preview-hero {
-  border: 0 !important;
-  aspect-ratio: 16 / 9 !important;
-  display: grid !important;
-  place-items: center !important;
-  overflow: hidden !important;
-  background: var(--surface) !important;
-}
-
-.editor-hero-preview-layer {
-  width: 100% !important;
-  height: 100% !important;
-  display: grid !important;
-  place-items: center !important;
-  overflow: hidden !important;
-  background: var(--surface) !important;
-}
-
-.editor-hero-preview-frame {
-  display: grid !important;
-  place-items: center !important;
-  overflow: hidden !important;
-  background: var(--surface) !important;
-}
-
-.editor-hero-preview-layer[data-hero-fit-mode='contain'] .editor-hero-preview-frame {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  aspect-ratio: auto !important;
-}
-
-.editor-hero-preview-layer[data-hero-fit-mode='contain'] img {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  object-fit: contain !important;
-  object-position: 50% 50% !important;
-}
-
-.editor-hero-preview-layer[data-hero-fit-mode='cover'] img {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  object-fit: cover !important;
-}
-
-/* Definitive editor hero preview sizing override.
-
-   This mirrors the public carousel rule above. The crop preview has a stable
-   16:9 stage. The frame may become landscape, portrait, or square in cover
-   mode. The image is absolutely positioned inside that frame so object-fit and
-   object-position work consistently in every browser.
+   The local editor preview mirrors the public carousel: 16:9 stage -> slide layer
+   -> image frame -> image. Matching the public layout lets the crop sliders and
+   Fit Entire Image control show the same result before saving.
 */
 .crop-preview-hero {
   border: 0 !important;
@@ -844,6 +788,7 @@ textarea {
   background: var(--surface) !important;
 }
 
+/* The preview layer fills the whole hero stage. */
 .editor-hero-preview-layer {
   width: 100% !important;
   height: 100% !important;
@@ -855,6 +800,8 @@ textarea {
   background: var(--surface) !important;
 }
 
+/* The frame is the crop box. render.js writes inline styles here to switch
+   between landscape, portrait, square, and full-stage contain behavior. */
 .editor-hero-preview-frame {
   position: relative !important;
   display: block !important;
@@ -864,6 +811,7 @@ textarea {
   background: var(--surface) !important;
 }
 
+/* Fit Entire Image uses the full 16:9 stage instead of a portrait or square crop frame. */
 .editor-hero-preview-layer[data-hero-fit-mode='contain'] .editor-hero-preview-frame {
   width: 100% !important;
   height: 100% !important;
@@ -872,6 +820,8 @@ textarea {
   aspect-ratio: auto !important;
 }
 
+/* The preview image is absolutely sized to the frame so object-fit and
+   object-position are visible immediately when sliders move. */
 .editor-hero-preview-frame img,
 .editor-hero-preview-frame [data-crop-preview-image] {
   position: absolute !important;
@@ -886,12 +836,14 @@ textarea {
   padding: 0 !important;
 }
 
+/* Contain mode shows the full image and centers it because crop sliders do not apply. */
 .editor-hero-preview-layer[data-hero-fit-mode='contain'] img,
 .editor-hero-preview-layer[data-hero-fit-mode='contain'] [data-crop-preview-image] {
   object-fit: contain !important;
   object-position: 50% 50% !important;
 }
 
+/* Cover mode fills the selected frame and uses object-position from the crop sliders. */
 .editor-hero-preview-layer[data-hero-fit-mode='cover'] img,
 .editor-hero-preview-layer[data-hero-fit-mode='cover'] [data-crop-preview-image] {
   object-fit: cover !important;

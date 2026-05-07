@@ -1,3 +1,6 @@
+// Markup renderer for the local image editor.
+// It converts the current JSON-backed state into editor screens, cards, previews, and controls.
+
 import {
   categoryOptions,
   escapeHtml,
@@ -6,20 +9,24 @@ import {
   parseObjectPosition
 } from "./utils.js";
 
+// Finds the hero slide record connected to one image.
 function getHeroSlideForImage(state, imageId) {
   return state.heroSlides.find((slide) => slide.imageId === imageId);
 }
 
+// Looks up a readable category label for display.
 function getCategoryLabel(state, categoryId) {
   const category = state.categories.find((item) => item.id === categoryId);
 
   return category?.label ?? categoryId;
 }
 
+// Returns all images assigned to one category.
 function getImagesForCategory(state, categoryId) {
   return state.images.filter((image) => image.category === categoryId);
 }
 
+// Returns hero slides paired with their image records.
 function getHeroImages(state) {
   return state.heroSlides
     .map((slide) => {
@@ -37,6 +44,7 @@ function getHeroImages(state) {
     .filter(Boolean);
 }
 
+// Finds the image aspect ratio used for preview layout decisions.
 function getImageAspect(image) {
   if (Number(image.imageAspectRatio) > 0) {
     return Number(image.imageAspectRatio);
@@ -49,6 +57,7 @@ function getImageAspect(image) {
   return 1.5;
 }
 
+// Determines landscape, portrait, or square orientation for one image.
 function getImageOrientation(image) {
   if (["landscape", "portrait", "square"].includes(image.imageOrientation)) {
     return image.imageOrientation;
@@ -63,10 +72,12 @@ function getImageOrientation(image) {
   return aspect > 1 ? "landscape" : "portrait";
 }
 
+// Reads gallery cover/contain mode with a safe default.
 function getGalleryFitMode(image) {
   return image.galleryFitMode === "contain" ? "contain" : "cover";
 }
 
+// Normalizes a frame style value to a supported option.
 function getFrameStyle(value) {
   if (["auto", "landscape", "portrait", "square"].includes(value)) {
     return value;
@@ -75,10 +86,12 @@ function getFrameStyle(value) {
   return "auto";
 }
 
+// Reads the selected hero frame style for an image.
 function getHeroFrameStyle(image) {
   return getFrameStyle(image.heroFrameStyle);
 }
 
+// Converts auto hero style into an actual frame shape.
 function getResolvedHeroFrameStyle(image) {
   const frameStyle = getHeroFrameStyle(image);
 
@@ -89,6 +102,7 @@ function getResolvedHeroFrameStyle(image) {
   return getImageOrientation(image);
 }
 
+// Reads hero cover/contain mode with a safe default.
 function getHeroFitMode(image) {
   if (image.heroFitMode === "contain") {
     return "contain";
@@ -97,10 +111,12 @@ function getHeroFitMode(image) {
   return "cover";
 }
 
+// Shows crop sliders only when the hero image is being cropped.
 function shouldShowHeroCropSliders(image) {
   return getHeroFitMode(image) === "cover";
 }
 
+// Builds the plain-language explanation shown on the crop page.
 function getHeroCropModeSummary(image) {
   if (getHeroFitMode(image) === "cover") {
     return "Cover mode is active. The image fills the full 16:9 hero frame, and the crop sliders control which part of the image remains visible.";
@@ -110,6 +126,7 @@ function getHeroCropModeSummary(image) {
 }
 
 
+// Calculates the hero preview frame size for the editor.
 function getEditorHeroFrameInlineStyle(image) {
   if (getHeroFitMode(image) === "contain") {
     return [
@@ -150,6 +167,7 @@ function getEditorHeroFrameInlineStyle(image) {
   ].join("; ");
 }
 
+// Calculates image sizing and crop style for the editor hero preview.
 function getEditorHeroImageInlineStyle(image, position) {
   if (getHeroFitMode(image) === "contain") {
     return [
@@ -174,10 +192,12 @@ function getEditorHeroImageInlineStyle(image, position) {
   ].join("; ");
 }
 
+// Reads the selected virtual gallery frame style.
 function getGalleryFrameStyle(image) {
   return getFrameStyle(image.galleryFrameStyle);
 }
 
+// Converts auto gallery style into a concrete frame shape.
 function getResolvedGalleryFrameStyle(image) {
   const frameStyle = getGalleryFrameStyle(image);
 
@@ -188,6 +208,7 @@ function getResolvedGalleryFrameStyle(image) {
   return getImageOrientation(image);
 }
 
+// Chooses a reasonable virtual gallery frame size for image orientation.
 function getGallerySizeDefault(image) {
   const frameStyle = getResolvedGalleryFrameStyle(image);
 
@@ -202,6 +223,7 @@ function getGallerySizeDefault(image) {
   return 1;
 }
 
+// Limits gallery frame scale so oversized images do not dominate the room.
 function getGallerySizeMax(image) {
   const frameStyle = getResolvedGalleryFrameStyle(image);
 
@@ -216,6 +238,7 @@ function getGallerySizeMax(image) {
   return 1;
 }
 
+// Reads and clamps the saved gallery frame size.
 function getGallerySize(image) {
   const value = Number(image.gallerySize);
 
@@ -226,6 +249,7 @@ function getGallerySize(image) {
   return Math.min(getGallerySizeMax(image), Math.max(0.55, value));
 }
 
+// Determines the editor preview aspect ratio for gallery framing.
 function getGalleryPreviewAspect(image) {
   const fitMode = getGalleryFitMode(image);
 
@@ -246,6 +270,7 @@ function getGalleryPreviewAspect(image) {
   return 1.5;
 }
 
+// Returns the user-facing label for hero or gallery crop mode.
 function getCropModeLabel(cropMode) {
   if (cropMode === "hero") {
     return "Hero Crop";
@@ -258,6 +283,7 @@ function getCropModeLabel(cropMode) {
   return "Crop";
 }
 
+// Maps crop mode to the JSON field that stores its object-position value.
 function getCropFieldName(cropMode) {
   if (cropMode === "hero") {
     return "heroPosition";
@@ -270,6 +296,7 @@ function getCropFieldName(cropMode) {
   return "heroPosition";
 }
 
+// Builds help text for the selected crop editor mode.
 function getCropDescription(image, cropMode) {
   if (cropMode === "hero") {
     return getHeroCropModeSummary(image);
@@ -286,6 +313,7 @@ function getCropDescription(image, cropMode) {
   return "Adjust image framing.";
 }
 
+// Builds quick navigation links for category-specific image pages.
 function renderCategoryLinks(state, activeCategoryId = null, activeMetaCategory = null) {
   return `
     <nav class="category-jump-nav" aria-label="Image categories">
@@ -309,6 +337,7 @@ function renderCategoryLinks(state, activeCategoryId = null, activeMetaCategory 
   `;
 }
 
+// Builds one card in the all-images overview grid.
 function renderImageOverviewCard(state, image) {
   const thumbnailPosition = image.thumbnailPosition ?? "50% 50%";
 
@@ -331,6 +360,7 @@ function renderImageOverviewCard(state, image) {
   `;
 }
 
+// Builds one reorderable image card for a category page.
 function renderImageOrderCard(state, image) {
   const thumbnailPosition = image.thumbnailPosition ?? "50% 50%";
 
@@ -359,6 +389,7 @@ function renderImageOrderCard(state, image) {
   `;
 }
 
+// Builds one reorderable hero slide card.
 function renderHeroOrderCard(state, image, slide) {
   const thumbnailPosition = image.thumbnailPosition ?? "50% 50%";
   const targetCategory = slide.targetCategory ?? image.category;
@@ -396,6 +427,7 @@ function renderHeroOrderCard(state, image, slide) {
   `;
 }
 
+// Builds X/Y crop sliders and a text output for an object-position value.
 export function renderPositionControls(fieldName, label, value, isImport = false) {
   const parsedPosition = parseObjectPosition(value);
   const fieldAttribute = isImport ? "data-import-field" : "data-field";
@@ -427,6 +459,7 @@ export function renderPositionControls(fieldName, label, value, isImport = false
   `;
 }
 
+// Builds crop sliders for a dedicated crop page.
 function renderCropPositionControls(fieldName, label, value) {
   const parsedPosition = parseObjectPosition(value);
 
@@ -457,6 +490,7 @@ function renderCropPositionControls(fieldName, label, value) {
   `;
 }
 
+// Builds the virtual gallery size slider for one image.
 function renderGallerySizeControl(image, fieldAttribute = "data-field") {
   const size = getGallerySize(image);
   const max = getGallerySizeMax(image);
@@ -480,6 +514,7 @@ function renderGallerySizeControl(image, fieldAttribute = "data-field") {
   `;
 }
 
+// Updates the visible crop preview immediately when a slider moves.
 export function updateFramingControl(slider) {
   const controls = slider.closest("[data-framing-controls]");
 
@@ -527,6 +562,7 @@ export function updateFramingControl(slider) {
   }
 }
 
+// Updates the gallery size text output when its slider moves.
 export function updateGallerySizeControl(range) {
   const container = range.closest(".gallery-size-control, .crop-editor-panel");
   const output = container?.querySelector("[data-gallery-size-output]");
@@ -536,6 +572,7 @@ export function updateGallerySizeControl(range) {
   }
 }
 
+// Populates the import default-category dropdown.
 export function updateImportCategoryOptions(state, elements) {
   elements.importCategory.innerHTML = categoryOptions(
     state.categories,
@@ -543,6 +580,7 @@ export function updateImportCategoryOptions(state, elements) {
   );
 }
 
+// Builds the category settings editor.
 export function renderCategories(state, elements) {
   elements.categoryList.innerHTML = state.categories.map((category) => {
     const imageCount = state.images.filter((image) => image.category === category.id).length;
@@ -575,6 +613,7 @@ export function renderCategories(state, elements) {
   }).join("");
 }
 
+// Builds the all-images overview page.
 function renderImageOverview(state, elements) {
   elements.imagesPageEyebrow.textContent = "Images";
   elements.imagesPageTitle.textContent = "All images";
@@ -589,6 +628,7 @@ function renderImageOverview(state, elements) {
   `;
 }
 
+// Builds the per-category ordering page.
 function renderCategoryImageOverview(state, elements, categoryId) {
   const category = state.categories.find((item) => item.id === categoryId);
   const categoryImages = getImagesForCategory(state, categoryId);
@@ -623,6 +663,7 @@ function renderCategoryImageOverview(state, elements, categoryId) {
   `;
 }
 
+// Builds the hero slideshow ordering page.
 function renderHeroImageOverview(state, elements) {
   const heroImages = getHeroImages(state);
 
@@ -643,6 +684,7 @@ function renderHeroImageOverview(state, elements) {
   `;
 }
 
+// Builds the detailed metadata editor for one image.
 function renderImageEditCard(state, image) {
   const heroSlide = getHeroSlideForImage(state, image.id);
   const isHeroSlide = Boolean(heroSlide);
@@ -823,6 +865,7 @@ function renderImageEditCard(state, image) {
   `;
 }
 
+// Shows one image detail editor by ID.
 function renderImageDetail(state, elements, imageId) {
   const image = state.images.find((item) => item.id === imageId);
 
@@ -853,6 +896,7 @@ function renderImageDetail(state, elements, imageId) {
   `;
 }
 
+// Builds the dedicated hero or gallery crop editor page.
 function renderCropPage(state, elements, imageId, cropMode) {
   const image = state.images.find((item) => item.id === imageId);
   const fieldName = getCropFieldName(cropMode);
@@ -1034,6 +1078,7 @@ function renderCropPage(state, elements, imageId, cropMode) {
   `;
 }
 
+// Builds editable cards for files waiting to be imported.
 export function renderImportReview(state, elements, pendingImportItems) {
   if (!pendingImportItems.length) {
     elements.importReview.classList.remove("is-active");
@@ -1095,6 +1140,7 @@ export function renderImportReview(state, elements, pendingImportItems) {
   }).join("");
 }
 
+// Chooses which editor page to render for the current route.
 export function renderAll(state, elements, route) {
   renderCategories(state, elements);
   updateImportCategoryOptions(state, elements);

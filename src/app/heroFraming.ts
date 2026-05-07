@@ -18,12 +18,14 @@ const HERO_STAGE_ASPECT_RATIO = 16 / 9;
 const PORTRAIT_FRAME_ASPECT_RATIO = 2 / 3;
 const SQUARE_FRAME_ASPECT_RATIO = 1;
 
+// Converts unknown JSON values into positive numbers, or null when the value is unusable.
 function toPositiveNumber(value: unknown): number | null {
   const number = Number(value);
 
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
+// Finds the best aspect ratio available for an image record.
 function getImageAspectRatio(image: GalleryImage): number {
   // Image records created by the editor store the measured aspect ratio. Older
   // records may only have width and height, so those are used as a fallback.
@@ -45,6 +47,7 @@ function getImageAspectRatio(image: GalleryImage): number {
   return HERO_STAGE_ASPECT_RATIO;
 }
 
+// Infers whether an image should be treated as landscape, portrait, or square.
 function getDetectedImageOrientation(image: GalleryImage): ResolvedHeroFrameStyle {
   if (
     image.imageOrientation === 'landscape' ||
@@ -63,6 +66,7 @@ function getDetectedImageOrientation(image: GalleryImage): ResolvedHeroFrameStyl
   return aspectRatio > 1 ? 'landscape' : 'portrait';
 }
 
+// Reads the editor-selected hero frame style and falls back to auto when missing.
 export function getSavedHeroFrameStyle(image: GalleryImage): HeroFrameStyle {
   if (
     image.heroFrameStyle === 'landscape' ||
@@ -75,6 +79,7 @@ export function getSavedHeroFrameStyle(image: GalleryImage): HeroFrameStyle {
   return 'auto';
 }
 
+// Turns auto into a concrete frame style that CSS can render.
 export function getResolvedHeroFrameStyle(image: GalleryImage): ResolvedHeroFrameStyle {
   // Auto follows the measured image orientation. Explicit values let the editor
   // force a different visual treatment when that looks better for a specific image.
@@ -87,6 +92,7 @@ export function getResolvedHeroFrameStyle(image: GalleryImage): ResolvedHeroFram
   return getDetectedImageOrientation(image);
 }
 
+// Reads whether the hero should crop the image or fit the entire image.
 export function getHeroFitMode(image: GalleryImage): HeroFitMode {
   // Cover means the image may crop. Contain means the entire image must remain
   // visible inside the full 16:9 hero stage.
@@ -97,10 +103,12 @@ export function getHeroFitMode(image: GalleryImage): HeroFitMode {
   return 'cover';
 }
 
+// Returns the saved crop position used by cover mode.
 export function getHeroImagePosition(image: GalleryImage): string {
   return image.heroPosition ?? '50% 50%';
 }
 
+// Builds CSS class names for one rendered hero slide layer.
 export function getHeroLayerClassName(image: GalleryImage, extraClassName = ''): string {
   return [
     'home-hero-image-layer',
@@ -110,6 +118,7 @@ export function getHeroLayerClassName(image: GalleryImage, extraClassName = ''):
   ].filter(Boolean).join(' ');
 }
 
+// Calculates the visible hero frame size for the current fit and frame settings.
 export function getHeroFrameInlineStyle(image: GalleryImage): string {
   // Fit Entire Image always uses the full 16:9 hero stage. The selected frame
   // style only matters when the image is being cropped in cover mode.
@@ -152,6 +161,7 @@ export function getHeroFrameInlineStyle(image: GalleryImage): string {
   ].join('; ');
 }
 
+// Calculates image-level object-fit and crop-position styles.
 export function getHeroImageInlineStyle(image: GalleryImage): string {
   const fitMode = getHeroFitMode(image);
   const objectFit = fitMode === 'contain' ? 'contain' : 'cover';
@@ -168,6 +178,7 @@ export function getHeroImageInlineStyle(image: GalleryImage): string {
   ].join('; ');
 }
 
+// Updates an existing hero slide layer after a transition completes.
 export function applyHeroFramingToLayer(layerElement: HTMLElement, image: GalleryImage): void {
   // Used by the interaction controller after a transition finishes. Updating all
   // attributes and inline styles together keeps the live DOM synchronized with

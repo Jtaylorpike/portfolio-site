@@ -1,3 +1,6 @@
+// Browser API client for the local Flask editor backend.
+// Each function wraps one HTTP endpoint and returns normalized JSON or an error.
+
 // Small wrapper functions around the local Flask editor API.
 //
 // Keeping fetch calls in one file keeps the editor UI code focused on state and

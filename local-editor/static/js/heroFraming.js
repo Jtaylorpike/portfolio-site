@@ -9,6 +9,7 @@ const VALID_FRAME_STYLES = new Set(["auto", "landscape", "portrait", "square"]);
 const VALID_RESOLVED_FRAME_STYLES = new Set(["landscape", "portrait", "square"]);
 const VALID_FIT_MODES = new Set(["cover", "contain"]);
 
+// Converts JSON values into usable positive numbers for layout calculations.
 function toPositiveNumber(value) {
   // JSON values may arrive as strings or numbers. This normalizes either form.
   const number = Number(value);
@@ -16,6 +17,7 @@ function toPositiveNumber(value) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
+// Finds the best aspect ratio available for an editor image record.
 export function getImageAspectRatio(image) {
   // Prefer the explicit aspect ratio when available, and fall back to width/height.
   const explicitAspectRatio = toPositiveNumber(image?.imageAspectRatio);
@@ -34,6 +36,7 @@ export function getImageAspectRatio(image) {
   return 16 / 9;
 }
 
+// Determines the image orientation when the saved record does not specify it.
 export function getImageOrientation(image) {
   // The saved orientation is trusted only when it matches a supported option.
   if (image?.imageOrientation && VALID_RESOLVED_FRAME_STYLES.has(image.imageOrientation)) {
@@ -49,6 +52,7 @@ export function getImageOrientation(image) {
   return aspectRatio > 1 ? "landscape" : "portrait";
 }
 
+// Reads the selected hero frame style and falls back to auto.
 export function getHeroFrameStyle(image) {
   // Auto lets the editor derive the frame from the image orientation.
   const frameStyle = image?.heroFrameStyle;
@@ -60,6 +64,7 @@ export function getHeroFrameStyle(image) {
   return "auto";
 }
 
+// Turns auto into a concrete frame style for the preview.
 export function getResolvedHeroFrameStyle(image) {
   // The CSS needs a concrete frame style, never auto.
   const frameStyle = getHeroFrameStyle(image);
@@ -71,6 +76,7 @@ export function getResolvedHeroFrameStyle(image) {
   return getImageOrientation(image);
 }
 
+// Reads whether the editor should crop the image or fit the whole image.
 export function getHeroFitMode(image) {
   // Cover crops to the selected frame. Contain fits the complete image into the full hero stage.
   const fitMode = image?.heroFitMode;
@@ -82,6 +88,7 @@ export function getHeroFitMode(image) {
   return "cover";
 }
 
+// Returns the values needed to render a hero preview consistently.
 export function getHeroLayout(image) {
   // A shared layout object keeps the crop preview and save logic simple.
   return {
