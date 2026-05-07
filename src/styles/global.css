@@ -1,0 +1,1394 @@
+:root {
+  --background: #f5f2ec;
+  --surface: #ffffff;
+  --surface-soft: #fbfaf7;
+  --text: #111111;
+  --muted: #666666;
+  --line: #111111;
+  --line-soft: rgba(17, 17, 17, 0.18);
+  --overlay: rgba(17, 17, 17, 0.92);
+  --max-width: 1180px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body.gallery-is-open,
+body.gallery-fallback-is-open,
+body.image-lightbox-is-open {
+  overflow: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+img {
+  max-width: 100%;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.button.primary {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.button.secondary {
+  background: transparent;
+}
+
+.button:hover,
+.button:focus-visible {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.button.primary:hover,
+.button.primary:focus-visible {
+  background: transparent;
+  color: var(--text);
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+/* Entry page */
+
+.entry-page,
+.modern-entry-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: var(--background);
+}
+
+.modern-entry-card {
+  width: min(760px, 100%);
+  display: grid;
+  gap: 34px;
+}
+
+.modern-entry-card img {
+  width: min(320px, 78vw);
+  height: auto;
+  display: block;
+}
+
+.modern-entry-card h1 {
+  max-width: 720px;
+  margin: 0;
+  font-size: clamp(44px, 8vw, 82px);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  font-weight: 500;
+}
+
+.modern-entry-card p:not(.eyebrow) {
+  max-width: 560px;
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Traditional website shell */
+
+.modern-site {
+  min-height: 100vh;
+  background: var(--background);
+}
+
+.modern-header {
+  width: min(var(--max-width), calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.modern-logo {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.modern-logo img {
+  display: block;
+  width: min(280px, 58vw);
+  height: auto;
+}
+
+.modern-nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 14px;
+}
+
+.modern-nav a,
+.modern-nav button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.modern-nav a.is-active,
+.modern-nav a:hover,
+.modern-nav button:hover,
+.modern-nav a:focus-visible,
+.modern-nav button:focus-visible {
+  color: var(--text);
+}
+
+.modern-main {
+  width: min(var(--max-width), calc(100% - 32px));
+  margin: 0 auto;
+}
+
+/* Home page */
+
+.modern-home-page {
+  padding: 44px 0 88px;
+}
+
+.modern-home-hero {
+  min-height: calc(100vh - 150px);
+  display: grid;
+  align-items: center;
+}
+
+.home-hero-slideshow {
+  width: 100%;
+}
+
+.home-hero-image-shell {
+  position: relative;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.home-hero-image-shell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-hero-click-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 24%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.home-hero-click-zone-left {
+  left: 0;
+}
+
+.home-hero-click-zone-right {
+  right: 0;
+}
+
+.home-hero-click-zone-left:hover {
+  background: linear-gradient(to right, rgba(17, 17, 17, 0.16), transparent);
+}
+
+.home-hero-click-zone-right:hover {
+  background: linear-gradient(to left, rgba(17, 17, 17, 0.16), transparent);
+}
+
+.home-hero-center-link {
+  position: absolute;
+  inset: 0 24%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  color: transparent;
+}
+
+.home-hero-center-link span {
+  opacity: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  background: rgba(245, 242, 236, 0.9);
+  color: var(--text);
+  font-size: 13px;
+  transition: opacity 160ms ease;
+}
+
+.home-hero-center-link:hover span,
+.home-hero-center-link:focus-visible span {
+  opacity: 1;
+}
+
+.home-hero-meta {
+  width: min(1120px, 100%);
+  margin: 22px auto 0;
+}
+
+.home-hero-meta h1 {
+  margin: 0 0 10px;
+  font-size: clamp(30px, 5vw, 62px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-weight: 500;
+}
+
+.home-hero-meta p:not(.eyebrow) {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.modern-home-copy {
+  width: min(860px, 100%);
+  margin: 80px auto 0;
+  padding-top: 42px;
+  border-top: 1px solid var(--line);
+}
+
+.modern-home-copy h2,
+.modern-about-content h1 {
+  margin: 0;
+  font-size: clamp(34px, 5vw, 64px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-weight: 500;
+}
+
+.modern-home-copy p:not(.eyebrow),
+.modern-about-copy p {
+  max-width: 680px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.modern-home-copy .button {
+  margin-top: 18px;
+}
+
+/* Portfolio page */
+
+.modern-portfolio-page {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 42px;
+  align-items: start;
+  padding: 58px 0 88px;
+}
+
+.portfolio-category-sidebar {
+  position: sticky;
+  top: 32px;
+  display: grid;
+  gap: 16px;
+}
+
+.portfolio-category-sidebar button {
+  width: fit-content;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1.15;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.portfolio-category-sidebar button.is-active,
+.portfolio-category-sidebar button:hover,
+.portfolio-category-sidebar button:focus-visible {
+  color: var(--muted);
+}
+
+.portfolio-carousel-main {
+  min-width: 0;
+}
+
+.modern-carousel {
+  width: 100%;
+}
+
+.modern-carousel-frame {
+  position: relative;
+  width: min(1080px, 100%);
+  margin: 0 auto;
+}
+
+.modern-carousel-frame figure {
+  margin: 0;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.portfolio-carousel-image-button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.portfolio-carousel-image-button img,
+.modern-carousel-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modern-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: rgba(245, 242, 236, 0.9);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.modern-carousel-arrow:hover,
+.modern-carousel-arrow:focus-visible {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.modern-carousel-arrow-left {
+  left: 14px;
+}
+
+.modern-carousel-arrow-right {
+  right: 14px;
+}
+
+.modern-carousel-meta {
+  width: min(1080px, 100%);
+  margin: 22px auto 0;
+}
+
+.modern-carousel-meta h1 {
+  margin: 0 0 10px;
+  font-size: clamp(30px, 5vw, 62px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-weight: 500;
+}
+
+.modern-carousel-meta p:not(.eyebrow) {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.modern-carousel-location {
+  margin-top: 10px !important;
+  color: var(--text) !important;
+}
+
+/* About page */
+
+.modern-about-page {
+  padding: 86px 0 110px;
+}
+
+.modern-about-content {
+  width: min(960px, 100%);
+  margin: 0 auto;
+}
+
+.modern-about-copy {
+  max-width: 760px;
+  margin-top: 34px;
+}
+
+.modern-about-copy a {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+  font-size: 17px;
+}
+
+/* Fullscreen image lightbox */
+
+.image-lightbox-is-open {
+  overflow: hidden;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--overlay);
+}
+
+.image-lightbox-inner {
+  width: min(1180px, 100%);
+  max-height: calc(100vh - 48px);
+  position: relative;
+}
+
+.image-lightbox-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid white;
+  background: rgba(17, 17, 17, 0.75);
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.image-lightbox figure {
+  margin: 0;
+}
+
+.image-lightbox img {
+  display: block;
+  width: 100%;
+  max-height: calc(100vh - 118px);
+  object-fit: contain;
+}
+
+.image-lightbox figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding-top: 14px;
+  color: white;
+  font-size: 14px;
+}
+
+.image-lightbox figcaption strong {
+  font-weight: 500;
+}
+
+/* Virtual gallery overlay */
+
+.gallery-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  background: #f5f2ec;
+}
+
+.gallery-overlay.is-active {
+  display: block;
+}
+
+.gallery-ui {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.gallery-ui > div {
+  max-width: 460px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: rgba(245, 242, 236, 0.88);
+}
+
+.gallery-instructions {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.gallery-close {
+  pointer-events: auto;
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.gallery-close:hover,
+.gallery-close:focus-visible {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.gallery-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.gallery-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gallery-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.gallery-crosshair::before,
+.gallery-crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(17, 17, 17, 0.7);
+}
+
+.gallery-crosshair::before {
+  left: 8px;
+  top: 0;
+  width: 2px;
+  height: 18px;
+}
+
+.gallery-crosshair::after {
+  top: 8px;
+  left: 0;
+  width: 18px;
+  height: 2px;
+}
+
+.gallery-info-panel {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 3;
+  width: min(360px, calc(100vw - 36px));
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: rgba(245, 242, 236, 0.92);
+  pointer-events: none;
+  opacity: 0.35;
+  transform: translateY(6px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.gallery-info-panel.is-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.gallery-info-panel h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+}
+
+.gallery-info-panel p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.gallery-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: none;
+  place-items: center;
+  padding: 24px;
+  background: var(--background);
+}
+
+.gallery-loading.is-active {
+  display: grid;
+}
+
+.gallery-loading-card {
+  width: min(420px, 100%);
+  padding: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.gallery-loading-card h2 {
+  margin: 0 0 10px;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-weight: 500;
+}
+
+.gallery-loading-card p:last-of-type {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.gallery-loading-bar {
+  width: 100%;
+  height: 8px;
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.gallery-loading-bar span {
+  display: block;
+  width: 45%;
+  height: 100%;
+  background: var(--text);
+  animation: gallery-loading-slide 900ms ease-in-out infinite alternate;
+}
+
+@keyframes gallery-loading-slide {
+  from {
+    transform: translateX(-20%);
+  }
+
+  to {
+    transform: translateX(140%);
+  }
+}
+
+/* Mobile virtual gallery fallback */
+
+.mobile-gallery-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(245, 242, 236, 0.92);
+}
+
+.mobile-gallery-fallback-card {
+  width: min(440px, 100%);
+  padding: 24px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.mobile-gallery-fallback-card h2 {
+  margin: 0 0 12px;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-weight: 500;
+}
+
+.mobile-gallery-fallback-card p:not(.eyebrow) {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* Responsive */
+
+@media (max-width: 860px) {
+  .modern-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .modern-nav {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .modern-home-page {
+    padding: 34px 0 70px;
+  }
+
+  .modern-home-hero {
+    min-height: auto;
+  }
+
+  .home-hero-image-shell,
+  .modern-carousel-frame figure {
+    aspect-ratio: 4 / 3;
+  }
+
+  .home-hero-click-zone {
+    width: 28%;
+  }
+
+  .home-hero-center-link {
+    inset: 0 28%;
+  }
+
+  .modern-portfolio-page {
+    display: block;
+    padding: 34px 0 70px;
+  }
+
+  .portfolio-category-sidebar {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    margin-bottom: 24px;
+  }
+
+  .portfolio-category-sidebar button {
+    font-size: 15px;
+  }
+
+  .modern-carousel-arrow {
+    position: static;
+    width: calc(50% - 6px);
+    margin-top: 10px;
+    transform: none;
+  }
+
+  .modern-carousel-arrow-left {
+    margin-right: 8px;
+  }
+
+  .modern-about-page {
+    padding: 54px 0 80px;
+  }
+
+  .gallery-ui {
+    flex-direction: column;
+  }
+
+  .gallery-ui > div {
+    max-width: none;
+  }
+
+  .gallery-info-panel {
+    left: 18px;
+    right: 18px;
+    bottom: 18px;
+    width: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .entry-page,
+  .modern-entry-page {
+    padding: 22px;
+  }
+
+  .modern-entry-card h1 {
+    font-size: clamp(40px, 14vw, 62px);
+  }
+
+  .modern-home-copy h2,
+  .modern-about-content h1 {
+    font-size: clamp(32px, 11vw, 52px);
+  }
+
+  .modern-logo img {
+    width: min(240px, 70vw);
+  }
+
+  .modern-carousel-meta h1,
+  .home-hero-meta h1 {
+    font-size: clamp(30px, 10vw, 48px);
+  }
+
+  .image-lightbox {
+    padding: 16px;
+  }
+
+  .image-lightbox img {
+    max-height: calc(100vh - 128px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Carousel transition polish */
+
+.home-hero-image-shell img,
+.home-hero-meta,
+.modern-carousel-frame img,
+.modern-carousel-meta {
+  transition: opacity 160ms ease;
+}
+
+.home-hero-slideshow.is-transitioning .home-hero-image-shell img,
+.home-hero-slideshow.is-transitioning .home-hero-meta,
+.modern-carousel.is-transitioning .modern-carousel-frame img,
+.modern-carousel.is-transitioning .modern-carousel-meta {
+  opacity: 0;
+}
+/* Softer carousel transition override */
+
+.home-hero-meta,
+.modern-carousel-meta {
+  transition: none !important;
+}
+
+.home-hero-image-shell img,
+.modern-carousel-frame img {
+  transition: opacity 85ms ease-out !important;
+}
+
+.home-hero-slideshow.is-transitioning .home-hero-image-shell img,
+.modern-carousel.is-transitioning .modern-carousel-frame img {
+  opacity: 0.86 !important;
+}
+
+.home-hero-slideshow.is-transitioning .home-hero-meta,
+.modern-carousel.is-transitioning .modern-carousel-meta {
+  opacity: 1 !important;
+}
+
+/* Smoother carousel transition override */
+
+.home-hero-image-shell img,
+.modern-carousel-frame img {
+  transition: opacity 180ms ease-in-out !important;
+}
+
+.home-hero-slideshow.is-transitioning .home-hero-image-shell img,
+.modern-carousel.is-transitioning .modern-carousel-frame img {
+  opacity: 0.92 !important;
+}
+
+.home-hero-meta,
+.modern-carousel-meta,
+.home-hero-slideshow.is-transitioning .home-hero-meta,
+.modern-carousel.is-transitioning .modern-carousel-meta {
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+/* Portfolio cascading gallery override */
+
+.home-hero-meta,
+.modern-carousel,
+.modern-carousel-meta,
+.portfolio-carousel-main {
+  display: none !important;
+}
+
+.portfolio-grid-main {
+  min-width: 0;
+}
+
+.portfolio-grid-section {
+  width: 100%;
+}
+
+.portfolio-grid {
+  columns: 3 260px;
+  column-gap: 18px;
+}
+
+.portfolio-grid-card {
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 18px;
+  break-inside: avoid;
+}
+
+.portfolio-grid-image-button {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.portfolio-grid-image-button img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+}
+
+.portfolio-grid-card-meta {
+  padding-top: 10px;
+}
+
+.portfolio-grid-card-meta h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.15;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 860px) {
+  .portfolio-grid {
+    columns: 2 220px;
+  }
+}
+
+@media (max-width: 560px) {
+  .portfolio-grid {
+    columns: 1;
+  }
+}
+/* Hero crossfade refinement */
+
+.home-hero-transition-image {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 360ms ease-in-out;
+}
+
+.home-hero-transition-image.is-visible {
+  opacity: 1;
+}
+
+/* Disable older hero opacity-transition overrides. */
+.home-hero-slideshow.is-transitioning .home-hero-image-shell img,
+.home-hero-image-shell img {
+  opacity: 1 !important;
+}
+
+/* Slower hero crossfade override */
+
+.home-hero-transition-image {
+  transition: opacity 650ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+/* Dev image editor */
+
+.image-editor-main {
+  padding: 56px 0 90px;
+}
+
+.image-editor-intro {
+  width: min(820px, 100%);
+  margin-bottom: 34px;
+}
+
+.image-editor-intro h1 {
+  margin: 0;
+  font-size: clamp(38px, 6vw, 72px);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  font-weight: 500;
+}
+
+.image-editor-intro p:not(.eyebrow) {
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.image-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.image-editor-grid {
+  display: grid;
+  gap: 22px;
+}
+
+.image-editor-card {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 22px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.image-editor-preview {
+  align-self: start;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.image-editor-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-editor-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.image-editor-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.image-editor-fields label span,
+.image-editor-checkbox span {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.image-editor-fields input,
+.image-editor-fields select,
+.image-editor-fields textarea,
+.image-editor-output {
+  width: 100%;
+  border: 1px solid var(--line-soft);
+  padding: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.image-editor-fields textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.image-editor-wide-field {
+  grid-column: 1 / -1;
+}
+
+.image-editor-hero-controls {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 14px;
+  align-items: end;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.image-editor-checkbox {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 10px !important;
+}
+
+.image-editor-checkbox input {
+  width: auto;
+}
+
+.image-editor-output-section {
+  margin-top: 42px;
+}
+
+.image-editor-output {
+  min-height: 460px;
+  resize: vertical;
+  font-family: Consolas, Monaco, monospace;
+  line-height: 1.5;
+}
+
+@media (max-width: 860px) {
+  .image-editor-card {
+    grid-template-columns: 1fr;
+  }
+
+  .image-editor-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .image-editor-hero-controls {
+    grid-template-columns: 1fr;
+  }
+}
+/* Public home hero slideshow: stable layer and frame model
+
+   The home hero is a fixed 16:9 stage. Each slide is rendered as a full-size
+   layer that contains a frame, and the frame contains the image. This separates
+   three concerns that should not be mixed together:
+   1. The layer covers the whole hero area and controls crossfades.
+   2. The frame decides whether the slide is landscape, portrait, or square.
+   3. The image decides whether it crops to the frame or fits entirely inside it.
+
+   Keeping these pieces separate prevents portrait slides from showing the old
+   image in the side gutters during fades, and it makes the editor preview match
+   the public carousel more reliably.
+*/
+.home-hero-image-shell {
+  isolation: isolate;
+  background: var(--surface);
+}
+
+.home-hero-image-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.home-hero-image-frame {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.home-hero-image-layer[data-hero-frame-style='portrait'] .home-hero-image-frame {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  aspect-ratio: 2 / 3;
+}
+
+.home-hero-image-layer[data-hero-frame-style='square'] .home-hero-image-frame {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.home-hero-image-layer[data-hero-frame-style='landscape'] .home-hero-image-frame {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.home-hero-image-layer .home-hero-image {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  padding: 0 !important;
+  opacity: 1;
+  transition: none !important;
+}
+
+.home-hero-image-layer[data-hero-fit-mode='cover'] .home-hero-image {
+  object-fit: cover !important;
+}
+
+.home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image {
+  object-fit: contain !important;
+}
+
+.home-hero-transition-layer {
+  z-index: 2;
+  pointer-events: none;
+}
+
+/*
+   Landscape cover slides fill the whole 16:9 stage, so the entire layer can
+   fade in normally. The image itself does not need a separate opacity change.
+*/
+.home-hero-transition-layer[data-hero-frame-style='landscape'][data-hero-fit-mode='cover'] {
+  opacity: 0;
+  transition: opacity 650ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.home-hero-transition-layer[data-hero-frame-style='landscape'][data-hero-fit-mode='cover'].is-visible {
+  opacity: 1;
+}
+
+.home-hero-transition-layer[data-hero-frame-style='landscape'][data-hero-fit-mode='cover'] .home-hero-image {
+  opacity: 1 !important;
+}
+
+/*
+   Portrait, square, and contain-mode slides have visible empty space around the
+   image. Their layer background becomes opaque immediately so the outgoing slide
+   cannot show through that space; only the incoming image fades in.
+*/
+.home-hero-transition-layer:not([data-hero-frame-style='landscape']),
+.home-hero-transition-layer[data-hero-fit-mode='contain'] {
+  opacity: 1;
+}
+
+.home-hero-transition-layer:not([data-hero-frame-style='landscape']) .home-hero-image,
+.home-hero-transition-layer[data-hero-fit-mode='contain'] .home-hero-image {
+  opacity: 0 !important;
+  transition: opacity 650ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.home-hero-transition-layer:not([data-hero-frame-style='landscape']).is-visible .home-hero-image,
+.home-hero-transition-layer[data-hero-fit-mode='contain'].is-visible .home-hero-image {
+  opacity: 1 !important;
+}
+
+.home-hero-click-zone {
+  z-index: 4;
+}
+
+.home-hero-center-link {
+  z-index: 3;
+}
+
+/* Final hero framing override.
+   The public hero uses a fixed 16:9 stage. Cover mode may use a landscape,
+   portrait, or square frame inside that stage. Fit Entire Image mode ignores
+   the frame shape and fits the whole image inside the full 16:9 stage, which is
+   what a non-technical editor expects when choosing "fit" in the crop editor. */
+.home-hero-image-shell {
+  border: 0 !important;
+  background: var(--surface) !important;
+}
+
+.home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image-frame {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  aspect-ratio: auto !important;
+}
+
+.home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image {
+  object-fit: contain !important;
+}
+
+.home-hero-image-layer[data-hero-fit-mode='cover'] .home-hero-image {
+  object-fit: cover !important;
+}
+
+/* Definitive hero fit behavior.
+   Fit Entire Image must use the full 16:9 hero stage, regardless of whether the
+   saved display style is landscape, portrait, square, or auto. The display style
+   only matters in Cover mode, where it defines the crop frame. */
+.home-hero-image-shell {
+  border: 0 !important;
+}
+
+.home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image-frame {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  aspect-ratio: auto !important;
+}
+
+.home-hero-image-layer[data-hero-fit-mode='contain'] .home-hero-image {
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
+.home-hero-image-layer[data-hero-fit-mode='cover'] .home-hero-image {
+  object-fit: cover !important;
+}

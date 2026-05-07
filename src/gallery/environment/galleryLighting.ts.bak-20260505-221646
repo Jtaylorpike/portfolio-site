@@ -1,0 +1,19 @@
+// Lighting setup for the 3D gallery.
+//
+// The current lighting goal is bright, clean, and slightly warm.
+// Track lights can be added here later without changing GalleryScene.ts.
+
+import * as THREE from 'three';
+
+export function addGalleryLighting(scene: THREE.Scene) {
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
+  scene.add(ambientLight);
+
+  const warmKeyLight = new THREE.DirectionalLight(0xfff0d8, 1.15);
+  warmKeyLight.position.set(2, 6, 5);
+  scene.add(warmKeyLight);
+
+  const coolFillLight = new THREE.DirectionalLight(0xdfeeff, 0.45);
+  coolFillLight.position.set(-5, 4, -3);
+  scene.add(coolFillLight);
+}

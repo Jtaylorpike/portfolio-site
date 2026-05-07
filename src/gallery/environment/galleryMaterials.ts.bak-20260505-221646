@@ -1,0 +1,51 @@
+// Material settings for the 3D gallery.
+//
+// These functions keep surface colors and finish settings separate from the scene code.
+// Adjust wall, floor, frame, and fallback artwork materials here.
+
+import * as THREE from 'three';
+import { galleryFloor } from './galleryBlueprint';
+
+export function createFloorMaterial() {
+  return new THREE.MeshStandardMaterial({
+    color: galleryFloor.color,
+    roughness: 0.38,
+    metalness: 0.1
+  });
+}
+
+export function createWallMaterial() {
+  return new THREE.MeshStandardMaterial({
+    color: 0xf8f7f3,
+    roughness: 0.92,
+    metalness: 0
+  });
+}
+
+export function createFrameMaterial() {
+  return new THREE.MeshBasicMaterial({
+    color: 0x111111
+  });
+}
+
+export function createMatMaterial() {
+  return new THREE.MeshBasicMaterial({
+    color: 0xf3efe7
+  });
+}
+
+export function createFallbackArtworkMaterial() {
+  return new THREE.MeshBasicMaterial({
+    color: 0xd8d2c8
+  });
+}
+
+export function createArtworkImageMaterial(texture: THREE.Texture | null) {
+  if (!texture) {
+    return createFallbackArtworkMaterial();
+  }
+
+  return new THREE.MeshBasicMaterial({
+    map: texture
+  });
+}

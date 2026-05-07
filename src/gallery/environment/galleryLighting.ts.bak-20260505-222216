@@ -1,0 +1,85 @@
+// Lighting setup for the 3D gallery.
+//
+// The room uses a soft ambient base with warmer directional track lighting.
+// Track fixtures are simple geometry so they read visually without adding much cost.
+
+import * as THREE from 'three';
+
+function addTrackBar(
+  scene: THREE.Scene,
+  position: [number, number, number],
+  rotationY: number,
+  length: number
+) {
+  const trackMaterial = new THREE.MeshBasicMaterial({
+    color: 0x1a1a1a
+  });
+
+  const track = new THREE.Mesh(
+    new THREE.BoxGeometry(length, 0.035, 0.035),
+    trackMaterial
+  );
+
+  track.position.set(...position);
+  track.rotation.y = rotationY;
+
+  scene.add(track);
+}
+
+function addTrackSpotlight(
+  scene: THREE.Scene,
+  position: [number, number, number],
+  targetPosition: [number, number, number],
+  intensity = 1
+) {
+  const light = new THREE.SpotLight(
+    0xffefd2,
+    intensity,
+    13,
+    Math.PI / 7,
+    0.48,
+    1.35
+  );
+
+  const target = new THREE.Object3D();
+
+  light.position.set(...position);
+  target.position.set(...targetPosition);
+
+  scene.add(target);
+
+  light.target = target;
+
+  scene.add(light);
+}
+
+export function addGalleryLighting(scene: THREE.Scene) {
+  const ambientLight = new THREE.HemisphereLight(
+    0xffffff,
+    0xd9d2c8,
+    0.95
+  );
+
+  scene.add(ambientLight);
+
+  const softRoomLight = new THREE.DirectionalLight(0xffffff, 0.42);
+  softRoomLight.position.set(0, 7, 2);
+  scene.add(softRoomLight);
+
+  addTrackBar(scene, [0, 3.15, 5.2], 0, 7.2);
+  addTrackBar(scene, [0, 3.15, -5.8], 0, 7.2);
+  addTrackBar(scene, [-6.2, 3.15, 0.6], Math.PI / 2, 6.4);
+  addTrackBar(scene, [6.2, 3.15, 0.6], Math.PI / 2, 6.4);
+
+  addTrackSpotlight(scene, [-2.6, 3.08, 5.2], [-2.6, 1.75, 2.1], 0.95);
+  addTrackSpotlight(scene, [2.6, 3.08, 5.2], [2.6, 1.75, 2.1], 0.95);
+
+  addTrackSpotlight(scene, [-2.8, 3.08, -5.8], [-3.2, 1.8, -8.2], 1.05);
+  addTrackSpotlight(scene, [2.8, 3.08, -5.8], [3.2, 1.8, -8.2], 1.05);
+
+  addTrackSpotlight(scene, [-6.2, 3.08, 1.2], [-7.4, 1.75, 2.5], 0.9);
+  addTrackSpotlight(scene, [-6.2, 3.08, -3.6], [-7.4, 1.75, -2.8], 0.9);
+
+  addTrackSpotlight(scene, [6.2, 3.08, 1.2], [7.4, 1.75, 2.5], 0.9);
+  addTrackSpotlight(scene, [6.2, 3.08, -3.6], [7.4, 1.75, -2.8], 0.9);
+}

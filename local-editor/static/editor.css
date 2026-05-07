@@ -1,0 +1,825 @@
+:root {
+  --background: #f5f2ec;
+  --surface: #ffffff;
+  --text: #111111;
+  --muted: #666666;
+  --line: rgba(17, 17, 17, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.page {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 34px 0 80px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 780px;
+  margin: 0;
+  font-size: clamp(38px, 6vw, 74px);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  font-weight: 500;
+}
+
+h2 {
+  margin: 0 0 16px;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-weight: 500;
+}
+
+.intro,
+.section-heading p,
+.panel-description {
+  max-width: 620px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid #111111;
+  background: transparent;
+  color: #111111;
+  cursor: pointer;
+}
+
+.button.primary {
+  background: #111111;
+  color: #ffffff;
+}
+
+.button.danger {
+  border-color: #8a1f1f;
+  color: #8a1f1f;
+}
+
+.editor-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.editor-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.editor-nav a.is-active {
+  border-color: #111111;
+  background: #111111;
+  color: #ffffff;
+}
+
+.status {
+  min-height: 24px;
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.editor-page-section {
+  display: none;
+}
+
+.editor-page-section.is-active {
+  display: block;
+}
+
+.section-heading {
+  margin-bottom: 24px;
+}
+
+.panel {
+  margin-bottom: 28px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.panel-wide {
+  grid-column: 1 / -1;
+}
+
+.category-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.category-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.category-row label {
+  display: grid;
+  gap: 6px;
+}
+
+.category-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.editor-list {
+  display: grid;
+  gap: 20px;
+}
+
+.image-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 18px;
+}
+
+.image-overview-card {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.image-overview-thumb {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.image-overview-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 180ms ease;
+}
+
+.image-overview-card:hover img {
+  transform: scale(1.025);
+}
+
+.image-overview-meta {
+  display: grid;
+  gap: 4px;
+}
+
+.image-overview-meta strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.image-overview-meta span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.image-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.image-card,
+.import-card {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.preview {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+}
+
+label span,
+.checkbox span,
+.framing-header span,
+.framing-slider span {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  padding: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+}
+
+textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.hero-controls,
+.image-card-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.hero-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  align-items: end;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox input {
+  width: auto;
+}
+
+.import-summary {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.import-review {
+  display: none;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.import-review.is-active {
+  display: block;
+}
+
+.import-review-list {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.framing-controls {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.36);
+}
+
+.framing-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 10px;
+  align-items: center;
+}
+
+.framing-header input {
+  padding: 8px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.framing-slider {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 48px;
+  gap: 10px;
+  align-items: center;
+}
+
+.framing-slider input {
+  padding: 0;
+}
+
+.framing-slider strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: right;
+}
+
+@media (max-width: 800px) {
+  .header,
+  .image-detail-header {
+    display: grid;
+  }
+
+  .image-card,
+  .import-card,
+  .category-row {
+    grid-template-columns: 1fr;
+  }
+
+  .fields,
+  .hero-controls,
+  .panel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-wide {
+    grid-column: auto;
+  }
+
+  .framing-header {
+    grid-template-columns: 1fr;
+  }
+}
+
+.category-jump-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 22px;
+}
+
+.category-jump-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  color: var(--text);
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.category-jump-nav a.is-active {
+  border-color: #111111;
+  background: #111111;
+  color: #ffffff;
+}
+
+.category-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.image-order-card {
+  cursor: default;
+}
+
+.image-order-card .image-overview-thumb {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.image-overview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.image-overview-actions .button {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.hero-target-control {
+  display: grid;
+  gap: 6px;
+}
+
+.hero-target-control span {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hero-order-card {
+  padding-bottom: 12px;
+}
+
+.category-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+}
+
+.category-row-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.category-row-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-row-actions .button {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+@media (max-width: 800px) {
+  .category-row-actions {
+    grid-column: auto;
+  }
+}
+
+.crop-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.crop-editor {
+  display: grid;
+  gap: 18px;
+}
+
+.crop-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.crop-preview {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.crop-preview-hero {
+  aspect-ratio: 16 / 9;
+}
+
+.crop-preview-gallery {
+  aspect-ratio: 4 / 5;
+}
+
+.crop-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.crop-editor-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.crop-editor-panel h2 {
+  margin-bottom: 0;
+}
+
+.crop-description,
+.crop-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.crop-help {
+  display: grid;
+  gap: 6px;
+}
+
+.crop-help p {
+  margin: 0;
+}
+
+.crop-framing-controls {
+  grid-column: auto;
+}
+
+@media (max-width: 900px) {
+  .crop-editor-layout {
+    grid-template-columns: 1fr;
+  }
+}
+/* Image diagnostics shown under the thumbnail on the single-image editor page.
+   These values help confirm that the editor has correctly read the source image
+   dimensions before the public site or virtual gallery tries to frame the image. */
+.image-diagnostics {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Reusable panels for display-mode controls. These panels group choices that
+   affect how an image is fitted into a public hero frame or virtual gallery
+   frame. */
+.gallery-display-summary,
+.gallery-mode-panel,
+.crop-contain-note {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.gallery-display-summary p,
+.gallery-display-summary span,
+.crop-contain-note span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.mode-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mode-button-row .button.primary {
+  background: #111111;
+  color: #ffffff;
+}
+
+/* Virtual gallery size control. The JavaScript clamps the maximum value based
+   on the selected frame style so large frames stay inside their wall block. */
+.gallery-size-control {
+  display: grid;
+  gap: 8px;
+}
+
+.gallery-size-control input {
+  padding: 0;
+}
+
+.gallery-size-control strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.gallery-size-control small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.crop-contain-note {
+  border-style: dashed;
+}
+
+.crop-contain-note strong {
+  font-size: 14px;
+}
+
+/* Hero crop preview model.
+
+   The editor preview mirrors the public home hero. The outer preview is always
+   a 16:9 stage. Inside it, the preview layer fills the stage, the preview frame
+   can become landscape, portrait, or square, and the image can either cover that
+   frame or fit entirely inside it. This is the same layer -> frame -> image
+   structure used by the public carousel. */
+.crop-preview-hero {
+  aspect-ratio: 16 / 9 !important;
+  display: grid !important;
+  place-items: center !important;
+  background: var(--surface) !important;
+  overflow: hidden !important;
+}
+
+.editor-hero-preview-layer {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.editor-hero-preview-frame {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.editor-hero-preview-layer[data-hero-frame-style='portrait'] .editor-hero-preview-frame {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  aspect-ratio: 2 / 3;
+}
+
+.editor-hero-preview-layer[data-hero-frame-style='square'] .editor-hero-preview-frame {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.editor-hero-preview-layer[data-hero-frame-style='landscape'] .editor-hero-preview-frame {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.editor-hero-preview-frame img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  padding: 0 !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='cover'] img {
+  object-fit: cover !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='contain'] img {
+  object-fit: contain !important;
+}
+
+/* Virtual gallery crop preview. Cover mode crops to the chosen frame shape;
+   contain mode shows the full image within that shape. */
+.crop-preview-gallery img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.crop-preview-gallery-cover img {
+  object-fit: cover !important;
+  padding: 0 !important;
+}
+
+.crop-preview-gallery-contain img {
+  object-fit: contain !important;
+  padding: clamp(12px, 1.8vw, 24px) !important;
+  background: var(--surface);
+}
+
+.hero-mode-panel,
+.hero-fit-panel {
+  border-style: solid;
+}
+
+/* Final hero crop preview override.
+   The editor preview uses the same model as the public home hero: a fixed 16:9
+   stage, an optional orientation frame, and the image inside that frame. In Fit
+   Entire Image mode, the frame expands to the full 16:9 stage so the entire
+   photo is visible, matching what the public carousel does. */
+.crop-preview-hero {
+  border: 0 !important;
+  background: var(--surface) !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='contain'] .editor-hero-preview-frame {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  aspect-ratio: auto !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='contain'] img {
+  object-fit: contain !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='cover'] img {
+  object-fit: cover !important;
+}
+
+/* Definitive editor hero preview behavior.
+   The preview intentionally mirrors the public hero carousel. Cover mode uses
+   the selected frame shape and allows object-position cropping. Fit Entire Image
+   expands the frame to the full 16:9 preview and centers the complete image. */
+.crop-preview-hero {
+  border: 0 !important;
+  background: var(--surface) !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='contain'] .editor-hero-preview-frame {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  aspect-ratio: auto !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='contain'] img {
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='cover'] img {
+  object-fit: cover !important;
+}
