@@ -33,6 +33,17 @@ function setImportSummary(message) {
   elements.importSummary.textContent = message;
 }
 
+// Converts backup metadata from the backend into a short status suffix.
+function getBackupStatusText(savedData) {
+  const backupFolder = savedData?.backup?.backupFolder;
+
+  if (!backupFolder) {
+    return "";
+  }
+
+  return ` Backup created: local-editor/backups/${backupFolder}.`;
+}
+
 // Parses the hash URL into an editor route object.
 function getCurrentRoute() {
   const rawRoute = window.location.hash.replace(/^#\/?/, "");
@@ -165,7 +176,7 @@ async function savePayload(payload) {
   const savedData = await saveDataApi(payload);
 
   applyLoadedState(savedData);
-  setStatus(`Saved ${state.images.length} images and ${state.categories.length} categories.`);
+  setStatus(`Saved ${state.images.length} images and ${state.categories.length} categories.${getBackupStatusText(savedData)}`);
 }
 
 async function saveData() {
@@ -221,7 +232,7 @@ async function saveCropPage() {
   const savedData = await saveImageUpdatesApi(imageId, updates);
 
   applyLoadedState(savedData);
-  setStatus("Saved crop settings.");
+  setStatus(`Saved crop settings.${getBackupStatusText(savedData)}`);
 }
 
 // Moves image cards in the DOM before the user saves the new order.
@@ -380,7 +391,7 @@ async function saveReviewedImport() {
 
   window.location.hash = "#/images";
 
-  setStatus(`Imported ${result.importedImages.length} images.`);
+  setStatus(`Imported ${result.importedImages.length} images.${getBackupStatusText(result)}`);
   setImportSummary(importedTitles);
 }
 

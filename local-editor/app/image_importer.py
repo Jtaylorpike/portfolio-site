@@ -1,3 +1,12 @@
+"""Import reviewed images and create optimized web versions.
+
+The local editor lets the user choose image files, review metadata, and then save
+those files into the portfolio. This module handles the backend side: it copies
+the original file, creates smaller WebP versions for different parts of the
+site, creates the image JSON record, validates the final data set, and creates a
+backup before the JSON files are changed.
+"""
+
 from __future__ import annotations
 
 import json
@@ -9,12 +18,10 @@ from PIL import Image, ImageOps
 from werkzeug.utils import secure_filename
 
 from .data_store import (
-    CATEGORIES_PATH,
-    GALLERY_IMAGES_PATH,
-    HERO_SLIDES_PATH,
+    DataValidationError,
     PUBLIC_DIR,
     get_current_data,
-    write_json,
+    save_project_data,
 )
 from .utils import clean_string, make_unique_value, slugify, title_from_filename
 
@@ -53,12 +60,14 @@ GALLERY_MAX_SIZE_BY_STYLE = {
 GALLERY_MIN_SIZE = 0.55
 
 
+# Converts an absolute file path under public/ into the URL used by the site.
 def get_public_url_for_file(path: Path) -> str:
     relative_path = path.relative_to(PUBLIC_DIR).as_posix()
 
     return f"/{relative_path}"
 
 
+# Allows only image formats the importer knows how to process safely.
 def is_allowed_image_file(filename: str) -> bool:
     extension = Path(filename).suffix.lower()
 
@@ -72,6 +81,7 @@ def get_resampling_filter():
         return Image.LANCZOS
 
 
+# Applies EXIF rotation and converts the image into a WebP-friendly color mode.
 def prepare_image_for_webp(image: Image.Image) -> Image.Image:
     image = ImageOps.exif_transpose(image)
 
@@ -91,6 +101,7 @@ def resize_image(image: Image.Image, max_width: int) -> Image.Image:
     return image.resize((max_width, new_height), get_resampling_filter())
 
 
+# Creates one optimized WebP copy for thumbnails, site display, texture loading, or fullscreen use.
 def save_webp_version(
     source_path: Path,
     destination_path: Path,
@@ -112,6 +123,7 @@ def save_webp_version(
         )
 
 
+# Reads image dimensions so the editor can infer portrait, landscape, or square behavior.
 def get_image_metadata(source_path: Path) -> dict[str, Any]:
     with Image.open(source_path) as image:
         image = ImageOps.exif_transpose(image)
@@ -225,6 +237,7 @@ def normalize_gallery_size(
     return round(min(max_size, max(GALLERY_MIN_SIZE, size)), 3)
 
 
+# Main import endpoint worker: validates the upload, writes image files, updates JSON, and creates a backup.
 def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any], int]:
     categories, images, hero_slides = get_current_data()
 
@@ -380,9 +393,10 @@ def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any
     if not imported_images:
         return {"error": "No valid image files were imported."}, 400
 
-    write_json(CATEGORIES_PATH, categories)
-    write_json(GALLERY_IMAGES_PATH, images)
-    write_json(HERO_SLIDES_PATH, hero_slides)
+    try:
+        backup = save_project_data(categories, images, hero_slides, "image-import")
+    except DataValidationError as error:
+        return {"error": str(error)}, 400
 
     return {
         "ok": True,
@@ -391,4 +405,5 @@ def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any
         "heroSlides": hero_slides,
         "importedImages": imported_images,
         "skippedFiles": skipped_files,
+        "backup": backup,
     }, 200

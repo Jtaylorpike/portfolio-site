@@ -1,20 +1,17 @@
-# Build dependencies and generated outputs
+# Dependency and build output
 node_modules/
 dist/
 
-# Python runtime cache files
+# Python cache files
 __pycache__/
 *.py[cod]
 
-# Local editor/debug packages generated during development
-portfolio-debug-pack/
-portfolio-debug-pack.zip
-portfolio-cleanup-pack/
-portfolio-cleanup-pack.zip
+# Local editor data safety backups
+local-editor/backups/
 
 # Local browser/debug files
 .drive-browser-profile/
 
-# Temporary project packs
+# Temporary project packs created for ChatGPT review
 portfolio-*-pack/
 portfolio-*-pack.zip

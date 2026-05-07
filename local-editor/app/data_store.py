@@ -1,12 +1,17 @@
-"""Read, normalize, and write the portfolio JSON data files.
+"""Read, validate, back up, and write the portfolio JSON data files.
 
-The Flask editor uses this module as the single place where raw browser input is
-cleaned before it reaches the source JSON files used by the public Vite site.
+The local Flask editor is allowed to modify the same JSON files that the public
+Vite site imports at build time. This module is the safety layer between the
+browser editor and those source files. It normalizes incoming data, validates the
+result, creates a timestamped backup, and then writes clean JSON back to disk.
 """
 
 from __future__ import annotations
 
 import json
+import re
+import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +22,7 @@ from .utils import clean_string, slugify
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "src" / "data"
 PUBLIC_DIR = PROJECT_ROOT / "public"
+BACKUP_DIR = PROJECT_ROOT / "local-editor" / "backups"
 
 CATEGORIES_PATH = DATA_DIR / "categories.json"
 GALLERY_IMAGES_PATH = DATA_DIR / "galleryImages.json"
@@ -42,6 +48,16 @@ GALLERY_MAX_SIZE_BY_STYLE = {
 
 GALLERY_MIN_SIZE = 0.55
 
+SUPPORTED_FIT_MODES = {"cover", "contain"}
+SUPPORTED_FRAME_STYLES = {"auto", "landscape", "portrait", "square"}
+SUPPORTED_ORIENTATIONS = {"landscape", "portrait", "square"}
+POSITION_PATTERN = re.compile(r"^\d{1,3}(?:\.\d+)?%\s+\d{1,3}(?:\.\d+)?%$")
+
+
+class DataValidationError(ValueError):
+    """Raised when normalized editor data would create an unsafe JSON state."""
+
+
 # Reads a JSON file from disk and returns an empty list when the file does not exist yet.
 def read_json(path: Path) -> Any:
     if not path.exists():
@@ -51,12 +67,53 @@ def read_json(path: Path) -> Any:
         return json.load(file)
 
 
-# Writes normalized JSON with stable indentation so diffs stay readable.
+# Writes JSON with stable indentation so Git diffs remain readable.
 def write_json(path: Path, data: Any) -> None:
     path.write_text(
         json.dumps(data, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+
+
+# Creates a safe folder/file name from a human-readable save reason.
+def make_backup_slug(reason: str) -> str:
+    return slugify(reason or "editor-save")
+
+
+# Creates timestamped backup copies before the editor changes source JSON files.
+def create_data_backup(reason: str) -> dict[str, Any]:
+    """Copy the current JSON files into a dated backup folder.
+
+    A backup is created before every editor save. The files are grouped in one
+    folder so a future restore can recover categories, images, and hero slides
+    from the same point in time.
+    """
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    backup_name = f"{timestamp}-{make_backup_slug(reason)}"
+    backup_path = BACKUP_DIR / backup_name
+    backup_path.mkdir(parents=True, exist_ok=True)
+
+    backed_up_files: list[str] = []
+
+    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH]:
+        if not source_path.exists():
+            continue
+
+        destination_path = backup_path / source_path.name
+        shutil.copy2(source_path, destination_path)
+        backed_up_files.append(source_path.name)
+
+    manifest = {
+        "reason": reason,
+        "createdAtUtc": datetime.now(timezone.utc).isoformat(),
+        "backupFolder": backup_name,
+        "files": backed_up_files,
+    }
+
+    write_json(backup_path / "manifest.json", manifest)
+
+    return manifest
 
 
 # Cleans category records and guarantees each category has a unique ID.
@@ -168,7 +225,7 @@ def get_orientation_from_dimensions(width: int | None, height: int | None) -> st
 def normalize_orientation(value: Any, width: int | None, height: int | None) -> str | None:
     orientation = clean_string(value)
 
-    if orientation in {"landscape", "portrait", "square"}:
+    if orientation in SUPPORTED_ORIENTATIONS:
         return orientation
 
     return get_orientation_from_dimensions(width, height)
@@ -198,10 +255,20 @@ def normalize_hero_fit_mode(value: Any) -> str:
 def normalize_frame_style(value: Any) -> str:
     frame_style = clean_string(value)
 
-    if frame_style in {"auto", "landscape", "portrait", "square"}:
+    if frame_style in SUPPORTED_FRAME_STYLES:
         return frame_style
 
     return "auto"
+
+
+# Cleans an object-position value used by CSS crop controls.
+def normalize_object_position(value: Any, fallback: str = "50% 50%") -> str:
+    position = clean_string(value)
+
+    if POSITION_PATTERN.match(position):
+        return position
+
+    return fallback
 
 
 # Cleans one image record and preserves only supported fields.
@@ -247,18 +314,15 @@ def normalize_image(
     if orientation:
         image["imageOrientation"] = orientation
 
-    for optional_field in [
-        "thumbSrc",
-        "textureSrc",
-        "fullSrc",
-        "thumbnailPosition",
-        "heroPosition",
-        "galleryPosition",
-    ]:
+    for optional_field in ["thumbSrc", "textureSrc", "fullSrc"]:
         value = clean_string(raw_image.get(optional_field))
 
         if value:
             image[optional_field] = value
+
+    image["thumbnailPosition"] = normalize_object_position(raw_image.get("thumbnailPosition"))
+    image["heroPosition"] = normalize_object_position(raw_image.get("heroPosition"))
+    image["galleryPosition"] = normalize_object_position(raw_image.get("galleryPosition"))
 
     gallery_frame_style = normalize_frame_style(raw_image.get("galleryFrameStyle"))
 
@@ -292,6 +356,72 @@ def normalize_hero_slide(
     }
 
 
+# Validates the normalized data before it is allowed to overwrite source JSON.
+def validate_project_data(
+    categories: list[dict[str, str]],
+    images: list[dict[str, Any]],
+    hero_slides: list[dict[str, str]],
+) -> None:
+    if not categories:
+        raise DataValidationError("At least one category is required.")
+
+    category_ids = [category.get("id", "") for category in categories]
+    duplicate_category_ids = sorted({category_id for category_id in category_ids if category_ids.count(category_id) > 1})
+
+    if duplicate_category_ids:
+        raise DataValidationError(f"Duplicate category IDs: {', '.join(duplicate_category_ids)}")
+
+    for category in categories:
+        if not category.get("id") or not category.get("label"):
+            raise DataValidationError("Every category needs both an ID and a label.")
+
+    valid_category_ids = set(category_ids)
+    image_ids = [image.get("id", "") for image in images]
+    duplicate_image_ids = sorted({image_id for image_id in image_ids if image_ids.count(image_id) > 1})
+
+    if duplicate_image_ids:
+        raise DataValidationError(f"Duplicate image IDs: {', '.join(duplicate_image_ids)}")
+
+    for image in images:
+        image_id = clean_string(image.get("id")) or "unknown image"
+
+        if not clean_string(image.get("id")):
+            raise DataValidationError("Every image needs a non-empty ID.")
+
+        if not clean_string(image.get("title")):
+            raise DataValidationError(f"Image '{image_id}' needs a title.")
+
+        if image.get("category") not in valid_category_ids:
+            raise DataValidationError(f"Image '{image_id}' has an invalid category.")
+
+        if not clean_string(image.get("src")):
+            raise DataValidationError(f"Image '{image_id}' needs a source path.")
+
+        if not clean_string(image.get("alt")):
+            raise DataValidationError(f"Image '{image_id}' needs alt text.")
+
+        if image.get("heroFitMode") not in SUPPORTED_FIT_MODES:
+            raise DataValidationError(f"Image '{image_id}' has an invalid hero fit mode.")
+
+        if image.get("galleryFitMode") not in SUPPORTED_FIT_MODES:
+            raise DataValidationError(f"Image '{image_id}' has an invalid gallery fit mode.")
+
+        if image.get("heroFrameStyle") not in SUPPORTED_FRAME_STYLES:
+            raise DataValidationError(f"Image '{image_id}' has an invalid hero frame style.")
+
+        if image.get("galleryFrameStyle") not in SUPPORTED_FRAME_STYLES:
+            raise DataValidationError(f"Image '{image_id}' has an invalid gallery frame style.")
+
+    valid_image_ids = set(image_ids)
+
+    for slide in hero_slides:
+        if slide.get("imageId") not in valid_image_ids:
+            raise DataValidationError(f"Hero slide references a missing image: {slide.get('imageId')}")
+
+        if slide.get("targetCategory") not in valid_category_ids:
+            raise DataValidationError(f"Hero slide for '{slide.get('imageId')}' has an invalid target category.")
+
+
 # Reads all JSON data files and returns normalized categories, images, and hero slides.
 def get_current_data() -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]]:
     categories = read_json(CATEGORIES_PATH)
@@ -317,13 +447,28 @@ def get_current_data() -> tuple[list[dict[str, str]], list[dict[str, Any]], list
         if isinstance(slide, dict)
     ]
 
-    hero_slides = [
-        slide
-        for slide in hero_slides
-        if slide["imageId"] in image_ids
-    ]
+    hero_slides = [slide for slide in hero_slides if slide["imageId"] in image_ids]
+
+    validate_project_data(categories, images, hero_slides)
 
     return categories, images, hero_slides
+
+
+# Writes all three source JSON files after validation and backup creation.
+def save_project_data(
+    categories: list[dict[str, str]],
+    images: list[dict[str, Any]],
+    hero_slides: list[dict[str, str]],
+    backup_reason: str,
+) -> dict[str, Any]:
+    validate_project_data(categories, images, hero_slides)
+    backup = create_data_backup(backup_reason)
+
+    write_json(CATEGORIES_PATH, categories)
+    write_json(GALLERY_IMAGES_PATH, images)
+    write_json(HERO_SLIDES_PATH, hero_slides)
+
+    return backup
 
 
 # Saves the entire editor state after normalizing categories, images, and hero slides.
@@ -331,7 +476,7 @@ def save_full_data(
     raw_categories: list[Any],
     raw_images: list[Any],
     raw_hero_slides: list[Any],
-) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]]:
+) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], dict[str, Any]]:
     categories = normalize_categories(raw_categories)
     valid_category_ids = {category["id"] for category in categories}
     fallback_category_id = categories[0]["id"]
@@ -351,22 +496,14 @@ def save_full_data(
     ]
 
     image_ids = {image["id"] for image in images}
+    hero_slides = [slide for slide in hero_slides if slide["imageId"] in image_ids]
 
-    hero_slides = [
-        slide
-        for slide in hero_slides
-        if slide["imageId"] in image_ids
-    ]
+    backup = save_project_data(categories, images, hero_slides, "full-editor-save")
 
-    write_json(CATEGORIES_PATH, categories)
-    write_json(GALLERY_IMAGES_PATH, images)
-    write_json(HERO_SLIDES_PATH, hero_slides)
+    return categories, images, hero_slides, backup
 
-    return categories, images, hero_slides
 
-# Fields that can be updated by the crop/detail pages without rewriting the
-# entire image list. Keeping this list explicit prevents accidental edits to IDs,
-# paths, categories, or other structural fields.
+# Fields that can be updated by crop pages without rewriting the entire image list.
 DIRECT_IMAGE_UPDATE_FIELDS = {
     "thumbnailPosition",
     "heroPosition",
@@ -379,24 +516,18 @@ DIRECT_IMAGE_UPDATE_FIELDS = {
 }
 
 
-# Cleans the limited set of fields that can be saved from crop/detail pages.
+# Cleans the limited set of fields that can be saved from crop pages.
 def normalize_direct_image_updates(raw_updates: dict[str, Any]) -> dict[str, Any]:
     updates: dict[str, Any] = {}
 
     if "thumbnailPosition" in raw_updates:
-        value = clean_string(raw_updates.get("thumbnailPosition"))
-        if value:
-            updates["thumbnailPosition"] = value
+        updates["thumbnailPosition"] = normalize_object_position(raw_updates.get("thumbnailPosition"))
 
     if "heroPosition" in raw_updates:
-        value = clean_string(raw_updates.get("heroPosition"))
-        if value:
-            updates["heroPosition"] = value
+        updates["heroPosition"] = normalize_object_position(raw_updates.get("heroPosition"))
 
     if "galleryPosition" in raw_updates:
-        value = clean_string(raw_updates.get("galleryPosition"))
-        if value:
-            updates["galleryPosition"] = value
+        updates["galleryPosition"] = normalize_object_position(raw_updates.get("galleryPosition"))
 
     if "heroFrameStyle" in raw_updates:
         updates["heroFrameStyle"] = normalize_frame_style(raw_updates.get("heroFrameStyle"))
@@ -411,43 +542,38 @@ def normalize_direct_image_updates(raw_updates: dict[str, Any]) -> dict[str, Any
         updates["galleryFrameStyle"] = normalize_frame_style(raw_updates.get("galleryFrameStyle"))
 
     if "gallerySize" in raw_updates:
-        # The final context-aware clamp happens in normalize_image after these
-        # updates are merged with the existing image orientation and frame style.
+        # Context-aware clamping happens in normalize_image after this value is
+        # merged with the existing image orientation and frame style.
         updates["gallerySize"] = raw_updates.get("gallerySize")
 
     return updates
 
 
 # Updates one image record without rewriting data from hidden editor pages.
-def save_image_updates(image_id: str, raw_updates: dict[str, Any]) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], dict[str, Any]]:
+def save_image_updates(
+    image_id: str,
+    raw_updates: dict[str, Any],
+) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], dict[str, Any], dict[str, Any]]:
     """Update one image record and persist the normalized JSON files.
 
-    This is used by crop pages so changing a hero crop or fit mode does not rely
-    on collecting every visible editor form field. The rest of the project data is
-    read from disk, normalized, and written back with only the selected image
-    changed.
+    Crop pages use this function so a hero or gallery framing save only touches
+    the selected image. This prevents hidden editor pages from overwriting data
+    the user did not intend to edit.
     """
 
     categories, images, hero_slides = get_current_data()
     updates = normalize_direct_image_updates(raw_updates)
+    valid_category_ids = {category["id"] for category in categories}
+    fallback_category_id = categories[0]["id"] if categories else "personal"
 
     for index, image in enumerate(images):
         if image.get("id") != image_id:
             continue
 
-        updated_image = {
-            **image,
-            **updates,
-        }
-
-        valid_category_ids = {category["id"] for category in categories}
-        fallback_category_id = categories[0]["id"] if categories else "personal"
+        updated_image = {**image, **updates}
         images[index] = normalize_image(updated_image, valid_category_ids, fallback_category_id)
+        backup = save_project_data(categories, images, hero_slides, "single-image-framing-save")
 
-        write_json(CATEGORIES_PATH, categories)
-        write_json(GALLERY_IMAGES_PATH, images)
-        write_json(HERO_SLIDES_PATH, hero_slides)
-
-        return categories, images, hero_slides, images[index]
+        return categories, images, hero_slides, images[index], backup
 
     raise ValueError(f"Image not found: {image_id}")

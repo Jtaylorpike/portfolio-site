@@ -8,7 +8,13 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, render_template, request, send_from_directory
 
-from .data_store import PUBLIC_DIR, get_current_data, save_full_data, save_image_updates
+from .data_store import (
+    DataValidationError,
+    PUBLIC_DIR,
+    get_current_data,
+    save_full_data,
+    save_image_updates,
+)
 from .image_importer import import_reviewed_images_from_request
 
 
@@ -16,15 +22,20 @@ bp = Blueprint("editor_routes", __name__)
 
 
 @bp.route("/")
-# Serves the local editor HTML shell.
 def editor_page():
+    """Serve the local editor HTML shell."""
+
     return render_template("editor.html")
 
 
 @bp.route("/api/data")
-# Returns normalized JSON data for the editor frontend.
 def get_data():
-    categories, images, hero_slides = get_current_data()
+    """Return normalized JSON data for the editor frontend."""
+
+    try:
+        categories, images, hero_slides = get_current_data()
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
 
     return jsonify(
         {
@@ -36,8 +47,14 @@ def get_data():
 
 
 @bp.route("/api/save", methods=["POST"])
-# Validates and saves the full editor state.
 def save_data():
+    """Validate and save the full editor state.
+
+    The backend creates a timestamped backup immediately before writing the JSON
+    files. The response includes the backup folder name so the editor can show a
+    more useful save message.
+    """
+
     payload = request.get_json(silent=True)
 
     if not isinstance(payload, dict):
@@ -56,11 +73,14 @@ def save_data():
     if not isinstance(raw_hero_slides, list):
         return jsonify({"error": "heroSlides must be a list."}), 400
 
-    categories, images, hero_slides = save_full_data(
-        raw_categories,
-        raw_images,
-        raw_hero_slides,
-    )
+    try:
+        categories, images, hero_slides, backup = save_full_data(
+            raw_categories,
+            raw_images,
+            raw_hero_slides,
+        )
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
 
     return jsonify(
         {
@@ -68,6 +88,7 @@ def save_data():
             "categories": categories,
             "images": images,
             "heroSlides": hero_slides,
+            "backup": backup,
             "categoryCount": len(categories),
             "imageCount": len(images),
             "heroSlideCount": len(hero_slides),
@@ -76,8 +97,9 @@ def save_data():
 
 
 @bp.route("/api/image-updates", methods=["POST"])
-# Saves a small set of updates for one image record.
 def update_image_record():
+    """Save a small set of updates for one image record."""
+
     payload = request.get_json(silent=True)
 
     if not isinstance(payload, dict):
@@ -93,7 +115,9 @@ def update_image_record():
         return jsonify({"error": "updates must be an object."}), 400
 
     try:
-        categories, images, hero_slides, updated_image = save_image_updates(image_id.strip(), updates)
+        categories, images, hero_slides, updated_image, backup = save_image_updates(image_id.strip(), updates)
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
     except ValueError as error:
         return jsonify({"error": str(error)}), 404
 
@@ -104,6 +128,7 @@ def update_image_record():
             "images": images,
             "heroSlides": hero_slides,
             "updatedImage": updated_image,
+            "backup": backup,
             "categoryCount": len(categories),
             "imageCount": len(images),
             "heroSlideCount": len(hero_slides),
@@ -112,14 +137,16 @@ def update_image_record():
 
 
 @bp.route("/api/import-reviewed", methods=["POST"])
-# Handles reviewed image uploads and metadata creation.
 def import_reviewed_images():
+    """Handle reviewed image uploads and metadata creation."""
+
     response, status_code = import_reviewed_images_from_request(request)
 
     return jsonify(response), status_code
 
 
 @bp.route("/images/<path:filename>")
-# Serves public image files through Flask so the local editor can preview them.
 def serve_images(filename: str):
+    """Serve public image files through Flask so the local editor can preview them."""
+
     return send_from_directory(PUBLIC_DIR / "images", filename)
