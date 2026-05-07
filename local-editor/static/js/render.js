@@ -8,6 +8,13 @@ import {
   getFallbackCategoryId,
   parseObjectPosition
 } from "./utils.js";
+import {
+  getGalleryDefaultSize,
+  getGalleryPreviewAspect as getResolvedGalleryPreviewAspect,
+  getGallerySizeLimit,
+  resolveGalleryFrameShape,
+  resolveGallerySize
+} from "./galleryFraming.js";
 
 // Finds the hero slide record connected to one image.
 function getHeroSlideForImage(state, imageId) {
@@ -197,77 +204,41 @@ function getGalleryFrameStyle(image) {
   return getFrameStyle(image.galleryFrameStyle);
 }
 
-// Converts auto gallery style into a concrete frame shape.
+// Converts auto gallery style into the actual frame shape used by the room.
 function getResolvedGalleryFrameStyle(image) {
-  const frameStyle = getGalleryFrameStyle(image);
-
-  if (frameStyle !== "auto") {
-    return frameStyle;
-  }
-
-  return getImageOrientation(image);
+  return resolveGalleryFrameShape(
+    getGalleryFrameStyle(image),
+    getImageAspect(image),
+    getImageOrientation(image)
+  );
 }
 
-// Chooses a reasonable virtual gallery frame size for image orientation.
+// Chooses the default virtual gallery size for the resolved frame shape.
 function getGallerySizeDefault(image) {
-  const frameStyle = getResolvedGalleryFrameStyle(image);
-
-  if (frameStyle === "portrait") {
-    return 1.15;
-  }
-
-  if (frameStyle === "square") {
-    return 1.08;
-  }
-
-  return 1;
+  return getGalleryDefaultSize(getResolvedGalleryFrameStyle(image));
 }
 
 // Limits gallery frame scale so oversized images do not dominate the room.
 function getGallerySizeMax(image) {
-  const frameStyle = getResolvedGalleryFrameStyle(image);
-
-  if (frameStyle === "portrait") {
-    return 1.28;
-  }
-
-  if (frameStyle === "square") {
-    return 1.14;
-  }
-
-  return 1;
+  return getGallerySizeLimit(getResolvedGalleryFrameStyle(image));
 }
 
 // Reads and clamps the saved gallery frame size.
 function getGallerySize(image) {
-  const value = Number(image.gallerySize);
-
-  if (!Number.isFinite(value) || value <= 0) {
-    return getGallerySizeDefault(image);
-  }
-
-  return Math.min(getGallerySizeMax(image), Math.max(0.55, value));
+  return resolveGallerySize(image.gallerySize, getResolvedGalleryFrameStyle(image));
 }
 
-// Determines the editor preview aspect ratio for gallery framing.
+// Determines the editor preview aspect ratio using the same rule set as the room.
 function getGalleryPreviewAspect(image) {
-  const fitMode = getGalleryFitMode(image);
-
-  if (fitMode === "contain") {
-    return getImageAspect(image);
-  }
-
-  const frameStyle = getResolvedGalleryFrameStyle(image);
-
-  if (frameStyle === "portrait") {
-    return 2 / 3;
-  }
-
-  if (frameStyle === "square") {
-    return 1;
-  }
-
-  return 1.5;
+  return getResolvedGalleryPreviewAspect({
+    imageAspect: getImageAspect(image),
+    imageOrientation: getImageOrientation(image),
+    fitMode: getGalleryFitMode(image),
+    frameStyle: getGalleryFrameStyle(image),
+    requestedSize: getGallerySize(image),
+    maxWidth: 1.6,
+    maxHeight: 1
+  });
 }
 
 // Returns the user-facing label for hero or gallery crop mode.
@@ -981,7 +952,7 @@ function renderCropPage(state, elements, imageId, cropMode) {
               data-crop-preview-image
               src="${escapeHtml(imageSource)}"
               alt="${escapeHtml(image.alt)}"
-              style="object-position: ${escapeHtml(currentPosition)};"
+              style="object-position: ${escapeHtml(galleryFitMode === "contain" ? "50% 50%" : currentPosition)};"
             />
           `}
         </div>

@@ -28,6 +28,19 @@ DEFAULT_CATEGORIES = [
     {"id": "personal", "label": "Personal"},
 ]
 
+GALLERY_DEFAULT_SIZE_BY_STYLE = {
+    "landscape": 1.0,
+    "portrait": 1.32,
+    "square": 1.08,
+}
+
+GALLERY_MAX_SIZE_BY_STYLE = {
+    "landscape": 1.0,
+    "portrait": 1.32,
+    "square": 1.16,
+}
+
+GALLERY_MIN_SIZE = 0.55
 
 # Reads a JSON file from disk and returns an empty list when the file does not exist yet.
 def read_json(path: Path) -> Any:
@@ -103,17 +116,36 @@ def clean_positive_float(value: Any) -> float | None:
     return round(number, 6)
 
 
+# Resolves auto frame style into the concrete shape used for size limits.
+def resolve_gallery_frame_style(frame_style: str, orientation: str | None) -> str:
+    if frame_style in {"landscape", "portrait", "square"}:
+        return frame_style
+
+    if orientation in {"portrait", "square"}:
+        return orientation
+
+    return "landscape"
+
+
 # Keeps virtual gallery frame size inside the allowed editor range.
-def clean_gallery_size(value: Any) -> float:
+def clean_gallery_size(
+    value: Any,
+    frame_style: str = "auto",
+    orientation: str | None = None,
+) -> float:
+    resolved_style = resolve_gallery_frame_style(frame_style, orientation)
+    default_size = GALLERY_DEFAULT_SIZE_BY_STYLE[resolved_style]
+    max_size = GALLERY_MAX_SIZE_BY_STYLE[resolved_style]
+
     try:
         size = float(value)
     except (TypeError, ValueError):
-        return 1.0
+        return default_size
 
     if size <= 0:
-        return 1.0
+        return default_size
 
-    return round(min(1.35, max(0.55, size)), 3)
+    return round(min(max_size, max(GALLERY_MIN_SIZE, size)), 3)
 
 
 # Infers image orientation from measured pixel dimensions.
@@ -228,11 +260,17 @@ def normalize_image(
         if value:
             image[optional_field] = value
 
+    gallery_frame_style = normalize_frame_style(raw_image.get("galleryFrameStyle"))
+
     image["heroFrameStyle"] = normalize_frame_style(raw_image.get("heroFrameStyle"))
     image["heroFitMode"] = normalize_hero_fit_mode(raw_image.get("heroFitMode"))
     image["galleryFitMode"] = normalize_gallery_fit_mode(raw_image.get("galleryFitMode"))
-    image["galleryFrameStyle"] = normalize_frame_style(raw_image.get("galleryFrameStyle"))
-    image["gallerySize"] = clean_gallery_size(raw_image.get("gallerySize"))
+    image["galleryFrameStyle"] = gallery_frame_style
+    image["gallerySize"] = clean_gallery_size(
+        raw_image.get("gallerySize"),
+        gallery_frame_style,
+        orientation,
+    )
 
     return image
 
@@ -373,7 +411,9 @@ def normalize_direct_image_updates(raw_updates: dict[str, Any]) -> dict[str, Any
         updates["galleryFrameStyle"] = normalize_frame_style(raw_updates.get("galleryFrameStyle"))
 
     if "gallerySize" in raw_updates:
-        updates["gallerySize"] = clean_gallery_size(raw_updates.get("gallerySize"))
+        # The final context-aware clamp happens in normalize_image after these
+        # updates are merged with the existing image orientation and frame style.
+        updates["gallerySize"] = raw_updates.get("gallerySize")
 
     return updates
 

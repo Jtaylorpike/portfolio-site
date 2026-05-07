@@ -16,10 +16,12 @@ import {
   galleryFloor,
   galleryStart,
   galleryWalls,
-  type GalleryArtwork,
-  type GalleryFrameStyle,
-  type ImageOrientation
+  type GalleryArtwork
 } from './artwork/galleryLayout';
+import {
+  getCoverTextureTransform,
+  resolveGalleryFrameDimensions
+} from './artwork/galleryFraming';
 import {
   getCachedGalleryTexture,
   subscribeToGalleryTextureUpdates
@@ -42,11 +44,6 @@ type GallerySceneOptions = {
   onArtworkClear: () => void;
 };
 
-type ParsedPosition = {
-  x: number;
-  y: number;
-};
-
 type FrameDimensions = {
   width: number;
   height: number;
@@ -57,21 +54,6 @@ type ArtworkMeshSet = {
   frame: THREE.Mesh;
   mat: THREE.Mesh;
   image: THREE.Mesh;
-};
-
-const PORTRAIT_FRAME_ASPECT = 2 / 3;
-const SQUARE_FRAME_ASPECT = 1;
-
-const DEFAULT_SIZE_BY_STYLE = {
-  landscape: 1,
-  portrait: 1.15,
-  square: 1.08
-};
-
-const MAX_SIZE_BY_STYLE = {
-  landscape: 1,
-  portrait: 1.28,
-  square: 1.14
 };
 
 export class GalleryScene {
@@ -291,22 +273,6 @@ export class GalleryScene {
     return image;
   }
 
-  private parsePosition(position: string | undefined): ParsedPosition {
-    const match = position?.match(/(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%/);
-
-    if (!match) {
-      return {
-        x: 50,
-        y: 50
-      };
-    }
-
-    return {
-      x: Math.max(0, Math.min(100, Number(match[1]))),
-      y: Math.max(0, Math.min(100, Number(match[2])))
-    };
-  }
-
   private getTextureAspect(texture: THREE.Texture | null) {
     const image = texture?.image as { width?: number; height?: number } | undefined;
     const width = image?.width ?? 0;
@@ -331,112 +297,19 @@ export class GalleryScene {
     return this.getTextureAspect(texture) ?? artwork.maxWidth / artwork.maxHeight;
   }
 
-  private getEffectiveOrientation(
-    artwork: GalleryArtwork,
-    imageAspect: number
-  ): ImageOrientation {
-    if (artwork.imageOrientation) {
-      return artwork.imageOrientation;
-    }
-
-    if (Math.abs(imageAspect - 1) <= 0.04) {
-      return 'square';
-    }
-
-    return imageAspect > 1 ? 'landscape' : 'portrait';
-  }
-
-  private resolveFrameStyle(
-    frameStyle: GalleryFrameStyle,
-    artwork: GalleryArtwork,
-    imageAspect: number
-  ) {
-    if (frameStyle !== 'auto') {
-      return frameStyle;
-    }
-
-    const orientation = this.getEffectiveOrientation(artwork, imageAspect);
-
-    if (orientation === 'portrait') {
-      return 'portrait';
-    }
-
-    if (orientation === 'square') {
-      return 'square';
-    }
-
-    return 'landscape';
-  }
-
-  private getFrameAspectForCover(
-    artwork: GalleryArtwork,
-    imageAspect: number
-  ) {
-    const frameStyle = this.resolveFrameStyle(artwork.galleryFrameStyle, artwork, imageAspect);
-    const maxAspect = artwork.maxWidth / artwork.maxHeight;
-
-    if (frameStyle === 'portrait') {
-      return PORTRAIT_FRAME_ASPECT;
-    }
-
-    if (frameStyle === 'square') {
-      return SQUARE_FRAME_ASPECT;
-    }
-
-    return maxAspect;
-  }
-
-  private getStyleSizeLimit(style: 'landscape' | 'portrait' | 'square') {
-    return MAX_SIZE_BY_STYLE[style];
-  }
-
-  private getDefaultSize(style: 'landscape' | 'portrait' | 'square') {
-    return DEFAULT_SIZE_BY_STYLE[style];
-  }
-
-  private getEffectiveGallerySize(artwork: GalleryArtwork, imageAspect: number) {
-    const style = this.resolveFrameStyle(artwork.galleryFrameStyle, artwork, imageAspect);
-    const requestedSize = artwork.gallerySize > 0 ? artwork.gallerySize : this.getDefaultSize(style);
-    const maxSize = this.getStyleSizeLimit(style);
-
-    return Math.min(maxSize, Math.max(0.55, requestedSize));
-  }
-
-  private fitAspectInsideMax(
-    aspect: number,
-    maxWidth: number,
-    maxHeight: number
-  ): FrameDimensions {
-    let width = maxWidth;
-    let height = width / aspect;
-
-    if (height > maxHeight) {
-      height = maxHeight;
-      width = height * aspect;
-    }
-
-    return {
-      width,
-      height
-    };
-  }
-
   private resolveArtworkDimensions(
     artwork: GalleryArtwork,
     texture: THREE.Texture | null
   ): FrameDimensions {
-    const imageAspect = this.getImageAspect(artwork, texture);
-    const size = this.getEffectiveGallerySize(artwork, imageAspect);
-    const maxWidth = artwork.maxWidth * size;
-    const maxHeight = artwork.maxHeight * size;
-
-    if (artwork.galleryFitMode === 'contain') {
-      return this.fitAspectInsideMax(imageAspect, maxWidth, maxHeight);
-    }
-
-    const frameAspect = this.getFrameAspectForCover(artwork, imageAspect);
-
-    return this.fitAspectInsideMax(frameAspect, maxWidth, maxHeight);
+    return resolveGalleryFrameDimensions({
+      imageAspect: this.getImageAspect(artwork, texture),
+      imageOrientation: artwork.imageOrientation,
+      fitMode: artwork.galleryFitMode,
+      frameStyle: artwork.galleryFrameStyle,
+      requestedSize: artwork.gallerySize,
+      maxWidth: artwork.maxWidth,
+      maxHeight: artwork.maxHeight
+    });
   }
 
   private createFramedArtworkTexture(
@@ -459,25 +332,14 @@ export class GalleryScene {
 
     const imageAspect = this.getImageAspect(artwork, sourceTexture);
     const frameAspect = dimensions.width / dimensions.height;
-    const position = this.parsePosition(artwork.galleryPosition);
+    const transform = getCoverTextureTransform(
+      imageAspect,
+      frameAspect,
+      artwork.galleryPosition
+    );
 
-    let repeatX = 1;
-    let repeatY = 1;
-    let offsetX = 0;
-    let offsetY = 0;
-
-    if (imageAspect > frameAspect) {
-      repeatX = frameAspect / imageAspect;
-      offsetX = (1 - repeatX) * (position.x / 100);
-    }
-
-    if (imageAspect < frameAspect) {
-      repeatY = imageAspect / frameAspect;
-      offsetY = (1 - repeatY) * (1 - position.y / 100);
-    }
-
-    texture.repeat.set(repeatX, repeatY);
-    texture.offset.set(offsetX, offsetY);
+    texture.repeat.set(transform.repeatX, transform.repeatY);
+    texture.offset.set(transform.offsetX, transform.offsetY);
 
     this.framedTextures.add(texture);
 

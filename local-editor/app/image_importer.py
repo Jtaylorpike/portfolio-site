@@ -38,6 +38,20 @@ OPTIMIZED_WEBP_QUALITY = 82
 TEXTURE_WEBP_QUALITY = 80
 FULL_WEBP_QUALITY = 88
 
+GALLERY_DEFAULT_SIZE_BY_STYLE = {
+    "landscape": 1.0,
+    "portrait": 1.32,
+    "square": 1.08,
+}
+
+GALLERY_MAX_SIZE_BY_STYLE = {
+    "landscape": 1.0,
+    "portrait": 1.32,
+    "square": 1.16,
+}
+
+GALLERY_MIN_SIZE = 0.55
+
 
 def get_public_url_for_file(path: Path) -> str:
     relative_path = path.relative_to(PUBLIC_DIR).as_posix()
@@ -181,16 +195,34 @@ def normalize_frame_style(value: Any) -> str:
     return "auto"
 
 
-def normalize_gallery_size(value: Any) -> float:
+def resolve_gallery_frame_style(frame_style: str, orientation: str | None) -> str:
+    if frame_style in {"landscape", "portrait", "square"}:
+        return frame_style
+
+    if orientation in {"portrait", "square"}:
+        return orientation
+
+    return "landscape"
+
+
+def normalize_gallery_size(
+    value: Any,
+    frame_style: str = "auto",
+    orientation: str | None = None,
+) -> float:
+    resolved_style = resolve_gallery_frame_style(frame_style, orientation)
+    default_size = GALLERY_DEFAULT_SIZE_BY_STYLE[resolved_style]
+    max_size = GALLERY_MAX_SIZE_BY_STYLE[resolved_style]
+
     try:
         size = float(value)
     except (TypeError, ValueError):
-        return 1.0
+        return default_size
 
     if size <= 0:
-        return 1.0
+        return default_size
 
-    return round(min(1.35, max(0.55, size)), 3)
+    return round(min(max_size, max(GALLERY_MIN_SIZE, size)), 3)
 
 
 def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any], int]:
@@ -309,6 +341,9 @@ def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any
         title = clean_string(raw_record.get("title")) or title_from_filename(original_filename)
         alt = clean_string(raw_record.get("alt")) or f"Photograph by Taylor Pike: {title}"
 
+        gallery_frame_style = normalize_frame_style(raw_record.get("galleryFrameStyle"))
+        gallery_orientation = image_metadata.get("imageOrientation")
+
         image_record: dict[str, Any] = {
             "id": image_id,
             "title": title,
@@ -325,8 +360,12 @@ def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any
             "heroFitMode": normalize_hero_fit_mode(raw_record.get("heroFitMode")),
             "galleryPosition": normalize_position(raw_record.get("galleryPosition")),
             "galleryFitMode": normalize_gallery_fit_mode(raw_record.get("galleryFitMode")),
-            "galleryFrameStyle": normalize_frame_style(raw_record.get("galleryFrameStyle")),
-            "gallerySize": normalize_gallery_size(raw_record.get("gallerySize")),
+            "galleryFrameStyle": gallery_frame_style,
+            "gallerySize": normalize_gallery_size(
+                raw_record.get("gallerySize"),
+                gallery_frame_style,
+                gallery_orientation,
+            ),
             "alt": alt,
             "fullSrc": full_src_url,
         }

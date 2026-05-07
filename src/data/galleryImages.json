@@ -53,10 +53,11 @@
     "imageAspectRatio": 0.667017,
     "imageOrientation": "portrait",
     "fullSrc": "/images/climbing/climbing-portfolio-02.jpg",
+    "galleryPosition": "63% 0%",
     "heroFrameStyle": "auto",
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
-    "galleryFrameStyle": "auto",
+    "galleryFrameStyle": "square",
     "gallerySize": 1.14
   },
   {
