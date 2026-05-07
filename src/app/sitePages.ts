@@ -1,48 +1,37 @@
-// Builds the HTML strings for the public, traditional version of the portfolio site.
+// Page renderer for the public, traditional portfolio website.
 //
-// This project uses hash-based routes, such as #/home and #/portfolio, so the site
-// can be hosted as static files without a server-side router. Each exported render
-// function returns the full markup for one page. The router replaces the page HTML
-// and then the interaction controller attaches click, keyboard, and lightbox behavior.
+// The site is rendered as static HTML strings because it uses hash routing on a
+// static host. Each exported function returns the full markup for one route. The
+// router inserts that markup into the document, then the interaction controller
+// attaches click, keyboard, carousel, and lightbox behavior.
 
 import { galleryImages, type GalleryImage } from '../data/images';
 import { heroSlides } from '../data/heroSlides';
 import { getCategoryLabel, portfolioCategories } from '../data/categories';
+import {
+  getHeroFitMode,
+  getHeroFrameInlineStyle,
+  getHeroImageInlineStyle,
+  getHeroLayerClassName,
+  getResolvedHeroFrameStyle
+} from './heroFraming';
 
-// The public site currently has three traditional pages. The editor and virtual
-// gallery are opened through separate controllers and are not part of this union.
 type PageName = 'home' | 'portfolio' | 'about';
-
-// Portfolio category filters are string IDs from categories.json, plus the special
-// "all" filter used by the portfolio grid.
 type PortfolioCategoryFilter = string;
 
-// Hero framing values are saved per image by the local editor. "auto" means the
-// public site should infer the best frame treatment from the image dimensions.
-type HeroFrameStyle = 'auto' | 'landscape' | 'portrait' | 'square';
-type HeroFitMode = 'cover' | 'contain';
-type ResolvedHeroFrameStyle = Exclude<HeroFrameStyle, 'auto'>;
-
-// GalleryImage is intentionally broad because records are loaded from JSON. This
-// extension documents the optional fields that the hero renderer needs.
-type HeroFrameImage = GalleryImage & {
-  heroFrameStyle?: HeroFrameStyle;
-  heroFitMode?: HeroFitMode;
-  imageWidth?: number | string;
-  imageHeight?: number | string;
-  imageAspectRatio?: number | string;
-  imageOrientation?: string;
+type ResolvedHeroSlide = {
+  imageId: string;
+  targetCategory: string;
+  image: GalleryImage;
 };
 
-function getImageById(imageId: string) {
-  // Central lookup for image records. Keeping this in one place avoids repeating
-  // the search logic in the hero, portfolio, and lightbox code.
+function getImageById(imageId: string): GalleryImage | undefined {
   return galleryImages.find((image) => image.id === imageId);
 }
 
-function getResolvedHeroSlides() {
-  // heroSlides.json stores lightweight slide records with image IDs. The public
-  // hero needs the complete image record, so this resolves each ID to its image.
+function getResolvedHeroSlides(): ResolvedHeroSlide[] {
+  // heroSlides.json stores image IDs instead of full image objects. This resolves
+  // those IDs so the hero can read each image's source, category, crop, and fit data.
   return heroSlides
     .map((slide) => {
       const image = getImageById(slide.imageId);
@@ -57,135 +46,30 @@ function getResolvedHeroSlides() {
         image
       };
     })
-    .filter((slide): slide is { imageId: string; targetCategory: string; image: GalleryImage } => slide !== null);
+    .filter((slide): slide is ResolvedHeroSlide => slide !== null);
 }
 
-function getFirstHeroSlide() {
-  // The home page must always have an image. If the curated hero list is empty,
-  // the first portfolio image becomes the fallback so the page does not render blank.
+function getFirstHeroSlide(): ResolvedHeroSlide {
   const firstSlide = getResolvedHeroSlides()[0];
 
-  if (!firstSlide) {
-    const fallbackImage = galleryImages[0];
-
-    if (!fallbackImage) {
-      throw new Error('No gallery images found.');
-    }
-
-    return {
-      imageId: fallbackImage.id,
-      targetCategory: fallbackImage.category,
-      image: fallbackImage
-    };
+  if (firstSlide) {
+    return firstSlide;
   }
 
-  return firstSlide;
+  const fallbackImage = galleryImages[0];
+
+  if (!fallbackImage) {
+    throw new Error('No gallery images found.');
+  }
+
+  return {
+    imageId: fallbackImage.id,
+    targetCategory: fallbackImage.category,
+    image: fallbackImage
+  };
 }
 
-function getImageAspect(image: GalleryImage) {
-  // Prefer the saved aspect ratio because it is calculated from the original file.
-  // Width/height are used as a fallback for older image records.
-  const heroImage = image as HeroFrameImage;
-  const explicitAspectRatio = Number(heroImage.imageAspectRatio);
-
-  if (explicitAspectRatio > 0) {
-    return explicitAspectRatio;
-  }
-
-  const width = Number(heroImage.imageWidth);
-  const height = Number(heroImage.imageHeight);
-
-  if (width > 0 && height > 0) {
-    return width / height;
-  }
-
-  // A landscape default keeps legacy records compatible with the original hero.
-  return 16 / 9;
-}
-
-function getImageOrientation(image: GalleryImage): ResolvedHeroFrameStyle {
-  // The editor can store an explicit orientation after reading the image file. Use
-  // it when available, otherwise infer orientation from the aspect ratio.
-  const heroImage = image as HeroFrameImage;
-
-  if (
-    heroImage.imageOrientation === 'landscape' ||
-    heroImage.imageOrientation === 'portrait' ||
-    heroImage.imageOrientation === 'square'
-  ) {
-    return heroImage.imageOrientation;
-  }
-
-  const aspectRatio = getImageAspect(image);
-
-  if (Math.abs(aspectRatio - 1) <= 0.04) {
-    return 'square';
-  }
-
-  return aspectRatio > 1 ? 'landscape' : 'portrait';
-}
-
-function getHeroFrameStyle(image: GalleryImage): HeroFrameStyle {
-  // The editor can override automatic orientation handling for edge cases. Invalid
-  // values are treated as auto so malformed JSON cannot break the page layout.
-  const frameStyle = (image as HeroFrameImage).heroFrameStyle;
-
-  if (
-    frameStyle === 'landscape' ||
-    frameStyle === 'portrait' ||
-    frameStyle === 'square'
-  ) {
-    return frameStyle;
-  }
-
-  return 'auto';
-}
-
-function getResolvedHeroFrameStyle(image: GalleryImage): ResolvedHeroFrameStyle {
-  // Convert the saved hero setting into the concrete style used by CSS. The
-  // frame style describes the image orientation treatment, while heroFitMode
-  // decides whether the image crops to the hero frame or fits entirely inside it.
-  const frameStyle = getHeroFrameStyle(image);
-
-  if (frameStyle !== 'auto') {
-    return frameStyle;
-  }
-
-  return getImageOrientation(image);
-}
-
-function getHeroFitMode(image: GalleryImage): HeroFitMode {
-  // Cover means the image fills the 16:9 hero and may crop. Contain means the
-  // complete image remains visible inside the 16:9 hero. If no explicit setting
-  // is saved yet, portrait and square images default to contain, while landscape
-  // images keep the original full-bleed cover behavior.
-  const fitMode = (image as HeroFrameImage).heroFitMode;
-
-  if (fitMode === 'cover' || fitMode === 'contain') {
-    return fitMode;
-  }
-
-  return getResolvedHeroFrameStyle(image) === 'landscape' ? 'cover' : 'contain';
-}
-
-function getHeroLayerClassName(image: GalleryImage, extraClassName = '') {
-  // Each slide is rendered as a full-size layer. The layer, not the image alone,
-  // owns the background and transition behavior. This prevents portrait slides
-  // from revealing the previous slide in the empty side areas during a fade.
-  const frameStyle = getResolvedHeroFrameStyle(image);
-  const fitMode = getHeroFitMode(image);
-  const classNames = [
-    'home-hero-image-layer',
-    `home-hero-image-layer-${frameStyle}`,
-    `home-hero-fit-${fitMode}`,
-    extraClassName
-  ].filter(Boolean);
-
-  return classNames.join(' ');
-}
-
-function getImagesForCategory(category: PortfolioCategoryFilter) {
-  // The portfolio grid can show all images or one category at a time.
+function getImagesForCategory(category: PortfolioCategoryFilter): GalleryImage[] {
   if (category === 'all') {
     return galleryImages;
   }
@@ -193,9 +77,7 @@ function getImagesForCategory(category: PortfolioCategoryFilter) {
   return galleryImages.filter((image) => image.category === category);
 }
 
-function renderTopNav(activePage: PageName) {
-  // Shared public header. The virtual gallery button is handled by the gallery
-  // controller. The editor link only appears during local development.
+function renderTopNav(activePage: PageName): string {
   return `
     <header class="modern-header">
       <a class="modern-logo" href="#/home">
@@ -213,15 +95,38 @@ function renderTopNav(activePage: PageName) {
   `;
 }
 
-function renderHomeHeroSlideshow() {
-  // The hero image is a layer containing an image, rather than a direct image in
-  // the shell. This gives every slide a solid full-frame background, which fixes
-  // the issue where portrait slides exposed parts of the outgoing slide during
-  // crossfade transitions.
+function renderHeroImageLayer(image: GalleryImage, extraClassName = ''): string {
+  // A hero slide is a layer containing a frame containing an image. The layer
+  // covers the whole 16:9 hero stage. The frame controls the crop shape in cover
+  // mode. The image controls whether it crops or fits entirely.
+  return `
+    <div
+      class="${getHeroLayerClassName(image, extraClassName)}"
+      data-hero-layer
+      data-hero-frame-style="${getResolvedHeroFrameStyle(image)}"
+      data-hero-fit-mode="${getHeroFitMode(image)}"
+    >
+      <div
+        class="home-hero-image-frame"
+        data-hero-image-frame
+        style="${getHeroFrameInlineStyle(image)}"
+      >
+        <img
+          class="home-hero-image"
+          data-hero-image
+          data-hero-layer-image
+          src="${image.src}"
+          alt="${image.alt}"
+          style="${getHeroImageInlineStyle(image)}"
+        />
+      </div>
+    </div>
+  `;
+}
+
+function renderHomeHeroSlideshow(): string {
   const firstSlide = getFirstHeroSlide();
   const categoryLabel = getCategoryLabel(firstSlide.targetCategory);
-  const resolvedHeroFrameStyle = getResolvedHeroFrameStyle(firstSlide.image);
-  const heroFitMode = getHeroFitMode(firstSlide.image);
 
   return `
     <section
@@ -231,23 +136,7 @@ function renderHomeHeroSlideshow() {
       aria-label="Featured portfolio image"
     >
       <div class="home-hero-image-shell" data-hero-image-shell>
-        <div
-          class="${getHeroLayerClassName(firstSlide.image)}"
-          data-hero-layer
-          data-hero-frame-style="${resolvedHeroFrameStyle}"
-          data-hero-fit-mode="${heroFitMode}"
-        >
-          <div class="home-hero-image-frame" data-hero-image-frame>
-            <img
-              class="home-hero-image"
-              data-hero-image
-              data-hero-layer-image
-              src="${firstSlide.image.src}"
-              alt="${firstSlide.image.alt}"
-              style="object-position: ${firstSlide.image.heroPosition ?? '50% 50%'};"
-            />
-          </div>
-        </div>
+        ${renderHeroImageLayer(firstSlide.image)}
 
         <button
           class="home-hero-click-zone home-hero-click-zone-left"
@@ -276,11 +165,8 @@ function renderHomeHeroSlideshow() {
   `;
 }
 
-function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all') {
-  // Renders the cascading portfolio grid. Each image opens the fullscreen lightbox
-  // by exposing its image ID through a data attribute.
+function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): string {
   const images = getImagesForCategory(initialCategory);
-
   const cards = images
     .map((image) => {
       return `
@@ -318,9 +204,7 @@ function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all') {
   `;
 }
 
-function renderCategoryButtons(initialCategory: PortfolioCategoryFilter) {
-  // Portfolio sidebar buttons route to #/portfolio or #/portfolio/<category-id>.
-  // The router then re-renders this page using the selected category.
+function renderCategoryButtons(initialCategory: PortfolioCategoryFilter): string {
   const categoryButtons = portfolioCategories
     .map((category) => {
       return `
@@ -342,8 +226,7 @@ function renderCategoryButtons(initialCategory: PortfolioCategoryFilter) {
   `;
 }
 
-export function renderEntryPage() {
-  // Initial desktop entry page. Mobile routing skips this in the site router.
+export function renderEntryPage(): string {
   return `
     <main class="entry-page modern-entry-page" data-page="entry">
       <div class="modern-entry-card">
@@ -366,9 +249,7 @@ export function renderEntryPage() {
   `;
 }
 
-export function renderHomePage() {
-  // Public home page. The hero markup is rendered here; behavior is attached by
-  // setupSiteInteractions after the page enters the DOM.
+export function renderHomePage(): string {
   return `
     <div class="modern-site" data-page="home">
       ${renderTopNav('home')}
@@ -394,8 +275,7 @@ export function renderHomePage() {
   `;
 }
 
-export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = 'all') {
-  // Portfolio page with category navigation and the masonry-style image grid.
+export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = 'all'): string {
   return `
     <div class="modern-site" data-page="portfolio">
       ${renderTopNav('portfolio')}
@@ -414,8 +294,7 @@ export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = '
   `;
 }
 
-export function renderAboutPage() {
-  // Static about page content for the public site.
+export function renderAboutPage(): string {
   return `
     <div class="modern-site" data-page="about">
       ${renderTopNav('about')}

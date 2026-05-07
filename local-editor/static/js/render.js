@@ -90,11 +90,11 @@ function getResolvedHeroFrameStyle(image) {
 }
 
 function getHeroFitMode(image) {
-  if (image.heroFitMode === "cover" || image.heroFitMode === "contain") {
-    return image.heroFitMode;
+  if (image.heroFitMode === "contain") {
+    return "contain";
   }
 
-  return getResolvedHeroFrameStyle(image) === "landscape" ? "cover" : "contain";
+  return "cover";
 }
 
 function shouldShowHeroCropSliders(image) {
@@ -107,6 +107,71 @@ function getHeroCropModeSummary(image) {
   }
 
   return "Fit Entire Image is active. The complete image is visible inside the 16:9 hero frame, so crop sliders are disabled because the image is not being cropped.";
+}
+
+
+function getEditorHeroFrameInlineStyle(image) {
+  if (getHeroFitMode(image) === "contain") {
+    return [
+      "width: 100% !important",
+      "height: 100% !important",
+      "max-width: 100% !important",
+      "max-height: 100% !important",
+      "aspect-ratio: auto !important"
+    ].join("; ");
+  }
+
+  const frameStyle = getResolvedHeroFrameStyle(image);
+
+  if (frameStyle === "portrait") {
+    return [
+      "width: auto !important",
+      "height: 100% !important",
+      "max-width: 100% !important",
+      "aspect-ratio: 0.6666667 !important"
+    ].join("; ");
+  }
+
+  if (frameStyle === "square") {
+    return [
+      "width: auto !important",
+      "height: 100% !important",
+      "max-width: 100% !important",
+      "aspect-ratio: 1 !important"
+    ].join("; ");
+  }
+
+  return [
+    "width: 100% !important",
+    "height: 100% !important",
+    "max-width: 100% !important",
+    "max-height: 100% !important",
+    "aspect-ratio: auto !important"
+  ].join("; ");
+}
+
+function getEditorHeroImageInlineStyle(image, position) {
+  if (getHeroFitMode(image) === "contain") {
+    return [
+      "display: block !important",
+      "width: 100% !important",
+      "height: 100% !important",
+      "max-width: none !important",
+      "max-height: none !important",
+      "object-fit: contain !important",
+      "object-position: 50% 50% !important"
+    ].join("; ");
+  }
+
+  return [
+    "display: block !important",
+    "width: 100% !important",
+    "height: 100% !important",
+    "max-width: none !important",
+    "max-height: none !important",
+    "object-fit: cover !important",
+    `object-position: ${position} !important`
+  ].join("; ");
 }
 
 function getGalleryFrameStyle(image) {
@@ -446,7 +511,7 @@ export function updateFramingControl(slider) {
   }
 
   const cropEditor = controls.closest("[data-crop-editor]");
-  const cropPreviewImage = cropEditor?.querySelector("[data-crop-preview-image], .crop-preview img");
+  const cropPreviewImage = cropEditor?.querySelector("[data-crop-preview-image]") ?? cropEditor?.querySelector(".crop-preview img");
 
   if (cropPreviewImage) {
     cropPreviewImage.style.setProperty("object-position", position, "important");
@@ -853,20 +918,25 @@ function renderCropPage(state, elements, imageId, cropMode) {
               data-hero-frame-style="${escapeHtml(resolvedHeroFrameStyle)}"
               data-hero-fit-mode="${escapeHtml(heroFitMode)}"
             >
-              <div class="editor-hero-preview-frame">
+              <div
+                class="editor-hero-preview-frame"
+                data-hero-image-frame
+                style="${escapeHtml(getEditorHeroFrameInlineStyle(image))}"
+              >
                 <img
+                  class="editor-hero-preview-image"
+                  data-crop-preview-image
                   src="${escapeHtml(imageSource)}"
                   alt="${escapeHtml(image.alt)}"
-                  data-crop-preview-image
-                  style="object-position: ${escapeHtml(currentPosition)};"
+                  style="${escapeHtml(getEditorHeroImageInlineStyle(image, currentPosition))}"
                 />
               </div>
             </div>
           ` : `
             <img
+              data-crop-preview-image
               src="${escapeHtml(imageSource)}"
               alt="${escapeHtml(image.alt)}"
-              data-crop-preview-image
               style="object-position: ${escapeHtml(currentPosition)};"
             />
           `}

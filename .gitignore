@@ -3,3 +3,11 @@ dist
 .env
 .DS_Store
 .drive-browser-profile
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Local debug packages
+portfolio-debug-pack/
+portfolio-debug-pack.zip

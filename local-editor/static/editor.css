@@ -774,52 +774,125 @@ textarea {
   border-style: solid;
 }
 
-/* Final hero crop preview override.
-   The editor preview uses the same model as the public home hero: a fixed 16:9
-   stage, an optional orientation frame, and the image inside that frame. In Fit
-   Entire Image mode, the frame expands to the full 16:9 stage so the entire
-   photo is visible, matching what the public carousel does. */
+/* Final hero crop preview rules.
+   The editor preview uses the same stage -> layer -> frame -> image model as the
+   public carousel. Fit Entire Image always uses the full 16:9 stage. Cover mode
+   uses the selected frame style and allows the crop sliders to change position. */
 .crop-preview-hero {
   border: 0 !important;
+  aspect-ratio: 16 / 9 !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  background: var(--surface) !important;
+}
+
+.editor-hero-preview-layer {
+  width: 100% !important;
+  height: 100% !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  background: var(--surface) !important;
+}
+
+.editor-hero-preview-frame {
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
   background: var(--surface) !important;
 }
 
 .editor-hero-preview-layer[data-hero-fit-mode='contain'] .editor-hero-preview-frame {
   width: 100% !important;
   height: 100% !important;
-  max-width: none !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   aspect-ratio: auto !important;
 }
 
 .editor-hero-preview-layer[data-hero-fit-mode='contain'] img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
   object-fit: contain !important;
+  object-position: 50% 50% !important;
 }
 
 .editor-hero-preview-layer[data-hero-fit-mode='cover'] img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
   object-fit: cover !important;
 }
 
-/* Definitive editor hero preview behavior.
-   The preview intentionally mirrors the public hero carousel. Cover mode uses
-   the selected frame shape and allows object-position cropping. Fit Entire Image
-   expands the frame to the full 16:9 preview and centers the complete image. */
+/* Definitive editor hero preview sizing override.
+
+   This mirrors the public carousel rule above. The crop preview has a stable
+   16:9 stage. The frame may become landscape, portrait, or square in cover
+   mode. The image is absolutely positioned inside that frame so object-fit and
+   object-position work consistently in every browser.
+*/
 .crop-preview-hero {
   border: 0 !important;
+  aspect-ratio: 16 / 9 !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  background: var(--surface) !important;
+}
+
+.editor-hero-preview-layer {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  background: var(--surface) !important;
+}
+
+.editor-hero-preview-frame {
+  position: relative !important;
+  display: block !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
   background: var(--surface) !important;
 }
 
 .editor-hero-preview-layer[data-hero-fit-mode='contain'] .editor-hero-preview-frame {
   width: 100% !important;
   height: 100% !important;
-  max-width: none !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   aspect-ratio: auto !important;
 }
 
-.editor-hero-preview-layer[data-hero-fit-mode='contain'] img {
-  object-fit: contain !important;
-  object-position: center center !important;
+.editor-hero-preview-frame img,
+.editor-hero-preview-frame [data-crop-preview-image] {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  padding: 0 !important;
 }
 
-.editor-hero-preview-layer[data-hero-fit-mode='cover'] img {
+.editor-hero-preview-layer[data-hero-fit-mode='contain'] img,
+.editor-hero-preview-layer[data-hero-fit-mode='contain'] [data-crop-preview-image] {
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='cover'] img,
+.editor-hero-preview-layer[data-hero-fit-mode='cover'] [data-crop-preview-image] {
   object-fit: cover !important;
 }

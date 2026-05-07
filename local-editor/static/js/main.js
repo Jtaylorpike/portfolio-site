@@ -161,6 +161,57 @@ async function saveData() {
   await savePayload(collectEditorData(state));
 }
 
+function getCropPageUpdatesFromDom() {
+  const cropEditor = document.querySelector("[data-crop-editor]");
+
+  if (!cropEditor) {
+    throw new Error("No crop editor is currently open.");
+  }
+
+  const imageId = cropEditor.dataset.cropImageId;
+
+  if (!imageId) {
+    throw new Error("The crop editor does not have an image ID.");
+  }
+
+  const updates = {};
+  const cropField = cropEditor.querySelector("[data-crop-field]");
+  const cropFieldName = cropField?.dataset.cropField;
+
+  if (cropFieldName) {
+    const xSlider = cropEditor.querySelector('[data-position-axis="x"]');
+    const ySlider = cropEditor.querySelector('[data-position-axis="y"]');
+
+    if (xSlider && ySlider) {
+      updates[cropFieldName] = formatObjectPosition(Number(xSlider.value), Number(ySlider.value));
+    } else if (cropField?.value) {
+      updates[cropFieldName] = String(cropField.value).trim();
+    }
+  }
+
+  cropEditor.querySelectorAll("[data-crop-setting]").forEach((input) => {
+    const field = input.dataset.cropSetting;
+    const value = String(input.value ?? "").trim();
+
+    if (field && value) {
+      updates[field] = value;
+    }
+  });
+
+  return { imageId, updates };
+}
+
+async function saveCropPage() {
+  const { imageId, updates } = getCropPageUpdatesFromDom();
+
+  setStatus("Saving crop settings...");
+
+  const savedData = await saveImageUpdatesApi(imageId, updates);
+
+  applyLoadedState(savedData);
+  setStatus("Saved crop settings.");
+}
+
 function moveGridCard(card, direction, successMessage) {
   if (!card) {
     return;
@@ -228,83 +279,6 @@ function moveCategoryRow(row, direction) {
       setStatus("Moved category down. Click Save Category Settings to preserve it.");
     }
   }
-}
-
-function getRangePositionFromControls(controls) {
-  const xSlider = controls.querySelector('[data-position-axis="x"]');
-  const ySlider = controls.querySelector('[data-position-axis="y"]');
-
-  if (!xSlider || !ySlider) {
-    return null;
-  }
-
-  return formatObjectPosition(xSlider.value, ySlider.value);
-}
-
-function collectCropPageSaveRequest() {
-  const cropEditor = elements.editorList.querySelector("[data-crop-editor]");
-
-  if (!cropEditor) {
-    return null;
-  }
-
-  const imageId = cropEditor.dataset.cropImageId;
-  const updates = {};
-
-  if (!imageId) {
-    return null;
-  }
-
-  // Read slider values directly from the range inputs instead of relying only
-  // on the read-only text field. This makes Save Crop reliable even if a
-  // browser delays or drops an input event while the user is dragging a slider.
-  cropEditor.querySelectorAll("[data-framing-controls]").forEach((controls) => {
-    const field = controls.dataset.positionField;
-    const position = getRangePositionFromControls(controls);
-
-    if (field && position) {
-      updates[field] = position;
-    }
-  });
-
-  cropEditor.querySelectorAll("[data-crop-field]").forEach((input) => {
-    const field = input.dataset.cropField;
-    const value = String(input.value ?? "").trim();
-
-    if (field && value && !(field in updates)) {
-      updates[field] = value;
-    }
-  });
-
-  cropEditor.querySelectorAll("[data-crop-setting]").forEach((input) => {
-    const field = input.dataset.cropSetting;
-    const value = String(input.value ?? "").trim();
-
-    if (field && value) {
-      updates[field] = value;
-    }
-  });
-
-  return {
-    imageId,
-    updates
-  };
-}
-
-async function saveCropPage() {
-  const cropSaveRequest = collectCropPageSaveRequest();
-
-  if (!cropSaveRequest) {
-    setStatus("No crop editor is currently open.");
-    return;
-  }
-
-  setStatus("Saving crop settings...");
-
-  const savedData = await saveImageUpdatesApi(cropSaveRequest.imageId, cropSaveRequest.updates);
-
-  applyLoadedState(savedData);
-  setStatus("Saved crop settings.");
 }
 
 function prepareImportReview() {

@@ -67,14 +67,7 @@ def save_data():
 
 
 @bp.route("/api/image-updates", methods=["POST"])
-def save_single_image_updates():
-    """Save focused updates for one image record.
-
-    The crop editor uses this endpoint so that saving hero/gallery framing does
-    not depend on the rest of the editor page state. The response returns the
-    complete normalized data set so the browser can refresh its local state.
-    """
-
+def update_image_record():
     payload = request.get_json(silent=True)
 
     if not isinstance(payload, dict):
@@ -83,16 +76,16 @@ def save_single_image_updates():
     image_id = payload.get("imageId")
     updates = payload.get("updates")
 
-    if not isinstance(image_id, str):
-        return jsonify({"error": "imageId must be a string."}), 400
+    if not isinstance(image_id, str) or not image_id.strip():
+        return jsonify({"error": "imageId must be a non-empty string."}), 400
 
     if not isinstance(updates, dict):
         return jsonify({"error": "updates must be an object."}), 400
 
     try:
-        categories, images, hero_slides = save_image_updates(image_id, updates)
+        categories, images, hero_slides, updated_image = save_image_updates(image_id.strip(), updates)
     except ValueError as error:
-        return jsonify({"error": str(error)}), 400
+        return jsonify({"error": str(error)}), 404
 
     return jsonify(
         {
@@ -100,6 +93,10 @@ def save_single_image_updates():
             "categories": categories,
             "images": images,
             "heroSlides": hero_slides,
+            "updatedImage": updated_image,
+            "categoryCount": len(categories),
+            "imageCount": len(images),
+            "heroSlideCount": len(hero_slides),
         }
     )
 

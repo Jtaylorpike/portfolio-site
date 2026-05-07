@@ -305,10 +305,10 @@ def save_full_data(
 
     return categories, images, hero_slides
 
-# Image-level update fields that can be changed by a focused editor screen, such
-# as the hero crop editor. Keeping this allowlist prevents a small crop-save
-# request from accidentally changing unrelated image metadata or category order.
-ALLOWED_IMAGE_UPDATE_FIELDS = {
+# Fields that can be updated by the crop/detail pages without rewriting the
+# entire image list. Keeping this list explicit prevents accidental edits to IDs,
+# paths, categories, or other structural fields.
+DIRECT_IMAGE_UPDATE_FIELDS = {
     "thumbnailPosition",
     "heroPosition",
     "heroFrameStyle",
@@ -320,60 +320,71 @@ ALLOWED_IMAGE_UPDATE_FIELDS = {
 }
 
 
-def save_image_updates(
-    image_id: str,
-    raw_updates: dict[str, Any],
-) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]]:
-    """Update one image record without rewriting the editor's full page state.
+def normalize_direct_image_updates(raw_updates: dict[str, Any]) -> dict[str, Any]:
+    updates: dict[str, Any] = {}
 
-    The crop editor only needs to modify framing fields for a single image. This
-    function reads the current JSON from disk, applies the allowed updates to the
-    matching image, normalizes the full data set, and writes the JSON back. This
-    avoids bugs where a crop save accidentally depends on whatever page is
-    currently rendered in the browser.
+    if "thumbnailPosition" in raw_updates:
+        value = clean_string(raw_updates.get("thumbnailPosition"))
+        if value:
+            updates["thumbnailPosition"] = value
+
+    if "heroPosition" in raw_updates:
+        value = clean_string(raw_updates.get("heroPosition"))
+        if value:
+            updates["heroPosition"] = value
+
+    if "galleryPosition" in raw_updates:
+        value = clean_string(raw_updates.get("galleryPosition"))
+        if value:
+            updates["galleryPosition"] = value
+
+    if "heroFrameStyle" in raw_updates:
+        updates["heroFrameStyle"] = normalize_frame_style(raw_updates.get("heroFrameStyle"))
+
+    if "heroFitMode" in raw_updates:
+        updates["heroFitMode"] = normalize_hero_fit_mode(raw_updates.get("heroFitMode"))
+
+    if "galleryFitMode" in raw_updates:
+        updates["galleryFitMode"] = normalize_gallery_fit_mode(raw_updates.get("galleryFitMode"))
+
+    if "galleryFrameStyle" in raw_updates:
+        updates["galleryFrameStyle"] = normalize_frame_style(raw_updates.get("galleryFrameStyle"))
+
+    if "gallerySize" in raw_updates:
+        updates["gallerySize"] = clean_gallery_size(raw_updates.get("gallerySize"))
+
+    return updates
+
+
+def save_image_updates(image_id: str, raw_updates: dict[str, Any]) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], dict[str, Any]]:
+    """Update one image record and persist the normalized JSON files.
+
+    This is used by crop pages so changing a hero crop or fit mode does not rely
+    on collecting every visible editor form field. The rest of the project data is
+    read from disk, normalized, and written back with only the selected image
+    changed.
     """
 
-    clean_image_id = clean_string(image_id)
+    categories, images, hero_slides = get_current_data()
+    updates = normalize_direct_image_updates(raw_updates)
 
-    if not clean_image_id:
-        raise ValueError("Missing image id.")
-
-    if not isinstance(raw_updates, dict):
-        raise ValueError("updates must be an object.")
-
-    raw_categories = read_json(CATEGORIES_PATH)
-    raw_images = read_json(GALLERY_IMAGES_PATH)
-    raw_hero_slides = read_json(HERO_SLIDES_PATH)
-
-    if not isinstance(raw_categories, list):
-        raw_categories = DEFAULT_CATEGORIES
-
-    if not isinstance(raw_images, list):
-        raw_images = []
-
-    if not isinstance(raw_hero_slides, list):
-        raw_hero_slides = []
-
-    did_update = False
-
-    for raw_image in raw_images:
-        if not isinstance(raw_image, dict):
+    for index, image in enumerate(images):
+        if image.get("id") != image_id:
             continue
 
-        if clean_string(raw_image.get("id")) != clean_image_id:
-            continue
+        updated_image = {
+            **image,
+            **updates,
+        }
 
-        for field, value in raw_updates.items():
-            if field not in ALLOWED_IMAGE_UPDATE_FIELDS:
-                continue
+        valid_category_ids = {category["id"] for category in categories}
+        fallback_category_id = categories[0]["id"] if categories else "personal"
+        images[index] = normalize_image(updated_image, valid_category_ids, fallback_category_id)
 
-            raw_image[field] = value
+        write_json(CATEGORIES_PATH, categories)
+        write_json(GALLERY_IMAGES_PATH, images)
+        write_json(HERO_SLIDES_PATH, hero_slides)
 
-        did_update = True
-        break
+        return categories, images, hero_slides, images[index]
 
-    if not did_update:
-        raise ValueError(f"Image not found: {clean_image_id}")
-
-    return save_full_data(raw_categories, raw_images, raw_hero_slides)
-
+    raise ValueError(f"Image not found: {image_id}")
