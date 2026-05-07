@@ -1111,10 +1111,99 @@ export function renderImportReview(state, elements, pendingImportItems) {
   }).join("");
 }
 
+
+// Converts a backup creation timestamp into a readable local date/time.
+function formatBackupDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value || "Unknown date";
+  }
+
+  return date.toLocaleString();
+}
+
+// Converts a machine-friendly save reason into a readable label.
+function formatBackupReason(value) {
+  return String(value || "backup")
+    .replaceAll("-", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+// Builds the Backups page where the user can restore previous JSON states.
+function renderBackupPage(state, elements) {
+  const backups = state.backups ?? [];
+
+  if (!elements.backupList) {
+    return;
+  }
+
+  if (!backups.length) {
+    elements.backupList.innerHTML = `
+      <section class="panel backup-empty-state">
+        <p class="eyebrow">No backups found</p>
+        <h2>No backup folders are available yet.</h2>
+        <p class="panel-description">
+          Backups are created automatically before saves, imports, crop saves, and restore actions.
+          After you save from the editor, refresh this page to see available restore points.
+        </p>
+
+        <div class="actions">
+          <button class="button" type="button" data-refresh-backups>Refresh Backups</button>
+        </div>
+      </section>
+    `;
+    return;
+  }
+
+  elements.backupList.innerHTML = `
+    <div class="category-page-actions">
+      <button class="button" type="button" data-refresh-backups>Refresh Backups</button>
+    </div>
+
+    <div class="backup-list">
+      ${backups.map((backup) => {
+        const files = backup.files ?? [];
+        const fileLabels = files.length ? files.join(", ") : "No JSON files detected";
+        const canRestore = Boolean(backup.canRestore);
+
+        return `
+          <article class="backup-card" data-backup-card data-backup-folder="${escapeHtml(backup.backupFolder)}">
+            <div class="backup-card-main">
+              <p class="eyebrow">${escapeHtml(formatBackupReason(backup.reason))}</p>
+              <h3>${escapeHtml(backup.backupFolder)}</h3>
+              <p>${escapeHtml(formatBackupDate(backup.createdAtUtc))}</p>
+              <p><strong>Files:</strong> ${escapeHtml(fileLabels)}</p>
+            </div>
+
+            <div class="backup-card-actions">
+              <button
+                class="button danger"
+                type="button"
+                data-restore-backup="${escapeHtml(backup.backupFolder)}"
+                ${canRestore ? "" : "disabled"}
+              >
+                Restore Backup
+              </button>
+
+              ${canRestore ? "" : `<span>This folder is missing one or more required JSON files.</span>`}
+            </div>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 // Chooses which editor page to render for the current route.
 export function renderAll(state, elements, route) {
   renderCategories(state, elements);
   updateImportCategoryOptions(state, elements);
+
+  if (route.name === "backups") {
+    renderBackupPage(state, elements);
+    return;
+  }
 
   if (route.name === "image") {
     renderImageDetail(state, elements, route.imageId);

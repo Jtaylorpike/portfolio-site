@@ -1,7 +1,14 @@
 // Main controller for the local image editor.
 // It owns routing, in-memory state, save actions, import workflow, and event delegation.
 
-import { importReviewedImagesApi, loadDataApi, saveDataApi, saveImageUpdatesApi } from "./api.js";
+import {
+  importReviewedImagesApi,
+  listBackupsApi,
+  loadDataApi,
+  restoreBackupApi,
+  saveDataApi,
+  saveImageUpdatesApi
+} from "./api.js";
 import { elements } from "./dom.js";
 import { collectEditorData, collectImportReviewRecords } from "./collect.js";
 import {
@@ -12,13 +19,14 @@ import {
 } from "./render.js";
 import { formatObjectPosition, getFallbackCategoryId, slugify, titleFromFilename } from "./utils.js";
 
-const VALID_PAGE_ROUTES = new Set(["images", "import", "categories"]);
+const VALID_PAGE_ROUTES = new Set(["images", "import", "categories", "backups"]);
 const VALID_CROP_MODES = new Set(["hero", "gallery"]);
 
 let state = {
   categories: [],
   images: [],
-  heroSlides: []
+  heroSlides: [],
+  backups: []
 };
 
 let pendingImportItems = [];
@@ -117,7 +125,8 @@ function applyLoadedState(nextState) {
   state = {
     categories: nextState.categories ?? [],
     images: nextState.images ?? [],
-    heroSlides: nextState.heroSlides ?? []
+    heroSlides: nextState.heroSlides ?? [],
+    backups: nextState.backups ?? state.backups ?? []
   };
 
   const route = getCurrentRoute();
@@ -133,7 +142,8 @@ function updateStateFromCurrentDom() {
   state = {
     categories: nextState.categories,
     images: nextState.images,
-    heroSlides: nextState.heroSlides
+    heroSlides: nextState.heroSlides,
+    backups: state.backups ?? []
   };
 }
 
@@ -168,6 +178,40 @@ async function loadData() {
 
   applyLoadedState(nextState);
   setStatus(`Loaded ${state.images.length} images and ${state.categories.length} categories.`);
+}
+
+async function refreshBackups(message = "Backups refreshed.") {
+  setStatus("Loading backups...");
+
+  const result = await listBackupsApi();
+
+  state = {
+    ...state,
+    backups: result.backups ?? []
+  };
+
+  const route = getCurrentRoute();
+
+  renderAll(state, elements, route);
+  setEditorRoute(route);
+  setStatus(message);
+}
+
+async function restoreBackup(backupFolder) {
+  const confirmed = confirm(
+    `Restore backup "${backupFolder}"? The editor will create a new backup of the current JSON files before restoring.`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setStatus("Restoring backup...");
+
+  const restoredData = await restoreBackupApi(backupFolder);
+
+  applyLoadedState(restoredData);
+  setStatus(`Restored ${backupFolder}.${getBackupStatusText(restoredData)}`);
 }
 
 async function savePayload(payload) {
@@ -401,6 +445,13 @@ window.addEventListener("hashchange", () => {
 
   renderAll(state, elements, route);
   setEditorRoute(route);
+
+  if (route.name === "backups") {
+    refreshBackups().catch((error) => {
+      console.error(error);
+      setStatus(error.message);
+    });
+  }
 });
 
 elements.addCategoryButton.addEventListener("click", () => {
@@ -533,6 +584,33 @@ elements.importReviewList.addEventListener("input", (event) => {
 
   if (slider) {
     updateFramingControl(slider);
+  }
+});
+
+// Handles backup page actions separately from image editor actions.
+elements.backupList?.addEventListener("click", (event) => {
+  const refreshButton = event.target.closest("[data-refresh-backups]");
+  const restoreButton = event.target.closest("[data-restore-backup]");
+
+  if (refreshButton) {
+    refreshBackups().catch((error) => {
+      console.error(error);
+      setStatus(error.message);
+    });
+    return;
+  }
+
+  if (restoreButton) {
+    const backupFolder = restoreButton.dataset.restoreBackup;
+
+    if (!backupFolder) {
+      return;
+    }
+
+    restoreBackup(backupFolder).catch((error) => {
+      console.error(error);
+      setStatus(error.message);
+    });
   }
 });
 
@@ -680,7 +758,13 @@ elements.reloadButton.addEventListener("click", () => {
 // Start the editor by selecting the initial route and loading JSON data.
 setEditorRoute();
 
-loadData().catch((error) => {
+loadData().then(() => {
+  if (getCurrentRoute().name === "backups") {
+    return refreshBackups();
+  }
+
+  return null;
+}).catch((error) => {
   console.error(error);
   setStatus(error.message);
 });

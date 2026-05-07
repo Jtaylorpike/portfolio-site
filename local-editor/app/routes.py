@@ -12,6 +12,8 @@ from .data_store import (
     DataValidationError,
     PUBLIC_DIR,
     get_current_data,
+    list_data_backups,
+    restore_data_backup,
     save_full_data,
     save_image_updates,
 )
@@ -129,6 +131,55 @@ def update_image_record():
             "heroSlides": hero_slides,
             "updatedImage": updated_image,
             "backup": backup,
+            "categoryCount": len(categories),
+            "imageCount": len(images),
+            "heroSlideCount": len(hero_slides),
+        }
+    )
+
+
+@bp.route("/api/backups")
+def list_backups():
+    """Return the backup folders that can be shown in the editor UI."""
+
+    return jsonify(
+        {
+            "ok": True,
+            "backups": list_data_backups(),
+        }
+    )
+
+
+@bp.route("/api/backups/restore", methods=["POST"])
+def restore_backup():
+    """Restore one validated backup and return the new editor state."""
+
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Invalid JSON payload."}), 400
+
+    backup_name = payload.get("backupFolder")
+
+    if not isinstance(backup_name, str) or not backup_name.strip():
+        return jsonify({"error": "backupFolder must be a non-empty string."}), 400
+
+    try:
+        categories, images, hero_slides, restored_backup, safety_backup = restore_data_backup(backup_name.strip())
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 404
+
+    return jsonify(
+        {
+            "ok": True,
+            "categories": categories,
+            "images": images,
+            "heroSlides": hero_slides,
+            "backups": list_data_backups(),
+            "restoredBackup": restored_backup,
+            "backup": safety_backup,
             "categoryCount": len(categories),
             "imageCount": len(images),
             "heroSlideCount": len(hero_slides),

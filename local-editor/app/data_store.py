@@ -116,6 +116,183 @@ def create_data_backup(reason: str) -> dict[str, Any]:
     return manifest
 
 
+# Accepts only backup folder names created by the editor.
+def is_safe_backup_name(name: str) -> bool:
+    """Reject path traversal and other unsafe backup names.
+
+    Restore requests come from the browser, so the backend must treat the backup
+    folder name as untrusted input. This check ensures a restore request can only
+    target a simple folder name inside local-editor/backups/.
+    """
+
+    return bool(re.fullmatch(r"[A-Za-z0-9._-]+", name or ""))
+
+
+# Resolves a backup folder name into an absolute path inside the backups folder.
+def get_backup_path(backup_name: str) -> Path:
+    """Return the backup folder path after validating the folder name."""
+
+    clean_backup_name = clean_string(backup_name)
+
+    if not is_safe_backup_name(clean_backup_name):
+        raise ValueError("Backup name is not valid.")
+
+    backup_path = BACKUP_DIR / clean_backup_name
+
+    if not backup_path.exists() or not backup_path.is_dir():
+        raise ValueError(f"Backup not found: {clean_backup_name}")
+
+    return backup_path
+
+
+# Reads optional backup metadata written when the backup was created.
+def read_backup_manifest(backup_path: Path) -> dict[str, Any]:
+    """Read manifest.json when available and return a safe fallback otherwise."""
+
+    manifest_path = backup_path / "manifest.json"
+
+    if not manifest_path.exists():
+        return {}
+
+    try:
+        manifest = read_json(manifest_path)
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+    if isinstance(manifest, dict):
+        return manifest
+
+    return {}
+
+
+# Builds one summary card for the Backups page in the editor.
+def summarize_backup_folder(backup_path: Path) -> dict[str, Any]:
+    """Return browser-friendly metadata for one backup folder."""
+
+    manifest = read_backup_manifest(backup_path)
+    files = [
+        file_name
+        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json"]
+        if (backup_path / file_name).exists()
+    ]
+
+    created_at_utc = clean_string(manifest.get("createdAtUtc"))
+
+    if not created_at_utc:
+        created_at_utc = datetime.fromtimestamp(
+            backup_path.stat().st_mtime,
+            timezone.utc,
+        ).isoformat()
+
+    return {
+        "backupFolder": backup_path.name,
+        "reason": clean_string(manifest.get("reason")) or "backup",
+        "createdAtUtc": created_at_utc,
+        "files": files,
+        "canRestore": all(file_name in files for file_name in ["categories.json", "galleryImages.json", "heroSlides.json"]),
+    }
+
+
+# Lists all available JSON backup folders for the editor UI.
+def list_data_backups() -> list[dict[str, Any]]:
+    """Return backup folders newest-first.
+
+    The UI uses this list to show restore options. Folders without all three JSON
+    files are still shown for transparency, but the Restore button is disabled.
+    """
+
+    if not BACKUP_DIR.exists():
+        return []
+
+    backups = [
+        summarize_backup_folder(path)
+        for path in BACKUP_DIR.iterdir()
+        if path.is_dir()
+    ]
+
+    return sorted(
+        backups,
+        key=lambda item: (clean_string(item.get("createdAtUtc")), clean_string(item.get("backupFolder"))),
+        reverse=True,
+    )
+
+
+# Loads and normalizes the three JSON files stored inside one backup folder.
+def load_backup_data(backup_path: Path) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]]:
+    """Read a backup folder and validate that it can safely restore the site."""
+
+    required_paths = [
+        backup_path / "categories.json",
+        backup_path / "galleryImages.json",
+        backup_path / "heroSlides.json",
+    ]
+
+    missing_files = [path.name for path in required_paths if not path.exists()]
+
+    if missing_files:
+        raise DataValidationError(f"Backup is missing required files: {', '.join(missing_files)}")
+
+    raw_categories = read_json(backup_path / "categories.json")
+    raw_images = read_json(backup_path / "galleryImages.json")
+    raw_hero_slides = read_json(backup_path / "heroSlides.json")
+
+    if not isinstance(raw_categories, list):
+        raise DataValidationError("Backup categories.json must contain a list.")
+
+    if not isinstance(raw_images, list):
+        raise DataValidationError("Backup galleryImages.json must contain a list.")
+
+    if not isinstance(raw_hero_slides, list):
+        raise DataValidationError("Backup heroSlides.json must contain a list.")
+
+    categories = normalize_categories(raw_categories)
+    valid_category_ids = {category["id"] for category in categories}
+    fallback_category_id = categories[0]["id"]
+
+    images = [
+        normalize_image(image, valid_category_ids, fallback_category_id)
+        for image in raw_images
+        if isinstance(image, dict)
+    ]
+
+    hero_slides = [
+        normalize_hero_slide(slide, valid_category_ids, fallback_category_id)
+        for slide in raw_hero_slides
+        if isinstance(slide, dict)
+    ]
+
+    # Restore validation should be stricter than normal loading. If a backup has
+    # a broken hero slide reference, the editor should refuse to restore it
+    # instead of copying the exact broken backup back into the project.
+    validate_project_data(categories, images, hero_slides)
+
+    return categories, images, hero_slides
+
+
+# Restores one backup after creating a new backup of the current state.
+def restore_data_backup(backup_name: str) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], dict[str, Any], dict[str, Any]]:
+    """Replace the current JSON files with a validated backup.
+
+    The restore action is intentionally reversible. Before overwriting anything,
+    the current JSON files are backed up into a new pre-restore folder.
+    """
+
+    backup_path = get_backup_path(backup_name)
+    categories, images, hero_slides = load_backup_data(backup_path)
+    safety_backup = create_data_backup(f"pre-restore-{backup_path.name}")
+
+    # Copy the backup files back exactly as they were saved. Validation above
+    # proves they can be loaded safely, and exact copying avoids unnecessary Git
+    # diffs from reformatting or re-normalizing older backups.
+    shutil.copy2(backup_path / "categories.json", CATEGORIES_PATH)
+    shutil.copy2(backup_path / "galleryImages.json", GALLERY_IMAGES_PATH)
+    shutil.copy2(backup_path / "heroSlides.json", HERO_SLIDES_PATH)
+
+    restored_backup = summarize_backup_folder(backup_path)
+
+    return categories, images, hero_slides, restored_backup, safety_backup
+
+
 # Cleans category records and guarantees each category has a unique ID.
 def normalize_categories(raw_categories: list[Any]) -> list[dict[str, str]]:
     categories: list[dict[str, str]] = []

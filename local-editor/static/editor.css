@@ -884,3 +884,78 @@ textarea {
   object-fit: contain !important;
   object-position: 50% 50% !important;
 }
+
+/* Backup restore page.
+
+   These cards list the timestamped JSON snapshots created by the editor before
+   saves, imports, crop saves, and restore actions. The Restore button is only
+   enabled when a folder contains all three source JSON files required to return
+   the portfolio data to a previous state. */
+.backup-list {
+  display: grid;
+  gap: 14px;
+}
+
+.backup-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.backup-card h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 1.15;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.backup-card p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.backup-card p:last-child {
+  margin-bottom: 0;
+}
+
+.backup-card-main strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.backup-card-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.backup-card-actions span,
+.backup-empty-state p {
+  max-width: 420px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 800px) {
+  .backup-card {
+    grid-template-columns: 1fr;
+  }
+
+  .backup-card-actions {
+    justify-items: start;
+  }
+}

@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taylor Pike Portfolio Editor</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=9" />
-  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=10"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=10" />
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=11"></script>
 </head>
 
 <body>
@@ -32,6 +32,7 @@
       <a href="#/images" data-editor-route-link="images">Images</a>
       <a href="#/import" data-editor-route-link="import">Import</a>
       <a href="#/categories" data-editor-route-link="categories">Categories</a>
+      <a href="#/backups" data-editor-route-link="backups">Backups</a>
     </nav>
 
     <p class="status" id="statusText">Loading data...</p>
@@ -124,6 +125,19 @@
           <button class="button" type="button" id="refreshCategoriesButton">Refresh Category Options</button>
         </div>
       </section>
+    </section>
+
+    <!-- Backups page: lists timestamped JSON backups and lets the user restore one safely. -->
+    <section class="editor-page-section" data-editor-page="backups">
+      <div class="section-heading">
+        <p class="eyebrow">Backups</p>
+        <h2>Restore portfolio JSON backups</h2>
+        <p>
+          Backups are created before editor saves. Restoring a backup replaces the current category, image, and hero slide JSON files, but the current state is backed up first so the restore can be reversed.
+        </p>
+      </div>
+
+      <section class="editor-list" id="backupList"></section>
     </section>
   </main>
 </body>

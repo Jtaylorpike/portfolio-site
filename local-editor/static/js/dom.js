@@ -7,6 +7,7 @@ export const elements = {
   imagesPageDescription: document.querySelector("#imagesPageDescription"),
 
   editorList: document.querySelector("#editorList"),
+  backupList: document.querySelector("#backupList"),
   categoryList: document.querySelector("#categoryList"),
   statusText: document.querySelector("#statusText"),
   saveButton: document.querySelector("#saveButton"),

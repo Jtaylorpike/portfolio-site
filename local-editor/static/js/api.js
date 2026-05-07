@@ -63,3 +63,31 @@ export async function importReviewedImagesApi(formData) {
 
   return response.json();
 }
+
+export async function listBackupsApi() {
+  const response = await fetch('/api/backups');
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.error ?? 'Could not load backups.');
+  }
+
+  return response.json();
+}
+
+export async function restoreBackupApi(backupFolder) {
+  const response = await fetch('/api/backups/restore', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ backupFolder })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.error ?? 'Could not restore backup.');
+  }
+
+  return response.json();
+}
