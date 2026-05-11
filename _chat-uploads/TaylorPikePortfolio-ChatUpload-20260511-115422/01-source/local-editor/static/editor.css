@@ -1,0 +1,1094 @@
+/*
+  Local portfolio editor interface.
+
+  This stylesheet controls only the Flask-based local editor. The public
+  portfolio site uses src/styles/global.css. The editor is intentionally styled
+  like a focused production tool: clear page hierarchy, large click targets,
+  readable forms, visible save state, and stable image previews.
+*/
+
+/* Design tokens: shared colors, spacing, borders, and shadows used throughout
+   the editor. Keeping these values centralized makes the interface easier to
+   tune without searching through every component rule. */
+:root {
+  --background: #f3efe7;
+  --background-deep: #e8e0d3;
+  --surface: #fffdf8;
+  --surface-strong: #ffffff;
+  --surface-muted: rgba(255, 255, 255, 0.62);
+  --text: #15120e;
+  --text-soft: #3e352b;
+  --muted: #756b60;
+  --muted-strong: #5d544a;
+  --line: rgba(21, 18, 14, 0.14);
+  --line-strong: rgba(21, 18, 14, 0.28);
+  --accent: #15120e;
+  --accent-soft: rgba(21, 18, 14, 0.08);
+  --danger: #8a2a24;
+  --danger-soft: rgba(138, 42, 36, 0.1);
+  --success: #2f5d47;
+  --success-soft: rgba(47, 93, 71, 0.12);
+  --warning: #8a5b1f;
+  --warning-soft: rgba(138, 91, 31, 0.12);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --shadow-sm: 0 8px 26px rgba(21, 18, 14, 0.06);
+  --shadow-md: 0 18px 56px rgba(21, 18, 14, 0.1);
+  --page-max: 1240px;
+}
+
+/* Browser reset and base document behavior. This gives every element the same
+   sizing rules and prevents default browser spacing from fighting the layout. */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.92), transparent 34rem),
+    linear-gradient(135deg, var(--background), var(--background-deep));
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(21, 18, 14, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(21, 18, 14, 0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.28), transparent 72%);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* Main page shell. The editor is a local app, so it gets generous width and
+   vertical spacing for long metadata forms and image grids. */
+.page {
+  width: min(var(--page-max), calc(100% - 32px));
+  margin: 0 auto;
+  padding: clamp(22px, 4vw, 44px) 0 96px;
+}
+
+/* Header area. This summarizes the tool and keeps global actions in one
+   predictable place at the top of every editor screen. */
+.header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 22px;
+  padding: clamp(20px, 3vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 253, 248, 0.76);
+  box-shadow: none;
+  backdrop-filter: blur(18px);
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 820px;
+  margin: 0;
+  font-size: clamp(38px, 6vw, 76px);
+  line-height: 0.92;
+  letter-spacing: -0.065em;
+  font-weight: 620;
+}
+
+h2 {
+  margin: 0 0 14px;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1;
+  letter-spacing: -0.045em;
+  font-weight: 620;
+}
+
+h3 {
+  margin: 0;
+}
+
+.intro,
+.section-heading p,
+.panel-description {
+  max-width: 680px;
+  margin: 18px 0 0;
+  color: var(--muted-strong);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+/* Action rows and buttons. Primary actions are filled; secondary actions are
+   outlined. All buttons use the same height and radius so the interface feels
+   consistent when controls are generated dynamically. */
+.actions,
+.category-actions,
+.category-page-actions,
+.image-overview-actions,
+.category-row-actions,
+.crop-shortcuts,
+.mode-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button {
+  height: 42px;
+  width: auto;
+  max-width: 100%;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.56);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: none;
+  vertical-align: middle;
+  transition: transform 140ms ease, background 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.button:hover,
+.button:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface-strong);
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
+.button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface-strong);
+}
+
+.button.primary:hover,
+.button.primary:focus-visible {
+  background: #30281f;
+}
+
+.button.danger {
+  border-color: rgba(138, 42, 36, 0.42);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.button.danger:hover,
+.button.danger:focus-visible {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+
+/* Button vertical-alignment reset.
+   Native buttons and links use different default font metrics across browsers.
+   Keeping every pill at a fixed height with zero vertical padding prevents the
+   text from appearing low in the pill and removes the white inset highlight that
+   previously looked like extra space at the top of dark buttons. */
+.button > * {
+  line-height: 1;
+}
+
+/* Button layout safeguards. These prevent pill buttons from clipping their text
+   or squeezing into awkward half-width shapes inside generated editor rows. */
+.header .actions,
+.category-row-actions,
+.image-overview-actions,
+.category-actions,
+.category-page-actions,
+.crop-shortcuts {
+  min-width: 0;
+  align-items: center;
+}
+
+.header .actions {
+  justify-content: flex-end;
+}
+
+.header .actions .button,
+.category-row-actions .button,
+.image-overview-actions .button {
+  flex: 0 0 auto;
+}
+
+/* Navigation. These hash links switch between editor screens without leaving
+   the Flask page. The active route is set by JavaScript. */
+.editor-nav {
+  position: sticky;
+  top: 12px;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.78);
+  box-shadow: none;
+  backdrop-filter: blur(18px);
+}
+
+.editor-nav a {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--muted-strong);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.editor-nav a:hover,
+.editor-nav a:focus-visible {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.editor-nav a.is-active {
+  background: var(--accent);
+  color: var(--surface-strong);
+}
+
+/* Status message. JavaScript changes the data-status-state attribute so saves,
+   errors, and unsaved edits are visually distinct. */
+.status {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 253, 248, 0.72);
+  color: var(--muted-strong);
+  font-size: 14px;
+  line-height: 1.45;
+  box-shadow: none;
+}
+
+.status::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--muted);
+  box-shadow: 0 0 0 4px rgba(117, 107, 96, 0.1);
+}
+
+.status[data-status-state="success"]::before {
+  background: var(--success);
+  box-shadow: 0 0 0 4px var(--success-soft);
+}
+
+.status[data-status-state="warning"]::before,
+body[data-editor-dirty="true"] .status::before {
+  background: var(--warning);
+  box-shadow: 0 0 0 4px var(--warning-soft);
+}
+
+.status[data-status-state="error"]::before {
+  background: var(--danger);
+  box-shadow: 0 0 0 4px var(--danger-soft);
+}
+
+/* Page visibility. Only one editor section is shown at a time. */
+.editor-page-section {
+  display: none;
+}
+
+.editor-page-section.is-active {
+  display: block;
+}
+
+.section-heading {
+  margin-bottom: 24px;
+}
+
+/* Panels and cards. These rules give generated editor blocks a consistent
+   surface treatment and keep form groups visually separated. */
+.panel,
+.image-card,
+.import-card,
+.crop-editor-panel,
+.backup-card,
+.category-row,
+.gallery-display-summary,
+.gallery-mode-panel,
+.crop-contain-note,
+.framing-controls {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 253, 248, 0.76);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+}
+
+.panel {
+  margin-bottom: 28px;
+  padding: clamp(18px, 2.5vw, 26px);
+}
+
+/* Generated content can contain long file paths, labels, or button rows. These
+   rules keep cards from forcing horizontal overflow or visually clipping their
+   first characters at narrow widths. */
+.panel,
+.image-card,
+.import-card,
+.category-row,
+.crop-editor-panel,
+.backup-card {
+  min-width: 0;
+  overflow: visible;
+}
+
+.panel-grid,
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.panel-wide,
+.wide {
+  grid-column: 1 / -1;
+}
+
+.editor-list {
+  display: grid;
+  gap: 22px;
+}
+
+/* Form controls. Labels are grid containers so field names, controls, and helper
+   text align consistently across metadata, crop, import, and backup screens. */
+label {
+  display: grid;
+  gap: 7px;
+}
+
+label span,
+.checkbox span,
+.framing-header span,
+.framing-slider span,
+.hero-target-control span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+  outline: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+  background: var(--surface-strong);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+input[readonly] {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.45);
+  cursor: default;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+input[type="range"] {
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--accent);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox input {
+  width: auto;
+}
+
+/* Image overview grid. This is the main browsing screen, so cards stay clean,
+   visual, and quick to scan. */
+.image-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.image-overview-card {
+  display: grid;
+  gap: 11px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.image-overview-thumb,
+.preview {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  box-shadow: none;
+}
+
+.image-overview-thumb {
+  aspect-ratio: 4 / 3;
+}
+
+.image-overview-thumb img,
+.preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 180ms ease;
+}
+
+.image-overview-card:hover .image-overview-thumb img,
+.image-overview-card:focus-visible .image-overview-thumb img {
+  transform: scale(1.026);
+}
+
+.image-overview-meta {
+  display: grid;
+  gap: 4px;
+}
+
+.image-overview-meta strong {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.image-overview-meta span,
+.category-row-meta,
+.import-summary,
+.backup-card p,
+.backup-card-actions span,
+.backup-empty-state p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Image detail page. The thumbnail/diagnostics column stays compact while the
+   metadata form gets the remaining space. */
+.image-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.image-card,
+.import-card {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 22px;
+  padding: clamp(16px, 2vw, 22px);
+}
+
+.preview {
+  position: relative;
+  align-self: start;
+  aspect-ratio: 4 / 3;
+}
+
+.image-diagnostics {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  background: rgba(21, 18, 14, 0.68);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+  backdrop-filter: blur(10px);
+}
+
+.image-diagnostics span {
+  white-space: nowrap;
+}
+
+.hero-controls,
+.image-card-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.hero-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  align-items: end;
+}
+
+/* Category management and ordering. Category rows are editable records; order
+   buttons manipulate the DOM first, then Save JSON persists the new order. */
+.category-list {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.category-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+}
+
+.category-row-actions {
+  grid-column: 1 / -1;
+}
+
+.category-jump-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 20px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 253, 248, 0.56);
+}
+
+.category-jump-nav a {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--muted-strong);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.category-jump-nav a:hover,
+.category-jump-nav a:focus-visible,
+.category-jump-nav a.is-active {
+  background: var(--accent);
+  color: var(--surface-strong);
+}
+
+.image-order-card {
+  cursor: default;
+}
+
+.image-order-card .image-overview-thumb {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.image-overview-actions .button,
+.category-row-actions .button {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 13px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.hero-target-control {
+  display: grid;
+  gap: 6px;
+}
+
+.hero-order-card {
+  padding-bottom: 12px;
+}
+
+/* Import workflow. The import review starts hidden until JavaScript creates
+   temporary browser previews for the selected files. */
+.import-review {
+  display: none;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.import-review.is-active {
+  display: block;
+}
+
+.import-review-list {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+/* Framing and crop controls. These controls map directly to object-position,
+   fit-mode, frame-style, and virtual gallery size fields in galleryImages.json. */
+.framing-controls,
+.gallery-display-summary,
+.gallery-mode-panel,
+.crop-contain-note {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+}
+
+.framing-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 124px;
+  gap: 10px;
+  align-items: center;
+}
+
+.framing-header input {
+  padding: 9px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.framing-slider {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 52px;
+  gap: 10px;
+  align-items: center;
+}
+
+.framing-slider strong,
+.gallery-size-control strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 750;
+  text-align: right;
+}
+
+.gallery-display-summary p,
+.gallery-display-summary span,
+.crop-contain-note span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.gallery-display-summary strong,
+.crop-contain-note strong {
+  font-size: 14px;
+}
+
+.crop-contain-note {
+  border-style: dashed;
+}
+
+.gallery-size-control {
+  display: grid;
+  gap: 8px;
+}
+
+.gallery-size-control small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Crop editor layout. The preview gets the larger column and the controls stay
+   visible as a compact panel beside it on desktop. */
+.crop-editor {
+  display: grid;
+  gap: 18px;
+}
+
+.crop-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(310px, 0.65fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.crop-preview {
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.crop-preview-hero {
+  aspect-ratio: 16 / 9 !important;
+}
+
+.crop-preview-gallery {
+  aspect-ratio: 4 / 5;
+}
+
+.crop-editor-panel {
+  position: sticky;
+  top: 86px;
+  display: grid;
+  gap: 14px;
+  padding: clamp(16px, 2vw, 22px);
+}
+
+.crop-editor-panel h2 {
+  margin-bottom: 0;
+}
+
+.crop-description,
+.crop-help {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.crop-help {
+  display: grid;
+  gap: 6px;
+}
+
+.crop-help p {
+  margin: 0;
+}
+
+.crop-framing-controls {
+  grid-column: auto;
+}
+
+/* Hero crop preview model.
+
+   This must mirror the public carousel: the outer preview is a 16:9 hero stage,
+   the layer fills that stage, the frame defines the selected crop shape, and
+   the image is absolutely locked to the frame so object-fit and object-position
+   work exactly as they do on the public site. */
+.crop-preview-hero {
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  background: var(--surface-strong) !important;
+}
+
+.editor-hero-preview-layer {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  background: var(--surface-strong) !important;
+}
+
+.editor-hero-preview-frame {
+  position: relative !important;
+  display: block !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  background: var(--surface-strong) !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='contain'] .editor-hero-preview-frame {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  aspect-ratio: auto !important;
+}
+
+.editor-hero-preview-frame img,
+.editor-hero-preview-frame [data-crop-preview-image] {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  padding: 0 !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='contain'] img,
+.editor-hero-preview-layer[data-hero-fit-mode='contain'] [data-crop-preview-image] {
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+}
+
+.editor-hero-preview-layer[data-hero-fit-mode='cover'] img,
+.editor-hero-preview-layer[data-hero-fit-mode='cover'] [data-crop-preview-image] {
+  object-fit: cover !important;
+}
+
+/* Virtual gallery crop preview. This mirrors the Three.js gallery framing rule:
+   the preview box is the artwork frame, the image fills the box, and object-fit
+   switches between cover/crop and contain/full-image behavior. */
+.crop-preview-gallery {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  background: var(--surface-strong) !important;
+}
+
+.crop-preview-gallery [data-crop-preview-image] {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  padding: 0 !important;
+}
+
+.crop-preview-gallery-cover [data-crop-preview-image] {
+  object-fit: cover !important;
+}
+
+.crop-preview-gallery-contain [data-crop-preview-image] {
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+}
+
+/* Backup restore page. Backup cards summarize JSON snapshots and expose restore
+   actions only for complete backups that contain every required data file. */
+.backup-list {
+  display: grid;
+  gap: 14px;
+}
+
+.backup-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+}
+
+.backup-card h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.backup-card p {
+  margin: 0 0 8px;
+}
+
+.backup-card p:last-child {
+  margin-bottom: 0;
+}
+
+.backup-card-main strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.backup-card-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+/* Responsive layout. On smaller screens the editor becomes single-column, the
+   crop controls move below the preview, and sticky panels become normal blocks. */
+@media (max-width: 1100px) {
+  .header {
+    grid-template-columns: 1fr;
+  }
+
+  .header .actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .header,
+  .image-detail-header,
+  .image-card,
+  .import-card,
+  .crop-editor-layout,
+  .category-row,
+  .backup-card {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    padding: 22px;
+  }
+
+  .fields,
+  .hero-controls,
+  .panel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-wide,
+  .wide,
+  .category-row-actions {
+    grid-column: auto;
+  }
+
+  .crop-editor-panel {
+    position: static;
+  }
+
+  .backup-card-actions {
+    justify-items: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .page {
+    width: min(100% - 20px, var(--page-max));
+    padding-top: 14px;
+  }
+
+  .editor-nav {
+    border-radius: var(--radius-md);
+  }
+
+  .editor-nav a {
+    width: 100%;
+  }
+
+  .button {
+    white-space: normal;
+  }
+
+  .actions .button,
+  .category-actions .button,
+  .category-page-actions .button,
+  .category-row-actions .button,
+  .image-overview-actions .button,
+  .crop-shortcuts .button,
+  .mode-button-row .button {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .framing-header,
+  .framing-slider {
+    grid-template-columns: 1fr;
+  }
+
+  .framing-slider strong {
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

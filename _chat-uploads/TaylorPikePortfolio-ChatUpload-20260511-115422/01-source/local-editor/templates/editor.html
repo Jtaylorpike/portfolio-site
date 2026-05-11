@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Taylor Pike Portfolio Editor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=14" />
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=14"></script>
+</head>
+
+<body>
+  <main class="page">
+    <!-- Header: identifies the tool and exposes global reload/save actions. -->
+    <header class="header">
+      <div>
+        <p class="eyebrow">Local Editor</p>
+        <h1>Portfolio control room</h1>
+        <p class="intro">
+          Manage portfolio images, hero slides, virtual gallery framing, imports, categories, and restore points from one local dashboard.
+        </p>
+      </div>
+
+      <div class="actions">
+        <button class="button" type="button" id="reloadButton">Reload Data</button>
+        <button class="button primary" type="button" id="saveButton">Save Changes</button>
+      </div>
+    </header>
+
+    <!-- Navigation: hash links switch between editor pages without reloading Flask. -->
+    <nav class="editor-nav" aria-label="Editor navigation">
+      <a href="#/images" data-editor-route-link="images">Images</a>
+      <a href="#/import" data-editor-route-link="import">Import</a>
+      <a href="#/categories" data-editor-route-link="categories">Categories</a>
+      <a href="#/backups" data-editor-route-link="backups">Backups</a>
+    </nav>
+
+    <p class="status" id="statusText" data-status-state="neutral">Loading data...</p>
+
+    <!-- Images page: populated dynamically by render.js based on the active route. -->
+    <section class="editor-page-section" data-editor-page="images">
+      <div class="section-heading">
+        <p class="eyebrow" id="imagesPageEyebrow">Images</p>
+        <h2 id="imagesPageTitle">All images</h2>
+        <p id="imagesPageDescription">
+          Browse every image in the portfolio. Click an image to edit its metadata, category, hero settings, and crop/framing positions.
+        </p>
+      </div>
+
+      <section class="editor-list" id="editorList"></section>
+    </section>
+
+    <!-- Import page: collects files and default metadata before the review step. -->
+    <section class="editor-page-section" data-editor-page="import">
+      <section class="panel" aria-label="Image import">
+        <p class="eyebrow">Import Images</p>
+        <h2>Add images to the portfolio</h2>
+
+        <div class="panel-grid">
+          <label class="panel-wide">
+            <span>Image files</span>
+            <input id="importFiles" type="file" accept="image/*" multiple />
+          </label>
+
+          <label>
+            <span>Default category</span>
+            <select id="importCategory"></select>
+          </label>
+
+          <label>
+            <span>Default year</span>
+            <input id="importYear" placeholder="2026" />
+          </label>
+
+          <label>
+            <span>Default location</span>
+            <input id="importLocation" placeholder="Location" />
+          </label>
+
+          <label>
+            <span>Default alt text prefix</span>
+            <input id="importAltPrefix" placeholder="Photograph by Taylor Pike" />
+          </label>
+
+          <label class="panel-wide">
+            <span>Default note</span>
+            <textarea id="importNote" placeholder="This will pre-fill each imported image note. You can edit each image before saving."></textarea>
+          </label>
+        </div>
+
+        <div class="actions" style="margin-top: 14px;">
+          <button class="button primary" type="button" id="prepareImportButton">Prepare Import Review</button>
+        </div>
+
+        <p class="import-summary" id="importSummary"></p>
+
+        <div class="import-review" id="importReview">
+          <p class="eyebrow">Import Review</p>
+          <h2>Edit each image before saving</h2>
+
+          <div class="actions">
+            <button class="button primary" type="button" id="saveReviewedImportButton">Save Reviewed Import</button>
+            <button class="button" type="button" id="clearImportReviewButton">Clear Import Review</button>
+          </div>
+
+          <div class="import-review-list" id="importReviewList"></div>
+        </div>
+      </section>
+    </section>
+
+    <!-- Categories page: manages the order and labels used throughout the site. -->
+    <section class="editor-page-section" data-editor-page="categories">
+      <section class="panel" aria-label="Category editor">
+        <p class="eyebrow">Categories</p>
+        <h2>Category settings</h2>
+        <p class="panel-description">
+          Category order controls the top-level portfolio hierarchy. Images inside each category are ordered from that category’s image page.
+        </p>
+
+        <div class="category-list" id="categoryList"></div>
+
+        <div class="category-actions">
+          <button class="button primary" type="button" id="saveCategorySettingsButton">Save Category Settings</button>
+          <button class="button" type="button" id="addCategoryButton">Add Category</button>
+          <button class="button" type="button" id="refreshCategoriesButton">Refresh Category Options</button>
+        </div>
+      </section>
+    </section>
+
+    <!-- Backups page: lists timestamped JSON backups and lets the user restore one safely. -->
+    <section class="editor-page-section" data-editor-page="backups">
+      <div class="section-heading">
+        <p class="eyebrow">Backups</p>
+        <h2>Restore portfolio JSON backups</h2>
+        <p>
+          Backups are created before editor saves. Restoring a backup replaces the current category, image, and hero slide JSON files, but the current state is backed up first so the restore can be reversed.
+        </p>
+      </div>
+
+      <section class="editor-list" id="backupList"></section>
+    </section>
+  </main>
+</body>
+</html>

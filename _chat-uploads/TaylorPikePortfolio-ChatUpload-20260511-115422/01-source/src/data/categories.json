@@ -1,0 +1,14 @@
+[
+  {
+    "id": "climbing",
+    "label": "Climbing"
+  },
+  {
+    "id": "landscape",
+    "label": "Landscape"
+  },
+  {
+    "id": "personal",
+    "label": "Personal"
+  }
+]
