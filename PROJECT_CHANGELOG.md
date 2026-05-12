@@ -6,22 +6,19 @@ Current source files remain the source of truth. This changelog is a historical 
 
 ---
 
-## 2026-05-11 — GitHub Pages deployment foundation
+## 2026-05-11 — Gallery layout TypeScript build fix
 
 ### Changed
-- Added a GitHub Actions workflow for deploying the built Vite site to GitHub Pages.
-- Updated `vite.config.ts` so GitHub Pages builds use the `/portfolio-site/` base path while local development continues to use `/`.
-- Configured the workflow to run on pushes to `main` and manual dispatch from the Actions tab.
-- Configured the workflow to build with `npm ci` and `npm run build`, then upload `dist` to GitHub Pages.
+- Fixed the GitHub Actions build failure in `src/gallery/artwork/galleryLayout.ts`.
+- Replaced direct optional literal comparisons like `wall.showInGallery !== false` with explicit boolean helper functions.
+- Preserved the same runtime behavior: walls show by default, plaques show by default unless explicitly disabled.
 
 ### Files changed
-- `.github/workflows/deploy-pages.yml`
-- `vite.config.ts`
+- `src/gallery/artwork/galleryLayout.ts`
 - `PROJECT_CHANGELOG.md`
 
 ### Notes
-- This assumes the repository will be published at `https://Jtaylorpike.github.io/portfolio-site/`.
-- If a custom domain is added later, the Vite base path should be changed back to `/` for production.
+- The deployment failed because TypeScript narrowed optional literal values from the wall blueprint and flagged a comparison as impossible. The fix keeps the same data model and behavior while making the type intent explicit.
 
 ---
 

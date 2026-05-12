@@ -1,29 +1,28 @@
-# TaylorPikePortfolio-GitHubPagesDeployPack-20260511
+# TaylorPikePortfolio-GalleryLayoutTypeScriptBuildFixPack-20260511
 
 ## Included files
-- `.github/workflows/deploy-pages.yml`
-- `vite.config.ts`
+- `src/gallery/artwork/galleryLayout.ts`
 - `PROJECT_CHANGELOG.md`
 - `REPLACEMENT_PACK_NOTES.md`
 
 ## Purpose
-Add a GitHub Pages deployment workflow for the Vite portfolio site.
+Fix the GitHub Actions build failure caused by TypeScript narrowing in `galleryLayout.ts`.
+
+## Error fixed
+`src/gallery/artwork/galleryLayout.ts#L234`
+`This comparison appears to be unintentional because the types 'true | undefined' and 'false' have no overlap.`
 
 ## What changed
-- Added a GitHub Actions workflow that builds and deploys the site to GitHub Pages.
-- Configured the workflow to run on pushes to `main`.
-- Added manual workflow dispatch support.
-- Updated `vite.config.ts` to use `/portfolio-site/` as the base path only when `GITHUB_PAGES=true`.
-- Local development still uses `/`.
+- Added `isWallVisibleInGallery(wall)`.
+- Added `isWallPlaqueEnabled(wall)`.
+- Replaced direct optional literal comparisons with helper functions.
+- Preserved the same runtime behavior.
 
-## Required GitHub setting
-After pushing this pack:
-1. Open the GitHub repository.
-2. Go to Settings → Pages.
-3. Under Build and deployment, set Source to GitHub Actions.
+## After applying
+Run:
+`npm run build`
 
-## Expected published URL
-`https://Jtaylorpike.github.io/portfolio-site/`
-
-## Important future note
-If the site is later moved to a custom domain, the production base path should be `/`, not `/portfolio-site/`.
+Then:
+`git add .`
+`git commit -m "Fix gallery layout TypeScript build"`
+`git push origin main`

@@ -165,6 +165,17 @@ function inferPlaqueSide(wall: WallBlock): Exclude<PlaqueSide, 'none'> {
   return 'right';
 }
 
+
+function isWallVisibleInGallery(wall: WallBlock): boolean {
+  return Boolean(wall.showInGallery ?? true);
+}
+
+function isWallPlaqueEnabled(wall: WallBlock): boolean {
+  const plaqueSide: PlaqueSide = wall.plaqueSide ?? 'auto';
+
+  return Boolean((wall.plaqueEnabled ?? true) && plaqueSide !== 'none');
+}
+
 function normalizeFitMode(value: unknown): GalleryFitMode {
   return value === 'contain' ? 'contain' : 'cover';
 }
@@ -209,7 +220,7 @@ export const galleryWalls: GalleryWall[] = wallBlocks.map((wall) => {
 });
 
 export const galleryArtworks: GalleryArtwork[] = wallBlocks.flatMap((wall, wallIndex) => {
-  if (wall.showInGallery === false || !wall.artworkId) {
+  if (!isWallVisibleInGallery(wall) || !wall.artworkId) {
     return [];
   }
 
@@ -231,10 +242,10 @@ export const galleryArtworks: GalleryArtwork[] = wallBlocks.flatMap((wall, wallI
       location: image.location,
       note: image.note,
 
-      showInGallery: wall.showInGallery !== false,
+      showInGallery: isWallVisibleInGallery(wall),
       displayOrder: wall.displayOrder ?? wallIndex + 1,
       wallSection: inferWallSection(wall),
-      plaqueEnabled: wall.plaqueEnabled !== false && wall.plaqueSide !== 'none',
+      plaqueEnabled: isWallPlaqueEnabled(wall),
       plaqueSide: inferPlaqueSide(wall),
       wallWidth: getWallPreset(wall).width,
 
