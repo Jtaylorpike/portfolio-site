@@ -6,16 +6,22 @@
     "displayOrder": 1,
     "wallType": "feature-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": 0.0,
+    "positionZ": 7.5,
+    "rotationYDegrees": 0.0
   },
   {
     "wallId": "wall-entry-left-guide",
-    "artworkId": "climbing-climbing-workbook-03",
+    "artworkId": "",
     "showInGallery": false,
     "displayOrder": 2,
     "wallType": "narrow-transition-wall",
-    "plaqueEnabled": true,
-    "plaqueSide": "none"
+    "plaqueEnabled": false,
+    "plaqueSide": "none",
+    "positionX": -7.5,
+    "positionZ": 9.5,
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-entry-right-guide",
@@ -24,7 +30,10 @@
     "displayOrder": 3,
     "wallType": "narrow-transition-wall",
     "plaqueEnabled": false,
-    "plaqueSide": "none"
+    "plaqueSide": "none",
+    "positionX": 7.5,
+    "positionZ": 9.5,
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-left-climbing-01",
@@ -33,7 +42,10 @@
     "displayOrder": 4,
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": -12.0,
+    "positionZ": 5.5,
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-left-climbing-02",
@@ -42,7 +54,10 @@
     "displayOrder": 5,
     "wallType": "standard-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": -12.0,
+    "positionZ": 0.0,
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-left-climbing-03",
@@ -51,7 +66,10 @@
     "displayOrder": 6,
     "wallType": "standard-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": -12.0,
+    "positionZ": -5.5,
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-left-inner-workbook-05",
@@ -60,7 +78,10 @@
     "displayOrder": 7,
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": -5.5,
+    "positionZ": 5.0,
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-left-inner-portfolio-08",
@@ -69,7 +90,10 @@
     "displayOrder": 8,
     "wallType": "standard-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": -5.5,
+    "positionZ": -0.5,
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-left-inner-portfolio-09",
@@ -78,7 +102,10 @@
     "displayOrder": 9,
     "wallType": "standard-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": -5.5,
+    "positionZ": -6.0,
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-rear-climbing-workbook-01",
@@ -87,7 +114,10 @@
     "displayOrder": 10,
     "wallType": "standard-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": -9.5,
+    "positionZ": -12.5,
+    "rotationYDegrees": 0.0
   },
   {
     "wallId": "wall-rear-climbing-workbook-03",
@@ -96,7 +126,10 @@
     "displayOrder": 11,
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": -3.0,
+    "positionZ": -12.5,
+    "rotationYDegrees": 0.0
   },
   {
     "wallId": "wall-right-landscape-01",
@@ -105,7 +138,10 @@
     "displayOrder": 12,
     "wallType": "standard-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": 12.0,
+    "positionZ": 5.5,
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-right-landscape-02",
@@ -114,7 +150,10 @@
     "displayOrder": 13,
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": 12.0,
+    "positionZ": 0.0,
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-right-landscape-03",
@@ -123,7 +162,10 @@
     "displayOrder": 14,
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": 12.0,
+    "positionZ": -5.5,
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-right-inner-landscape-portfolio-02",
@@ -132,7 +174,10 @@
     "displayOrder": 15,
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": 5.5,
+    "positionZ": 5.0,
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-right-inner-landscape-portfolio-06",
@@ -141,7 +186,10 @@
     "displayOrder": 16,
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": 5.5,
+    "positionZ": -0.5,
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-rear-landscape-workbook-03",
@@ -150,6 +198,9 @@
     "displayOrder": 17,
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
-    "plaqueSide": "auto"
+    "plaqueSide": "auto",
+    "positionX": 6.5,
+    "positionZ": -12.5,
+    "rotationYDegrees": 0.0
   }
 ]

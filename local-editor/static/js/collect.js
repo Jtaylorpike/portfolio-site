@@ -337,6 +337,13 @@ function getGalleryDisplayStatusValue(card) {
   return !["hidden", "inactive", "false", "0", "off", "hide"].includes(normalizedValue);
 }
 
+function getGalleryNumberFieldValue(card, field, fallback = 0) {
+  const rawValue = getGalleryCurationFieldValue(card, field);
+  const numberValue = Number(rawValue);
+
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
 // Collects one virtual gallery wall/artwork curation card.
 export function collectGalleryCurationCard(card, state, fallbackDisplayOrder = 1) {
   const validImageIds = new Set((state.images ?? []).map((image) => image.id).filter(Boolean));
@@ -351,7 +358,10 @@ export function collectGalleryCurationCard(card, state, fallbackDisplayOrder = 1
     displayOrder: fallbackDisplayOrder,
     wallType,
     plaqueEnabled: Boolean(getGalleryCurationFieldValue(card, "plaqueEnabled")),
-    plaqueSide
+    plaqueSide,
+    positionX: getGalleryNumberFieldValue(card, "positionX", 0),
+    positionZ: getGalleryNumberFieldValue(card, "positionZ", 0),
+    rotationYDegrees: getGalleryNumberFieldValue(card, "rotationYDegrees", 0)
   };
 }
 

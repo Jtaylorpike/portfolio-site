@@ -55,6 +55,17 @@ const validWallTypes = new Set([
 ]);
 
 const validPlaqueSides = new Set(['auto', 'left', 'right', 'none']);
+const validWallRotationDegrees = new Set([-180, -90, 0, 90, 180]);
+const galleryPlacementMin = -16;
+const galleryPlacementMax = 16;
+const galleryGridCellMeters = 0.5;
+const galleryWallFootprints = {
+  'feature-wall': { width: 6.25, thickness: 0.26 },
+  'wide-display-wall': { width: 4.9, thickness: 0.22 },
+  'standard-display-wall': { width: 3.55, thickness: 0.22 },
+  'compact-display-wall': { width: 2.7, thickness: 0.22 },
+  'narrow-transition-wall': { width: 2.15, thickness: 0.2 }
+};
 
 function csvEscape(value) {
   if (value === null || value === undefined) {
@@ -121,6 +132,75 @@ function pushIssue(issues, severity, code, imageId, field, message, value = '') 
 
 function isPositiveInteger(value) {
   return Number.isInteger(Number(value)) && Number(value) > 0;
+}
+
+function isGalleryPlacementNumber(value) {
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue) && numberValue >= galleryPlacementMin && numberValue <= galleryPlacementMax;
+}
+
+function isSnappedToGalleryGrid(value) {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return false;
+  }
+
+  const snapped = Math.round(numberValue / galleryGridCellMeters) * galleryGridCellMeters;
+  return Math.abs(snapped - numberValue) < 0.0001;
+}
+
+function getGalleryWallFootprint(record) {
+  const wallType = String(record.wallType ?? 'standard-display-wall');
+  const footprint = galleryWallFootprints[wallType] ?? galleryWallFootprints['standard-display-wall'];
+  const positionX = Number(record.positionX ?? 0);
+  const positionZ = Number(record.positionZ ?? 0);
+  const rotationYDegrees = Number(record.rotationYDegrees ?? 0);
+  const lengthCells = Math.max(1, Math.ceil(footprint.width / galleryGridCellMeters));
+  const thicknessCells = Math.max(1, Math.ceil(footprint.thickness / galleryGridCellMeters));
+  const isSideFacing = Math.abs(rotationYDegrees) === 90;
+  const occupiedWidthCells = isSideFacing ? thicknessCells : lengthCells;
+  const occupiedDepthCells = isSideFacing ? lengthCells : thicknessCells;
+  const gridX = Math.round(positionX / galleryGridCellMeters);
+  const gridZ = Math.round(positionZ / galleryGridCellMeters);
+
+  return {
+    minX: gridX - occupiedWidthCells / 2,
+    maxX: gridX + occupiedWidthCells / 2,
+    minZ: gridZ - occupiedDepthCells / 2,
+    maxZ: gridZ + occupiedDepthCells / 2
+  };
+}
+
+function galleryWallFootprintsOverlap(first, second) {
+  return first.minX < second.maxX
+    && first.maxX > second.minX
+    && first.minZ < second.maxZ
+    && first.maxZ > second.minZ;
+}
+
+function findGalleryPlacementCollisions(records) {
+  const footprints = records
+    .map((record) => ({
+      wallId: String(record.wallId ?? '').trim(),
+      footprint: getGalleryWallFootprint(record)
+    }))
+    .filter((item) => item.wallId);
+  const collisions = [];
+
+  for (let firstIndex = 0; firstIndex < footprints.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < footprints.length; secondIndex += 1) {
+      const first = footprints[firstIndex];
+      const second = footprints[secondIndex];
+
+      if (galleryWallFootprintsOverlap(first.footprint, second.footprint)) {
+        collisions.push({ firstWallId: first.wallId, secondWallId: second.wallId });
+      }
+    }
+  }
+
+  return collisions;
 }
 
 async function main() {
@@ -384,6 +464,9 @@ async function main() {
       const showInGallery = record.showInGallery !== false;
       const image = artworkId ? images.find((candidate) => candidate.id === artworkId) : null;
       const displayOrder = record.displayOrder;
+      const positionX = record.positionX;
+      const positionZ = record.positionZ;
+      const rotationYDegrees = record.rotationYDegrees;
 
       galleryCurationRows.push({
         index,
@@ -394,7 +477,10 @@ async function main() {
         displayOrder,
         wallType,
         plaqueEnabled: record.plaqueEnabled !== false,
-        plaqueSide
+        plaqueSide,
+        positionX,
+        positionZ,
+        rotationYDegrees
       });
 
       if (!wallId) {
@@ -434,10 +520,44 @@ async function main() {
         displayOrders.set(orderKey, wallId);
       }
 
+      if (!isGalleryPlacementNumber(positionX)) {
+        pushIssue(issues, 'error', 'invalid-gallery-position-x', wallId, `galleryCuration[${index}].positionX`, 'Gallery wall positionX must be a number between -16 and 16.', positionX);
+      }
+
+      if (!isGalleryPlacementNumber(positionZ)) {
+        pushIssue(issues, 'error', 'invalid-gallery-position-z', wallId, `galleryCuration[${index}].positionZ`, 'Gallery wall positionZ must be a number between -16 and 16.', positionZ);
+      }
+
+      if (isGalleryPlacementNumber(positionX) && !isSnappedToGalleryGrid(positionX)) {
+        pushIssue(issues, 'warning', 'gallery-position-x-not-grid-snapped', wallId, `galleryCuration[${index}].positionX`, 'Gallery wall positionX is valid but not snapped to the 0.5m floor grid.', positionX);
+      }
+
+      if (isGalleryPlacementNumber(positionZ) && !isSnappedToGalleryGrid(positionZ)) {
+        pushIssue(issues, 'warning', 'gallery-position-z-not-grid-snapped', wallId, `galleryCuration[${index}].positionZ`, 'Gallery wall positionZ is valid but not snapped to the 0.5m floor grid.', positionZ);
+      }
+
+      if (!validWallRotationDegrees.has(Number(rotationYDegrees))) {
+        pushIssue(issues, 'error', 'invalid-gallery-rotation', wallId, `galleryCuration[${index}].rotationYDegrees`, 'Gallery wall rotationYDegrees must be one of -180, -90, 0, 90, or 180.', rotationYDegrees);
+      }
+
       if (record.plaqueEnabled === false && plaqueSide !== 'none') {
         pushIssue(issues, 'warning', 'disabled-plaque-side-not-none', wallId, `galleryCuration[${index}].plaqueSide`, 'Plaque is disabled but plaqueSide is not none.', plaqueSide);
       }
     }
+
+    const placementCollisions = findGalleryPlacementCollisions(galleryCuration);
+
+    placementCollisions.forEach((collision) => {
+      pushIssue(
+        issues,
+        'error',
+        'gallery-wall-placement-collision',
+        collision.firstWallId,
+        'galleryCuration.position',
+        `Gallery wall footprint collision: ${collision.firstWallId} overlaps ${collision.secondWallId}.`,
+        `${collision.firstWallId} / ${collision.secondWallId}`
+      );
+    });
   }
 
   const errors = issues.filter((issue) => issue.severity === 'error');
@@ -465,7 +585,7 @@ async function main() {
   await writeCsv(
     path.join(reportDir, 'portfolio-gallery-curation-audit.csv'),
     galleryCurationRows,
-    ['index', 'wallId', 'artworkId', 'artworkExists', 'showInGallery', 'displayOrder', 'wallType', 'plaqueEnabled', 'plaqueSide']
+    ['index', 'wallId', 'artworkId', 'artworkExists', 'showInGallery', 'displayOrder', 'wallType', 'plaqueEnabled', 'plaqueSide', 'positionX', 'positionZ', 'rotationYDegrees']
   );
 
   const issueLines = [

@@ -76,6 +76,17 @@ LEGACY_WALL_TYPES = {
     "unassigned-wall": "narrow-transition-wall",
 }
 SUPPORTED_PLAQUE_SIDES = {"auto", "left", "right", "none"}
+GALLERY_POSITION_MIN = -16.0
+GALLERY_POSITION_MAX = 16.0
+SUPPORTED_WALL_ROTATIONS_DEGREES = {-180.0, -90.0, 0.0, 90.0, 180.0}
+GALLERY_GRID_CELL_METERS = 0.5
+GALLERY_WALL_FOOTPRINTS = {
+    "feature-wall": {"width": 6.25, "thickness": 0.26},
+    "wide-display-wall": {"width": 4.9, "thickness": 0.22},
+    "standard-display-wall": {"width": 3.55, "thickness": 0.22},
+    "compact-display-wall": {"width": 2.7, "thickness": 0.22},
+    "narrow-transition-wall": {"width": 2.15, "thickness": 0.2},
+}
 
 
 # Maps earlier semantic/gallery-zone wall labels into the current physical
@@ -892,6 +903,35 @@ def clean_positive_order(value: Any, fallback: int) -> int:
     return order
 
 
+def clean_gallery_position(value: Any, fallback: float = 0.0) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = fallback
+
+    number = max(GALLERY_POSITION_MIN, min(GALLERY_POSITION_MAX, number))
+    snapped = round(number / GALLERY_GRID_CELL_METERS) * GALLERY_GRID_CELL_METERS
+    return round(snapped, 2)
+
+
+def clean_gallery_rotation_degrees(value: Any, fallback: float = 0.0) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = fallback
+
+    while number > 180:
+        number -= 360
+
+    while number <= -180:
+        number += 360
+
+    # Keep the current editor constrained to cardinal wall facings so the room
+    # remains predictable until a true visual placement editor exists.
+    closest = min(SUPPORTED_WALL_ROTATIONS_DEGREES, key=lambda candidate: abs(candidate - number))
+    return 180.0 if closest == -180.0 and number > 0 else closest
+
+
 # Normalizes one wall/artwork assignment row from galleryCuration.json.
 def normalize_gallery_curation_record(
     raw_record: dict[str, Any],
@@ -902,6 +942,9 @@ def normalize_gallery_curation_record(
     artwork_id = clean_string(raw_record.get("artworkId"))
     wall_type = clean_string(raw_record.get("wallType"))
     plaque_side = clean_string(raw_record.get("plaqueSide"))
+    position_x = clean_gallery_position(raw_record.get("positionX"), 0.0)
+    position_z = clean_gallery_position(raw_record.get("positionZ"), 0.0)
+    rotation_y_degrees = clean_gallery_rotation_degrees(raw_record.get("rotationYDegrees"), 0.0)
 
     if artwork_id and artwork_id not in valid_image_ids:
         artwork_id = ""
@@ -926,6 +969,9 @@ def normalize_gallery_curation_record(
         "wallType": wall_type,
         "plaqueEnabled": clean_bool(raw_record.get("plaqueEnabled"), True),
         "plaqueSide": plaque_side,
+        "positionX": position_x,
+        "positionZ": position_z,
+        "rotationYDegrees": rotation_y_degrees,
     }
 
 
@@ -965,6 +1011,53 @@ def get_current_gallery_curation(images: list[dict[str, Any]] | None = None) -> 
     return normalize_gallery_curation(read_json(GALLERY_CURATION_PATH), valid_image_ids)
 
 
+def get_gallery_wall_footprint(record: dict[str, Any]) -> dict[str, float]:
+    wall_type = clean_string(record.get("wallType"))
+    footprint = GALLERY_WALL_FOOTPRINTS.get(wall_type, GALLERY_WALL_FOOTPRINTS["standard-display-wall"])
+    position_x = float(record.get("positionX", 0.0))
+    position_z = float(record.get("positionZ", 0.0))
+    rotation_y_degrees = float(record.get("rotationYDegrees", 0.0))
+    length_cells = max(1, int((footprint["width"] + GALLERY_GRID_CELL_METERS - 0.0001) // GALLERY_GRID_CELL_METERS))
+    thickness_cells = max(1, int((footprint["thickness"] + GALLERY_GRID_CELL_METERS - 0.0001) // GALLERY_GRID_CELL_METERS))
+    is_side_facing = abs(rotation_y_degrees) == 90.0
+    occupied_width_cells = thickness_cells if is_side_facing else length_cells
+    occupied_depth_cells = length_cells if is_side_facing else thickness_cells
+    grid_x = round(position_x / GALLERY_GRID_CELL_METERS)
+    grid_z = round(position_z / GALLERY_GRID_CELL_METERS)
+
+    return {
+        "min_x": grid_x - occupied_width_cells / 2,
+        "max_x": grid_x + occupied_width_cells / 2,
+        "min_z": grid_z - occupied_depth_cells / 2,
+        "max_z": grid_z + occupied_depth_cells / 2,
+    }
+
+
+def gallery_wall_footprints_overlap(first: dict[str, float], second: dict[str, float]) -> bool:
+    return (
+        first["min_x"] < second["max_x"]
+        and first["max_x"] > second["min_x"]
+        and first["min_z"] < second["max_z"]
+        and first["max_z"] > second["min_z"]
+    )
+
+
+def find_gallery_wall_placement_collisions(gallery_curation: list[dict[str, Any]]) -> list[tuple[str, str]]:
+    footprints = [
+        (clean_string(record.get("wallId")), get_gallery_wall_footprint(record))
+        for record in gallery_curation
+        if clean_string(record.get("wallId"))
+    ]
+    collisions: list[tuple[str, str]] = []
+
+    for first_index, first in enumerate(footprints):
+        for second in footprints[first_index + 1:]:
+            if gallery_wall_footprints_overlap(first[1], second[1]):
+                collisions.append((first[0], second[0]))
+
+    return collisions
+
+
 # Validates gallery curation references before writing them to disk.
 def validate_gallery_curation(gallery_curation: list[dict[str, Any]], valid_image_ids: set[str]) -> None:
     wall_ids = [record.get("wallId", "") for record in gallery_curation]
@@ -987,6 +1080,23 @@ def validate_gallery_curation(gallery_curation: list[dict[str, Any]], valid_imag
 
         if record.get("plaqueSide") not in SUPPORTED_PLAQUE_SIDES:
             raise DataValidationError(f"Gallery wall '{wall_id}' has an invalid plaque side.")
+
+        position_x = record.get("positionX")
+        position_z = record.get("positionZ")
+        rotation_y_degrees = record.get("rotationYDegrees")
+
+        for field_name, number in {"positionX": position_x, "positionZ": position_z}.items():
+            if not isinstance(number, (int, float)) or number < GALLERY_POSITION_MIN or number > GALLERY_POSITION_MAX:
+                raise DataValidationError(f"Gallery wall '{wall_id}' has an invalid {field_name} value.")
+
+        if rotation_y_degrees not in SUPPORTED_WALL_ROTATIONS_DEGREES:
+            raise DataValidationError(f"Gallery wall '{wall_id}' has an invalid rotationYDegrees value.")
+
+    placement_collisions = find_gallery_wall_placement_collisions(gallery_curation)
+
+    if placement_collisions:
+        collision_text = "; ".join([f"{first} overlaps {second}" for first, second in placement_collisions])
+        raise DataValidationError(f"Gallery wall placement collision detected: {collision_text}")
 
 
 # Saves only the curation file so wall assignments do not rewrite image/category JSON.

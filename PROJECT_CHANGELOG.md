@@ -705,3 +705,157 @@ This does not add visual drag-and-drop wall placement. Wall position and rotatio
 - Migrated current entry guide wall records to `narrow-transition-wall` while keeping them hidden/inactive.
 - Added documentation for the wall type/status separation.
 
+
+---
+
+## Appended changelog fragments - 20260512-191656
+
+
+## 2026-05-12 - Gallery architectural wall preview editor
+
+- Revised the local editor gallery wall preview so it reads as an architectural wall elevation rather than a floating image/plaque composition.
+- Added wall plane, baseboard, floor-plane, and wall-elevation cues to the preview surface.
+- Grouped the frame and plaque as a mounted installation so side and below-plaque previews stay visually attached to the artwork.
+- Updated the enlarged gallery wall preview lightbox to use the same architectural wall language.
+- Bumped the local editor asset cache version to `v=26`.
+
+Files changed:
+
+- `local-editor/static/js/render.js`
+- `local-editor/static/editor.css`
+- `local-editor/templates/editor.html`
+- `docs/GALLERY_ARCHITECTURAL_WALL_PREVIEW_EDITOR.md`
+
+
+# Changelog Append: Gallery Editor Stabilization and Validation
+
+## Added
+
+- Added Gallery tab curation summary cards for total wall slots, active walls, hidden walls, and assigned artwork.
+- Added wall block type count pills.
+- Added Gallery tab filters for search, display status, wall block type, and artwork category.
+- Added wall card badges for active/hidden state, assigned/needs-artwork state, and wall block type.
+- Added search and category filters to the visual artwork assignment overlay.
+- Added gallery curation validation to `scripts/validate-portfolio-image-data.mjs`.
+- Added `asset-reports/portfolio-gallery-curation-audit.csv` output from the validator.
+- Added docs for gallery editor stabilization, gallery curation validation, future map editor planning, and public 3D gallery review.
+
+## Changed
+
+- Bumped local editor cache version to `v=23`.
+- Updated Gallery workflow documentation to mention the current usability layer.
+
+## Notes
+
+This is a stabilization/polish pack. It does not redesign the public 3D gallery room or change wall positions, collisions, fog, lighting, or plaque placement.
+
+
+## 2026-05-12 — Gallery floor-grid placement and collision prevention
+
+- Replaced freehand gallery wall X/Z placement controls with 0.5m floor-grid controls in the local editor.
+- Added wall footprint calculations based on wall block type and cardinal facing.
+- Updated the placement map so wall slots render as scaled floor footprints instead of point markers.
+- Added editor-side collision warnings and disabled Save Wall / Save All when wall footprints overlap.
+- Added backend collision validation so overlapping wall placement cannot be written to `galleryCuration.json`.
+- Snapped current gallery wall positions to the 0.5m floor grid.
+- Extended portfolio image data validation to detect unsnapped placement values and wall footprint collisions.
+- Kept the 3D gallery runtime data contract on `positionX`, `positionZ`, and `rotationYDegrees`.
+
+
+# Changelog append - 2026-05-12 - Gallery plaque collision fallback
+
+## Added
+
+- Added runtime plaque placement collision detection for the 3D gallery.
+- Added automatic below-frame plaque fallback when a left/right side plaque would overlap the artwork frame.
+- Added documentation for the plaque collision fallback behavior.
+
+## Changed
+
+- Updated `src/gallery/GalleryScene.ts` so plaque placement now respects the resolved left/right side when there is enough wall clearance.
+- Replaced side plaque clamping with an explicit fit check, preventing plaques from being pushed into landscape frames on tighter wall blocks.
+
+## Not changed
+
+- Did not change gallery wall positions.
+- Did not change collision movement boundaries.
+- Did not change lighting, fog, room shell, artwork assignment, or gallery curation data.
+- Did not add a new editor-facing `below` plaque option yet.
+
+
+# Changelog Append — Gallery Preview Lightbox Editor
+
+Date: 2026-05-12
+
+## Added
+
+- Added a large preview overlay for Gallery tab assigned artwork thumbnails.
+- Added a large preview overlay for compact wall previews.
+- Added keyboard access for preview triggers with Enter and Space.
+- Added Escape/backdrop/close-button dismissal for the preview overlay.
+- Added documentation for the gallery preview lightbox editor behavior.
+
+## Changed
+
+- Converted the Gallery tab assigned artwork preview into an interactive preview trigger.
+- Made the compact wall preview open a larger version using the current wall card controls.
+- Bumped the local editor asset cache version to `v=25`.
+
+## Not changed
+
+- Did not change the 3D gallery runtime.
+- Did not change gallery wall placement, lighting, fog, collision, plaques, or movement.
+- Did not change image data, gallery curation data, or backend save logic.
+
+
+## 2026-05-12 - Gallery preview plaque marker fix
+
+- Replaced text inside the editor wall-preview plaque with abstract marker lines so compact previews no longer show clipped title fragments.
+- Removed dynamic plaque-title syncing from the editor preview refresh path.
+- Kept plaque placement, scaled wall preview geometry, and runtime gallery plaque behavior unchanged.
+- Added `docs/GALLERY_PREVIEW_PLAQUE_MARKER_FIX.md`.
+
+
+# Changelog Append - Gallery Scaled Wall Preview Editor
+
+Date: 2026-05-12
+
+## Changed
+
+- Reworked the Gallery tab wall preview from a decorative-grid composition into a scaled wall-elevation preview.
+- Added wall-block dimensions and artwork-size presets to the editor preview model so preview proportions better match the 3D gallery's current wall types.
+- Updated frame and plaque preview placement to use percentage positions derived from physical wall dimensions.
+- Removed the misleading grid background from the preview wall plane.
+- Improved compact card preview behavior so frame, plaque, and wall surface do not read as detached UI elements.
+- Bumped the Flask editor asset cache version to v27.
+
+## Added
+
+- Added `docs/GALLERY_SCALED_WALL_PREVIEW_EDITOR.md`.
+
+## Notes
+
+- This is an editor-preview update only.
+- It does not change 3D gallery runtime geometry, collision, lighting, plaques, image data, or curation data.
+
+
+## 2026-05-12 — Gallery wall placement controls
+
+- Added editor-controlled physical placement fields to gallery curation records: `positionX`, `positionZ`, and `rotationYDegrees`.
+- Updated the Three.js gallery blueprint so `galleryCuration.json` can override an existing wall slot's room position and facing.
+- Added a Wall placement control group to each Gallery tab wall card.
+- Added a top-down placement map to the Gallery tab summary so wall slots can be understood spatially before a full drag/map editor exists.
+- Extended Flask-side gallery curation normalization and validation for wall placement fields.
+- Extended portfolio image data validation reporting for gallery wall placement fields.
+- Removed the visible `scaled wall elevation` label from the editor wall preview.
+- Kept the current room layout, collision system, lighting, fog state, and plaque runtime behavior otherwise unchanged.
+
+
+## 2026-05-12 - Gallery wall preview editor
+
+- Added a 2D wall preview to each Gallery curation card in the Flask editor.
+- The preview shows assigned artwork, approximate wall block scale, display status, and plaque placement.
+- Added editor-side plaque fallback awareness so left/right plaque choices visually fall below the frame when the image/wall ratio is too tight.
+- Updated the Gallery card preview when assigned artwork, wall block type, plaque side, plaque enabled state, or display status changes.
+- Added documentation for the Gallery wall preview editor behavior.
+

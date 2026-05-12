@@ -73,3 +73,9 @@ Each wall card also has a local `Save Wall` action. Use it for isolated changes 
 
 The Gallery tab now includes a curation summary, wall filters, wall-card badges, and searchable artwork assignment overlay filters. These are editor usability features; they do not alter the physical gallery room by themselves.
 
+
+## Placement controls update
+
+Gallery curation rows now include `positionX`, `positionZ`, and `rotationYDegrees`. These fields let the local editor move and rotate existing wall slots without editing `galleryBlueprint.ts` directly. The blueprint remains the architectural fallback, but saved curation data can override the current X/Z position and facing direction for a wall slot.
+
+The editor currently keeps rotation to cardinal directions. This is intentional so the room remains predictable until a full visual placement editor and collision-aware layout validator are built.

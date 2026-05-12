@@ -89,6 +89,13 @@ export type WallBlock = {
   wallType?: WallTypeName;
   plaqueEnabled?: boolean;
   plaqueSide?: PlaqueSide;
+
+  // Optional editor-authored physical placement override. The base wall blocks
+  // remain the architectural fallback, while galleryCuration.json can now tune
+  // where an existing wall slot sits in the room.
+  positionX?: number;
+  positionZ?: number;
+  rotationYDegrees?: number;
 };
 
 export type GalleryCurationRecord = {
@@ -99,6 +106,13 @@ export type GalleryCurationRecord = {
   wallType?: WallTypeName;
   plaqueEnabled?: boolean;
   plaqueSide?: PlaqueSide;
+
+  // Optional editor-authored physical placement override. The base wall blocks
+  // remain the architectural fallback, while galleryCuration.json can now tune
+  // where an existing wall slot sits in the room.
+  positionX?: number;
+  positionZ?: number;
+  rotationYDegrees?: number;
 };
 
 const validWallTypes: WallTypeName[] = [
@@ -131,6 +145,7 @@ function getWallTypeLayout(wallType: WallTypeName | undefined) {
 }
 
 const validPlaqueSides: PlaqueSide[] = ['auto', 'left', 'right', 'none'];
+const galleryGridCellMeters = 0.5;
 
 function legacyWallSectionToType(value: unknown): WallTypeName | undefined {
   switch (String(value ?? '').trim()) {
@@ -174,6 +189,36 @@ function normalizeDisplayOrder(value: unknown): number | undefined {
   return Math.round(order);
 }
 
+function normalizePlacementNumber(value: unknown, min: number, max: number): number | undefined {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return undefined;
+  }
+
+  const clamped = Math.min(max, Math.max(min, numberValue));
+  const snapped = Math.round(clamped / galleryGridCellMeters) * galleryGridCellMeters;
+
+  return Math.min(max, Math.max(min, Number(snapped.toFixed(2))));
+}
+
+function normalizeRotationDegrees(value: unknown): number | undefined {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return undefined;
+  }
+
+  const normalized = ((numberValue % 360) + 360) % 360;
+  const signed = normalized > 180 ? normalized - 360 : normalized;
+
+  return Number(signed.toFixed(2));
+}
+
+function degreesToRadians(value: number): number {
+  return (value * Math.PI) / 180;
+}
+
 function normalizeGalleryCurationRecord(value: unknown): GalleryCurationRecord | null {
   if (!value || typeof value !== 'object') {
     return null;
@@ -195,7 +240,10 @@ function normalizeGalleryCurationRecord(value: unknown): GalleryCurationRecord |
     displayOrder: normalizeDisplayOrder(record.displayOrder),
     wallType: normalizeWallType(record.wallType, record.wallSection),
     plaqueEnabled: record.plaqueEnabled === false ? false : true,
-    plaqueSide: normalizePlaqueSide(record.plaqueSide)
+    plaqueSide: normalizePlaqueSide(record.plaqueSide),
+    positionX: normalizePlacementNumber(record.positionX, -16, 16),
+    positionZ: normalizePlacementNumber(record.positionZ, -16, 16),
+    rotationYDegrees: normalizeRotationDegrees(record.rotationYDegrees)
   };
 }
 
@@ -216,10 +264,15 @@ function applyGalleryCuration(wall: WallBlock, index: number): WallBlock {
   const wallType = curation.wallType ?? wall.wallType;
   const layout = getWallTypeLayout(wallType);
 
+  const hasPositionOverride = Number.isFinite(curation.positionX) && Number.isFinite(curation.positionZ);
+  const hasRotationOverride = Number.isFinite(curation.rotationYDegrees);
+
   return {
     ...wall,
     preset: layout.preset,
     artworkSize: layout.artworkSize,
+    position: hasPositionOverride ? [curation.positionX as number, curation.positionZ as number] as [number, number] : wall.position,
+    rotationY: hasRotationOverride ? degreesToRadians(curation.rotationYDegrees as number) : wall.rotationY,
     artworkId: curation.artworkId || undefined,
     showInGallery: curation.showInGallery,
     displayOrder: curation.displayOrder ?? wall.displayOrder ?? index + 1,

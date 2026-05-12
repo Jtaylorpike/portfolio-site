@@ -12,6 +12,7 @@ import {
   getGalleryDefaultSize,
   getGalleryPreviewAspect as getResolvedGalleryPreviewAspect,
   getGallerySizeLimit,
+  resolveGalleryFrameDimensions,
   resolveGalleryFrameShape,
   resolveGallerySize
 } from "./galleryFraming.js";
@@ -21,6 +22,19 @@ import {
   normalizeImportFitMode,
   normalizeImportFrameStyle
 } from "./importValidation.js";
+import {
+  GALLERY_GRID_MAX_CELLS,
+  GALLERY_GRID_MIN_CELLS,
+  GALLERY_GRID_TOTAL_CELLS,
+  GALLERY_GRID_CELL_METERS,
+  findGalleryPlacementCollisions,
+  getGalleryPlacementCollisionIds,
+  getGalleryPlacementCollisionText,
+  getGalleryWallFootprintLabel,
+  getGalleryWallGridInfo,
+  gridToMeters,
+  metersToGrid
+} from "./galleryGrid.js";
 
 // Finds the hero slide record connected to one image.
 function getHeroSlideForImage(state, imageId) {
@@ -1252,6 +1266,278 @@ function getGalleryWallTypeMeta(value) {
   return GALLERY_WALL_TYPES.find((type) => type.value === value) ?? GALLERY_WALL_TYPES.find((type) => type.value === "standard-display-wall") ?? GALLERY_WALL_TYPES[0];
 }
 
+
+const GALLERY_WALL_PREVIEW_META = {
+  "feature-wall": {
+    label: "Hero-scale wall preview",
+    surfaceClass: "is-feature",
+    wallWidth: 6.25,
+    wallHeight: 3.6,
+    artworkWidth: 4.35,
+    artworkHeight: 2.52
+  },
+  "wide-display-wall": {
+    label: "Wide wall preview",
+    surfaceClass: "is-wide",
+    wallWidth: 4.9,
+    wallHeight: 3.3,
+    artworkWidth: 3.18,
+    artworkHeight: 2.04
+  },
+  "standard-display-wall": {
+    label: "Standard wall preview",
+    surfaceClass: "is-standard",
+    wallWidth: 3.55,
+    wallHeight: 3.3,
+    artworkWidth: 2.25,
+    artworkHeight: 1.52
+  },
+  "compact-display-wall": {
+    label: "Compact wall preview",
+    surfaceClass: "is-compact",
+    wallWidth: 2.7,
+    wallHeight: 3.25,
+    artworkWidth: 1.65,
+    artworkHeight: 1.1
+  },
+  "narrow-transition-wall": {
+    label: "Narrow transition wall preview",
+    surfaceClass: "is-narrow",
+    wallWidth: 2.15,
+    wallHeight: 3.15,
+    artworkWidth: 1.65,
+    artworkHeight: 1.1
+  }
+};
+
+const GALLERY_PREVIEW_FRAME_BORDER = 0.2;
+const GALLERY_PREVIEW_PLAQUE_WIDTH = 0.74;
+const GALLERY_PREVIEW_PLAQUE_HEIGHT = 0.22;
+const GALLERY_PREVIEW_PLAQUE_GAP = 0.11;
+const GALLERY_PREVIEW_SAFE_WALL_MARGIN = 0.14;
+
+function getGalleryWallPreviewMeta(wallType) {
+  return GALLERY_WALL_PREVIEW_META[wallType] ?? GALLERY_WALL_PREVIEW_META["standard-display-wall"];
+}
+
+function getGalleryPreviewWallAspect(wallType) {
+  const meta = getGalleryWallPreviewMeta(wallType);
+
+  return meta.wallWidth / meta.wallHeight;
+}
+
+function getGalleryPreviewArtworkPositionY(meta) {
+  return Math.min(
+    meta.wallHeight * 0.56,
+    meta.wallHeight - meta.artworkHeight / 2 - 0.35
+  );
+}
+
+function resolveGalleryPreviewFrameDimensions(meta, image) {
+  if (!image) {
+    return {
+      width: Math.min(meta.artworkWidth * 0.72, meta.wallWidth * 0.46),
+      height: Math.min(meta.artworkHeight * 0.72, meta.wallHeight * 0.36)
+    };
+  }
+
+  return resolveGalleryFrameDimensions({
+    imageAspect: getImageAspect(image),
+    imageOrientation: getImageOrientation(image),
+    fitMode: image.galleryFitMode ?? "cover",
+    frameStyle: image.galleryFrameStyle ?? "auto",
+    requestedSize: image.gallerySize,
+    maxWidth: meta.artworkWidth,
+    maxHeight: meta.artworkHeight
+  });
+}
+
+function getGalleryPlaquePreviewPlacement(wallType, image, plaqueSide, plaqueEnabled) {
+  if (!plaqueEnabled || plaqueSide === "none") {
+    return "none";
+  }
+
+  const meta = getGalleryWallPreviewMeta(wallType);
+  const dimensions = resolveGalleryPreviewFrameDimensions(meta, image);
+  const frameHalfWidth = dimensions.width / 2 + GALLERY_PREVIEW_FRAME_BORDER / 2;
+  const plaqueHalfWidth = GALLERY_PREVIEW_PLAQUE_WIDTH / 2;
+  const requiredCenterOffset = frameHalfWidth + GALLERY_PREVIEW_PLAQUE_GAP + plaqueHalfWidth;
+  const maxCenterOffset = meta.wallWidth / 2 - GALLERY_PREVIEW_SAFE_WALL_MARGIN - plaqueHalfWidth;
+  const sidePlacementFits = requiredCenterOffset <= maxCenterOffset;
+
+  if (plaqueSide === "left" || plaqueSide === "right") {
+    return sidePlacementFits ? plaqueSide : "below";
+  }
+
+  return sidePlacementFits ? "right" : "below";
+}
+
+function getGalleryWallPreviewNote(showInGallery, image, plaqueSide, plaqueEnabled, plaquePlacement) {
+  if (!showInGallery) {
+    return "Hidden walls stay in curation data but do not participate as active display walls.";
+  }
+
+  if (!image) {
+    return "Assign artwork to preview the wall, frame, and plaque relationship.";
+  }
+
+  if (!plaqueEnabled || plaqueSide === "none") {
+    return "Plaque is disabled for this wall.";
+  }
+
+  if ((plaqueSide === "left" || plaqueSide === "right") && plaquePlacement === "below") {
+    return "Side plaque fallback preview: the selected wall does not have enough physical side clearance, so the plaque resolves below the frame.";
+  }
+
+  if (plaqueSide === "auto" && plaquePlacement === "below") {
+    return "Auto plaque preview: the selected wall does not have enough physical side clearance, so the plaque resolves below the frame.";
+  }
+
+  return "Wall preview: wall, frame, and plaque positions use the current gallery wall and artwork-size presets.";
+}
+
+function toGalleryPreviewPercent(value, total) {
+  return `${Math.max(0, Math.min(100, (value / total) * 100)).toFixed(3)}%`;
+}
+
+function getGalleryWallPreviewGeometry(wallType, image, plaqueEnabled, plaquePlacement) {
+  const meta = getGalleryWallPreviewMeta(wallType);
+  const dimensions = resolveGalleryPreviewFrameDimensions(meta, image);
+  const frameOuterWidth = dimensions.width + GALLERY_PREVIEW_FRAME_BORDER;
+  const frameOuterHeight = dimensions.height + GALLERY_PREVIEW_FRAME_BORDER;
+  const frameCenterX = meta.wallWidth / 2;
+  const frameCenterY = getGalleryPreviewArtworkPositionY(meta);
+  const wallAspect = meta.wallWidth / meta.wallHeight;
+
+  const frame = {
+    left: toGalleryPreviewPercent(frameCenterX - frameOuterWidth / 2, meta.wallWidth),
+    top: toGalleryPreviewPercent(meta.wallHeight - frameCenterY - frameOuterHeight / 2, meta.wallHeight),
+    width: toGalleryPreviewPercent(frameOuterWidth, meta.wallWidth),
+    height: toGalleryPreviewPercent(frameOuterHeight, meta.wallHeight)
+  };
+
+  const plaque = {
+    left: "50%",
+    top: "50%",
+    width: toGalleryPreviewPercent(GALLERY_PREVIEW_PLAQUE_WIDTH, meta.wallWidth),
+    height: toGalleryPreviewPercent(GALLERY_PREVIEW_PLAQUE_HEIGHT, meta.wallHeight)
+  };
+
+  if (plaqueEnabled && plaquePlacement !== "none") {
+    const plaqueHalfWidth = GALLERY_PREVIEW_PLAQUE_WIDTH / 2;
+    const plaqueHalfHeight = GALLERY_PREVIEW_PLAQUE_HEIGHT / 2;
+
+    if (plaquePlacement === "left" || plaquePlacement === "right") {
+      const frameHalfWidth = dimensions.width / 2 + GALLERY_PREVIEW_FRAME_BORDER / 2;
+      const centerOffset = frameHalfWidth + GALLERY_PREVIEW_PLAQUE_GAP + plaqueHalfWidth;
+      const sideMultiplier = plaquePlacement === "left" ? -1 : 1;
+      const plaqueCenterX = frameCenterX + centerOffset * sideMultiplier;
+      const plaqueCenterY = Math.max(
+        0.76,
+        frameCenterY - dimensions.height / 2 + plaqueHalfHeight + 0.044
+      );
+
+      plaque.left = toGalleryPreviewPercent(plaqueCenterX - plaqueHalfWidth, meta.wallWidth);
+      plaque.top = toGalleryPreviewPercent(meta.wallHeight - plaqueCenterY - plaqueHalfHeight, meta.wallHeight);
+    }
+    else {
+      const belowFrameY = frameCenterY - frameOuterHeight / 2 - GALLERY_PREVIEW_PLAQUE_GAP - plaqueHalfHeight;
+      const plaqueCenterY = Math.max(0.38, belowFrameY);
+
+      plaque.left = toGalleryPreviewPercent(frameCenterX - plaqueHalfWidth, meta.wallWidth);
+      plaque.top = toGalleryPreviewPercent(meta.wallHeight - plaqueCenterY - plaqueHalfHeight, meta.wallHeight);
+    }
+  }
+
+  return {
+    wallAspect: wallAspect.toFixed(5),
+    wallWidth: meta.wallWidth,
+    wallHeight: meta.wallHeight,
+    frameWidth: dimensions.width,
+    frameHeight: dimensions.height,
+    frame,
+    plaque
+  };
+}
+
+function getGalleryWallPreviewStyle(geometry) {
+  return [
+    `--preview-wall-aspect: ${geometry.wallAspect}`,
+    `--preview-frame-left: ${geometry.frame.left}`,
+    `--preview-frame-top: ${geometry.frame.top}`,
+    `--preview-frame-width: ${geometry.frame.width}`,
+    `--preview-frame-height: ${geometry.frame.height}`,
+    `--preview-plaque-left: ${geometry.plaque.left}`,
+    `--preview-plaque-top: ${geometry.plaque.top}`,
+    `--preview-plaque-width: ${geometry.plaque.width}`,
+    `--preview-plaque-height: ${geometry.plaque.height}`
+  ].join("; ");
+}
+
+function renderGalleryWallPreview(state, record, image, wallType, plaqueEnabled, plaqueSide, showInGallery) {
+  const meta = getGalleryWallPreviewMeta(wallType);
+  const plaquePlacement = getGalleryPlaquePreviewPlacement(wallType, image, plaqueSide, plaqueEnabled);
+  const thumbSrc = image?.thumbSrc ?? image?.src ?? "";
+  const objectPosition = image?.galleryPosition ?? image?.thumbnailPosition ?? "50% 50%";
+  const imageLabel = image ? `${getCategoryLabel(state, image.category)} / ${image.id}` : "No artwork assigned";
+  const note = getGalleryWallPreviewNote(showInGallery, image, plaqueSide, plaqueEnabled, plaquePlacement);
+  const previewLabel = image
+    ? `Open large wall preview for ${image.title ?? image.id}`
+    : "Open large wall preview for this empty wall slot";
+  const geometry = getGalleryWallPreviewGeometry(wallType, image, plaqueEnabled, plaquePlacement);
+  const wallScaleLabel = `${geometry.wallWidth.toFixed(2)}m × ${geometry.wallHeight.toFixed(2)}m wall`;
+  const frameScaleLabel = image
+    ? `${geometry.frameWidth.toFixed(2)}m × ${geometry.frameHeight.toFixed(2)}m frame`
+    : "No mounted frame";
+
+  return `
+    <div
+      class="gallery-wall-preview wide"
+      data-gallery-wall-preview
+      data-open-gallery-preview="wall"
+      data-preview-wall-type="${escapeHtml(wallType)}"
+      data-preview-status="${showInGallery ? "active" : "hidden"}"
+      data-preview-plaque-placement="${escapeHtml(plaquePlacement)}"
+      role="button"
+      tabindex="0"
+      aria-label="${escapeHtml(previewLabel)}"
+      style="${escapeHtml(getGalleryWallPreviewStyle(geometry))}"
+    >
+      <div class="gallery-wall-preview-heading">
+        <span>${escapeHtml(meta.label)}</span>
+        <strong data-preview-artwork-title>${escapeHtml(image?.title ?? "No artwork assigned")}</strong>
+        <small data-preview-artwork-meta>${escapeHtml(imageLabel)}</small>
+      </div>
+
+      <div class="gallery-wall-preview-surface ${escapeHtml(meta.surfaceClass)}" data-preview-surface>
+        <div class="gallery-wall-preview-wall-plane" data-preview-wall-plane>
+          <div class="gallery-wall-preview-frame ${image ? "" : "is-empty"}" data-preview-frame>
+            ${image ? `
+              <img
+                src="${escapeHtml(thumbSrc)}"
+                alt="${escapeHtml(image.alt ?? image.title ?? "Gallery artwork")}" 
+                loading="lazy"
+                style="object-position: ${escapeHtml(objectPosition)};"
+              />
+            ` : `<span>No artwork</span>`}
+          </div>
+
+          <div class="gallery-wall-preview-plaque" data-preview-plaque aria-label="Plaque position preview">
+            <span class="gallery-wall-preview-plaque-mark is-primary" aria-hidden="true"></span>
+            <span class="gallery-wall-preview-plaque-mark is-secondary" aria-hidden="true"></span>
+            <span class="gallery-wall-preview-plaque-mark is-tertiary" aria-hidden="true"></span>
+          </div>
+          <div class="gallery-wall-preview-baseboard"></div>
+        </div>
+        <div class="gallery-wall-preview-floor-plane" aria-hidden="true"></div>
+      </div>
+
+      <small class="gallery-wall-preview-scale" data-preview-scale>${escapeHtml(wallScaleLabel)} / ${escapeHtml(frameScaleLabel)}</small>
+      <p data-preview-note>${escapeHtml(note)}</p>
+    </div>
+  `;
+}
+
 function getGalleryWallDisplayName(record, index) {
   const wallId = String(record.wallId ?? "");
   const number = String(index + 1).padStart(2, "0");
@@ -1343,6 +1629,50 @@ function renderGalleryCurationDisplayStatusOptions(showInGallery) {
   }).join("");
 }
 
+function normalizeGalleryPlacementNumber(value, fallback = 0) {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return fallback;
+  }
+
+  return Number(numberValue.toFixed(2));
+}
+
+function getGalleryWallPlacement(record) {
+  const gridInfo = getGalleryWallGridInfo({
+    ...record,
+    wallType: getGalleryWallType(record)
+  });
+
+  return {
+    positionX: gridInfo.positionX,
+    positionZ: gridInfo.positionZ,
+    gridX: gridInfo.gridX,
+    gridZ: gridInfo.gridZ,
+    rotationYDegrees: gridInfo.rotationYDegrees
+  };
+}
+
+function renderGalleryRotationOptions(selectedValue) {
+  return [
+    { value: "0", label: "Face forward / +Z" },
+    { value: "90", label: "Face right / +X" },
+    { value: "-90", label: "Face left / -X" },
+    { value: "180", label: "Face back / -Z" }
+  ].map((option) => {
+    const selected = Number(option.value) === Number(selectedValue) ? "selected" : "";
+
+    return `<option value="${escapeHtml(option.value)}" ${selected}>${escapeHtml(option.label)}</option>`;
+  }).join("");
+}
+
+function getGalleryPlacementSummary(record) {
+  const placement = getGalleryWallPlacement(record);
+
+  return `Grid ${placement.gridX}, ${placement.gridZ} / ${placement.positionX.toFixed(2)}m, ${placement.positionZ.toFixed(2)}m / ${placement.rotationYDegrees.toFixed(0)}°`;
+}
+
 function getCurationImage(state, imageId) {
   return state.images.find((image) => image.id === imageId);
 }
@@ -1407,6 +1737,85 @@ function renderGalleryWallTypePills(stats) {
   }).join("");
 }
 
+function galleryGridToPercent(value, invert = false) {
+  const normalized = (Number(value) - GALLERY_GRID_MIN_CELLS) / GALLERY_GRID_TOTAL_CELLS;
+  const percent = Math.max(0, Math.min(100, normalized * 100));
+
+  return `${(invert ? 100 - percent : percent).toFixed(3)}%`;
+}
+
+function galleryGridSizeToPercent(value) {
+  const percent = Math.max(0, Math.min(100, (Number(value) / GALLERY_GRID_TOTAL_CELLS) * 100));
+
+  return `${percent.toFixed(3)}%`;
+}
+
+function getGalleryPlacementMapMarkerStyle(record) {
+  const info = getGalleryWallGridInfo({
+    ...record,
+    wallType: getGalleryWallType(record)
+  });
+  const left = galleryGridToPercent(info.gridX - info.occupiedWidthCells / 2);
+  const top = galleryGridToPercent(info.gridZ + info.occupiedDepthCells / 2, true);
+  const width = galleryGridSizeToPercent(info.occupiedWidthCells);
+  const depth = galleryGridSizeToPercent(info.occupiedDepthCells);
+
+  return [
+    `--marker-x: ${left}`,
+    `--marker-z: ${top}`,
+    `--marker-width: ${width}`,
+    `--marker-depth: ${depth}`
+  ].join('; ');
+}
+
+function renderGalleryPlacementMap(records) {
+  const collisions = findGalleryPlacementCollisions(records);
+  const collisionIds = getGalleryPlacementCollisionIds(records);
+  const markers = records.map((record, index) => {
+    const placement = getGalleryWallPlacement(record);
+    const wallType = getGalleryWallType(record);
+    const showInGallery = record.showInGallery !== false;
+    const label = getGalleryWallDisplayName(record, index);
+    const hasCollision = collisionIds.has(record.wallId);
+    const title = `${label}: grid ${placement.gridX}, ${placement.gridZ}; ${placement.positionX.toFixed(2)}m, ${placement.positionZ.toFixed(2)}m; ${placement.rotationYDegrees.toFixed(0)} degrees`;
+
+    return `
+      <span
+        class="gallery-placement-map-marker"
+        data-placement-marker-wall-type="${escapeHtml(wallType)}"
+        data-placement-marker-status="${showInGallery ? "active" : "hidden"}"
+        data-placement-marker-collision="${hasCollision ? "true" : "false"}"
+        title="${escapeHtml(title)}"
+        style="${escapeHtml(getGalleryPlacementMapMarkerStyle(record))}"
+      >
+        <span>${escapeHtml(String(index + 1))}</span>
+      </span>
+    `;
+  }).join("");
+
+  const collisionMessage = collisions.length
+    ? `<p class="gallery-placement-map-warning">${escapeHtml(`${collisions.length} placement collision${collisions.length === 1 ? "" : "s"} detected. Colliding walls cannot be saved until they are moved to separate floor cells.`)}</p>`
+    : `<p class="gallery-placement-map-success">No wall footprint collisions detected.</p>`;
+
+  return `
+    <div class="gallery-placement-map" aria-label="Gallery placement map">
+      <div>
+        <p class="eyebrow">Floor Grid</p>
+        <h4>Wall footprint map</h4>
+        <p>Each wall type occupies a different number of 0.5m floor cells. Move walls by grid cell instead of freehand meter values to avoid accidental overlap.</p>
+        ${collisionMessage}
+      </div>
+      <div class="gallery-placement-map-room" aria-hidden="true" data-gallery-placement-map>
+        <span class="gallery-placement-map-axis is-z-plus">+Z / front</span>
+        <span class="gallery-placement-map-axis is-z-minus">-Z / rear</span>
+        <span class="gallery-placement-map-axis is-x-minus">-X</span>
+        <span class="gallery-placement-map-axis is-x-plus">+X</span>
+        ${markers}
+      </div>
+    </div>
+  `;
+}
+
 function renderGalleryCurationSummary(state, records) {
   const stats = getGalleryCurationStats(state, records);
   const activeUnassigned = records.filter((record) => {
@@ -1419,7 +1828,7 @@ function renderGalleryCurationSummary(state, records) {
         <p class="eyebrow">Curation Status</p>
         <h3>Wall assignments at a glance</h3>
         <p>
-          Wall slots stay tied to the current blueprint, while wall block type controls physical scale and display status controls whether that wall participates in the room.
+          Wall slots now use a 0.5m floor grid. Wall block type controls each wall footprint, and collision checks prevent two physical wall blocks from occupying the same floor space.
         </p>
       </div>
 
@@ -1433,6 +1842,8 @@ function renderGalleryCurationSummary(state, records) {
       <div class="gallery-curation-type-strip" aria-label="Wall block type counts">
         ${renderGalleryWallTypePills(stats)}
       </div>
+
+      ${renderGalleryPlacementMap(records)}
     </section>
   `;
 }
@@ -1564,6 +1975,28 @@ function renderGalleryArtworkPickerOverlay(state) {
   `;
 }
 
+
+function renderGalleryPreviewLightboxOverlay() {
+  return `
+    <section class="gallery-preview-lightbox" data-gallery-preview-lightbox hidden aria-label="Expanded gallery preview overlay">
+      <div class="gallery-preview-lightbox-backdrop" data-gallery-preview-close></div>
+      <div class="gallery-preview-lightbox-panel" role="dialog" aria-modal="true" aria-labelledby="galleryPreviewLightboxTitle">
+        <div class="gallery-preview-lightbox-header">
+          <div>
+            <p class="eyebrow" data-gallery-preview-kind>Gallery Preview</p>
+            <h2 id="galleryPreviewLightboxTitle" data-gallery-preview-title>Preview</h2>
+            <p class="panel-description" data-gallery-preview-meta></p>
+          </div>
+          <button class="button" type="button" data-gallery-preview-close>Close</button>
+        </div>
+
+        <div class="gallery-preview-lightbox-body" data-gallery-preview-body></div>
+        <p class="gallery-preview-lightbox-note" data-gallery-preview-note></p>
+      </div>
+    </section>
+  `;
+}
+
 function renderGalleryCurationCard(state, record, index) {
   const image = getCurationImage(state, record.artworkId);
   const thumbSrc = image?.thumbSrc ?? image?.src ?? "";
@@ -1576,15 +2009,27 @@ function renderGalleryCurationCard(state, record, index) {
   const wallTypeMeta = getGalleryWallTypeMeta(wallType);
   const wallDisplayName = getGalleryWallDisplayName(record, index);
   const plaqueSide = record.plaqueSide ?? "auto";
+  const placement = getGalleryWallPlacement(record);
+  const placementSummary = getGalleryPlacementSummary(record);
   const searchText = [
     wallDisplayName,
     record.wallId,
     wallTypeMeta.label,
+    placementSummary,
     image?.title,
     image?.id,
     image ? getCategoryLabel(state, image.category) : "",
     displayStatus
   ].filter(Boolean).join(" ").toLowerCase();
+  const collisions = findGalleryPlacementCollisions(state.galleryCuration ?? []);
+  const collisionText = getGalleryPlacementCollisionText(record.wallId, collisions);
+  const footprintLabel = getGalleryWallFootprintLabel({
+    ...record,
+    wallType,
+    positionX: placement.positionX,
+    positionZ: placement.positionZ,
+    rotationYDegrees: placement.rotationYDegrees
+  });
 
   return `
     <article
@@ -1596,16 +2041,27 @@ function renderGalleryCurationCard(state, record, index) {
       data-gallery-curation-artwork-state="${escapeHtml(artworkState)}"
       data-gallery-curation-category="${escapeHtml(image?.category ?? "")}" 
       data-gallery-curation-search="${escapeHtml(searchText)}"
+      data-gallery-placement-collision="${collisionText ? "true" : "false"}"
     >
-      <div class="gallery-curation-thumb ${image ? "" : "is-empty"}" data-gallery-curation-thumb>
-        ${image ? `
-          <img
-            src="${escapeHtml(thumbSrc)}"
-            alt="${escapeHtml(image.alt)}"
-            loading="lazy"
-            style="object-position: ${escapeHtml(thumbnailPosition)};"
-          />
-        ` : `<span>No artwork</span>`}
+      <div class="gallery-curation-preview-column">
+        <button
+          class="gallery-curation-thumb ${image ? "" : "is-empty"}"
+          data-gallery-curation-thumb
+          data-open-gallery-preview="artwork"
+          type="button"
+          aria-label="${escapeHtml(image ? `Open large artwork preview for ${image.title ?? image.id}` : "Open large artwork preview for this empty wall slot")}"
+        >
+          ${image ? `
+            <img
+              src="${escapeHtml(thumbSrc)}"
+              alt="${escapeHtml(image.alt)}"
+              loading="lazy"
+              style="object-position: ${escapeHtml(thumbnailPosition)};"
+            />
+          ` : `<span>No artwork</span>`}
+        </button>
+
+        ${renderGalleryWallPreview(state, record, image, wallType, plaqueEnabled, plaqueSide, showInGallery)}
       </div>
 
       <div class="gallery-curation-fields">
@@ -1621,7 +2077,7 @@ function renderGalleryCurationCard(state, record, index) {
               <span class="gallery-curation-badge" data-gallery-wall-type-badge>${escapeHtml(wallTypeMeta.label)}</span>
             </div>
           </div>
-          <span>Blueprint slot: ${escapeHtml(record.wallId)} / Display order ${escapeHtml(String(record.displayOrder ?? index + 1))}</span>
+          <span>Blueprint slot: ${escapeHtml(record.wallId)} / Display order ${escapeHtml(String(record.displayOrder ?? index + 1))} / ${escapeHtml(placementSummary)}</span>
         </div>
 
         <div class="gallery-selected-artwork wide">
@@ -1651,6 +2107,49 @@ function renderGalleryCurationCard(state, record, index) {
           <span data-gallery-wall-type-label>${escapeHtml(wallTypeMeta.label)}</span>
           <p data-gallery-wall-type-description>${escapeHtml(wallTypeMeta.description)}</p>
         </div>
+
+        <fieldset class="gallery-placement-controls wide" data-gallery-placement-controls>
+          <legend>Floor-grid placement</legend>
+          <p>
+            Move this wall by 0.5m floor cells. The editor calculates the wall footprint from the selected wall block type and blocks saves when two wall footprints overlap.
+          </p>
+          <div class="gallery-placement-grid">
+            <label>
+              <span>Grid X</span>
+              <input
+                data-gallery-grid-field="gridX"
+                type="number"
+                min="${escapeHtml(String(GALLERY_GRID_MIN_CELLS))}"
+                max="${escapeHtml(String(GALLERY_GRID_MAX_CELLS))}"
+                step="1"
+                value="${escapeHtml(String(placement.gridX))}"
+              />
+              <small data-gallery-meter-readout="positionX">${escapeHtml(placement.positionX.toFixed(2))}m</small>
+              <input data-gallery-curation-field="positionX" type="hidden" value="${escapeHtml(placement.positionX.toFixed(2))}" />
+            </label>
+            <label>
+              <span>Grid Z</span>
+              <input
+                data-gallery-grid-field="gridZ"
+                type="number"
+                min="${escapeHtml(String(GALLERY_GRID_MIN_CELLS))}"
+                max="${escapeHtml(String(GALLERY_GRID_MAX_CELLS))}"
+                step="1"
+                value="${escapeHtml(String(placement.gridZ))}"
+              />
+              <small data-gallery-meter-readout="positionZ">${escapeHtml(placement.positionZ.toFixed(2))}m</small>
+              <input data-gallery-curation-field="positionZ" type="hidden" value="${escapeHtml(placement.positionZ.toFixed(2))}" />
+            </label>
+            <label>
+              <span>Facing</span>
+              <select data-gallery-curation-field="rotationYDegrees">
+                ${renderGalleryRotationOptions(placement.rotationYDegrees)}
+              </select>
+            </label>
+          </div>
+          <p class="gallery-placement-footprint" data-gallery-placement-footprint>${escapeHtml(footprintLabel)}</p>
+          <p class="gallery-placement-warning" data-gallery-placement-warning ${collisionText ? "" : "hidden"}>${escapeHtml(collisionText)}</p>
+        </fieldset>
 
         <label>
           <span>Plaque side</span>
@@ -1721,6 +2220,7 @@ function renderGalleryCurationPage(state, elements) {
     </div>
 
     ${renderGalleryArtworkPickerOverlay(state)}
+    ${renderGalleryPreviewLightboxOverlay()}
   `;
 }
 
