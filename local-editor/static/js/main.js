@@ -545,6 +545,9 @@ function syncGalleryCurationArtworkDisplay(card, imageId) {
       ? `${getEditorCategoryLabel(image.category)} / ${image.id}`
       : "Use the visual picker or choose an ID from the fallback select.";
   }
+
+  syncGalleryCurationCardState(card);
+  applyGalleryCurationFilters();
 }
 
 function setGalleryCurationArtwork(card, imageId) {
@@ -573,6 +576,9 @@ function syncGalleryWallTypeDisplay(card) {
   if (description && selectedOption) {
     description.textContent = selectedOption.dataset.description || "This wall type controls the wall block and artwork scale used in the 3D gallery.";
   }
+
+  syncGalleryCurationCardState(card);
+  applyGalleryCurationFilters();
 }
 
 function getGalleryCurationCardDisplayOrder(card) {
@@ -600,9 +606,23 @@ function openGalleryArtworkPicker(card) {
   overlay.hidden = false;
   document.body.dataset.galleryPickerOpen = "true";
 
+  const searchFilter = overlay.querySelector('[data-artwork-picker-filter="search"]');
+  const categoryFilter = overlay.querySelector('[data-artwork-picker-filter="category"]');
+
+  if (searchFilter) {
+    searchFilter.value = "";
+  }
+
+  if (categoryFilter) {
+    categoryFilter.value = "all";
+  }
+
   overlay.querySelectorAll("[data-artwork-picker-option]").forEach((option) => {
     option.classList.toggle("is-selected", option.dataset.artworkPickerOption === selectedImageId);
   });
+
+  applyArtworkPickerFilters();
+  searchFilter?.focus();
 }
 
 function closeGalleryArtworkPicker() {
@@ -626,6 +646,137 @@ function chooseGalleryArtworkFromPicker(optionButton) {
 
   setGalleryCurationArtwork(card, imageId);
   closeGalleryArtworkPicker();
+}
+
+function normalizeFilterValue(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function getGalleryFilterValue(name, fallback = "all") {
+  const field = elements.galleryCurationList?.querySelector(`[data-gallery-curation-filter="${name}"]`);
+  const value = String(field?.value ?? fallback).trim();
+
+  return value || fallback;
+}
+
+function getGalleryCurationCardSearchText(card) {
+  const select = card?.querySelector('[data-gallery-curation-field="artworkId"]');
+  const selectedOption = select?.selectedOptions?.[0];
+  const selectedArtworkText = selectedOption?.textContent ?? "";
+
+  return normalizeFilterValue([
+    card?.dataset.galleryCurationSearch,
+    selectedArtworkText,
+    card?.dataset.wallId
+  ].filter(Boolean).join(" "));
+}
+
+function syncGalleryCurationCardState(card) {
+  if (!card) {
+    return;
+  }
+
+  const artworkSelect = card.querySelector('[data-gallery-curation-field="artworkId"]');
+  const wallTypeSelect = card.querySelector('[data-gallery-curation-field="wallType"]');
+  const statusSelect = card.querySelector('[data-gallery-curation-field="showInGallery"]');
+  const image = getEditorImageById(artworkSelect?.value ?? "");
+  const selectedWallTypeLabel = wallTypeSelect?.selectedOptions?.[0]?.textContent?.trim() || "Wall block type";
+  const displayStatus = statusSelect?.value === "hidden" ? "hidden" : "active";
+  const artworkState = image ? "assigned" : "unassigned";
+
+  card.dataset.galleryCurationStatus = displayStatus;
+  card.dataset.galleryCurationWallType = wallTypeSelect?.value ?? "standard-display-wall";
+  card.dataset.galleryCurationArtworkState = artworkState;
+  card.dataset.galleryCurationCategory = image?.category ?? "";
+  card.dataset.galleryCurationSearch = normalizeFilterValue([
+    card.dataset.wallId,
+    selectedWallTypeLabel,
+    image?.title,
+    image?.id,
+    image ? getEditorCategoryLabel(image.category) : "",
+    displayStatus
+  ].filter(Boolean).join(" "));
+
+  const statusBadge = card.querySelector("[data-gallery-status-badge]");
+  const artworkBadge = card.querySelector("[data-gallery-artwork-badge]");
+  const wallTypeBadge = card.querySelector("[data-gallery-wall-type-badge]");
+
+  if (statusBadge) {
+    statusBadge.dataset.galleryStatusBadge = displayStatus;
+    statusBadge.textContent = displayStatus === "hidden" ? "Hidden" : "Active";
+  }
+
+  if (artworkBadge) {
+    artworkBadge.dataset.galleryArtworkBadge = artworkState;
+    artworkBadge.textContent = image ? "Assigned" : "Needs artwork";
+  }
+
+  if (wallTypeBadge) {
+    wallTypeBadge.textContent = selectedWallTypeLabel;
+  }
+}
+
+function applyGalleryCurationFilters() {
+  const cards = Array.from(elements.galleryCurationList?.querySelectorAll("[data-gallery-curation-card]") ?? []);
+  const search = normalizeFilterValue(getGalleryFilterValue("search", ""));
+  const status = getGalleryFilterValue("status");
+  const wallType = getGalleryFilterValue("wallType");
+  const category = getGalleryFilterValue("category");
+  let visibleCount = 0;
+
+  cards.forEach((card) => {
+    syncGalleryCurationCardState(card);
+
+    const cardStatus = card.dataset.galleryCurationStatus ?? "active";
+    const cardWallType = card.dataset.galleryCurationWallType ?? "standard-display-wall";
+    const cardArtworkState = card.dataset.galleryCurationArtworkState ?? "unassigned";
+    const cardCategory = card.dataset.galleryCurationCategory ?? "";
+    const matchesSearch = !search || getGalleryCurationCardSearchText(card).includes(search);
+    const matchesStatus = status === "all"
+      || status === cardStatus
+      || (status === "needs-artwork" && cardArtworkState === "unassigned");
+    const matchesWallType = wallType === "all" || wallType === cardWallType;
+    const matchesCategory = category === "all" || category === cardCategory;
+    const isVisible = matchesSearch && matchesStatus && matchesWallType && matchesCategory;
+
+    card.hidden = !isVisible;
+
+    if (isVisible) {
+      visibleCount += 1;
+    }
+  });
+
+  const result = elements.galleryCurationList?.querySelector("[data-gallery-curation-filter-result]");
+
+  if (result) {
+    result.textContent = `Showing ${visibleCount} of ${cards.length} wall slots.`;
+  }
+}
+
+function applyArtworkPickerFilters() {
+  const overlay = getGalleryArtworkPickerOverlay();
+
+  if (!overlay || overlay.hidden) {
+    return;
+  }
+
+  const search = normalizeFilterValue(overlay.querySelector('[data-artwork-picker-filter="search"]')?.value);
+  const category = String(overlay.querySelector('[data-artwork-picker-filter="category"]')?.value ?? "all");
+  const options = Array.from(overlay.querySelectorAll("[data-artwork-picker-option]"));
+
+  options.forEach((option) => {
+    const isClearButton = option.dataset.artworkPickerOption === "";
+
+    if (isClearButton) {
+      option.hidden = false;
+      return;
+    }
+
+    const matchesSearch = !search || normalizeFilterValue(option.dataset.artworkPickerSearch).includes(search);
+    const matchesCategory = category === "all" || option.dataset.artworkPickerCategory === category;
+
+    option.hidden = !(matchesSearch && matchesCategory);
+  });
 }
 
 // Clears temporary browser preview URLs and resets the import review UI.
@@ -1178,12 +1329,37 @@ elements.importReviewList.addEventListener("click", (event) => {
 
 
 // Tracks edits on the virtual gallery curation page.
-elements.galleryCurationList?.addEventListener("input", () => {
+elements.galleryCurationList?.addEventListener("input", (event) => {
+  const galleryFilter = event.target.closest("[data-gallery-curation-filter]");
+  const artworkPickerFilter = event.target.closest("[data-artwork-picker-filter]");
+
+  if (galleryFilter) {
+    applyGalleryCurationFilters();
+    return;
+  }
+
+  if (artworkPickerFilter) {
+    applyArtworkPickerFilters();
+    return;
+  }
+
   setDirtyState(true, "Gallery curation has unsaved changes. Click Save Wall or Save All Gallery Curation to preserve it.");
 });
 
 elements.galleryCurationList?.addEventListener("change", (event) => {
+  const galleryFilter = event.target.closest("[data-gallery-curation-filter]");
+  const artworkPickerFilter = event.target.closest("[data-artwork-picker-filter]");
   const field = event.target.closest("[data-gallery-curation-field]");
+
+  if (galleryFilter) {
+    applyGalleryCurationFilters();
+    return;
+  }
+
+  if (artworkPickerFilter) {
+    applyArtworkPickerFilters();
+    return;
+  }
 
   const card = field?.closest("[data-gallery-curation-card]");
 
@@ -1193,6 +1369,11 @@ elements.galleryCurationList?.addEventListener("change", (event) => {
 
   if (field?.dataset.galleryCurationField === "wallType") {
     syncGalleryWallTypeDisplay(card);
+  }
+
+  if (field?.dataset.galleryCurationField === "showInGallery") {
+    syncGalleryCurationCardState(card);
+    applyGalleryCurationFilters();
   }
 
   setDirtyState(true, "Gallery curation has unsaved changes. Click Save Wall or Save All Gallery Curation to preserve it.");

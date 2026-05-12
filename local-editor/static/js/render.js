@@ -1347,17 +1347,171 @@ function getCurationImage(state, imageId) {
   return state.images.find((image) => image.id === imageId);
 }
 
+function getGalleryCurationStats(state, records) {
+  const stats = {
+    total: records.length,
+    active: 0,
+    hidden: 0,
+    assigned: 0,
+    unassigned: 0,
+    missingAssignedArtwork: 0,
+    wallTypeCounts: new Map()
+  };
+
+  records.forEach((record) => {
+    const showInGallery = record.showInGallery !== false;
+    const image = getCurationImage(state, record.artworkId);
+    const wallType = getGalleryWallType(record);
+
+    stats.wallTypeCounts.set(wallType, (stats.wallTypeCounts.get(wallType) ?? 0) + 1);
+
+    if (showInGallery) {
+      stats.active += 1;
+    } else {
+      stats.hidden += 1;
+    }
+
+    if (record.artworkId && image) {
+      stats.assigned += 1;
+    } else {
+      stats.unassigned += 1;
+    }
+
+    if (record.artworkId && !image) {
+      stats.missingAssignedArtwork += 1;
+    }
+  });
+
+  return stats;
+}
+
+function renderGalleryStatCard(label, value, note = "") {
+  return `
+    <div class="gallery-curation-stat-card">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(String(value))}</strong>
+      ${note ? `<p>${escapeHtml(note)}</p>` : ""}
+    </div>
+  `;
+}
+
+function renderGalleryWallTypePills(stats) {
+  return GALLERY_WALL_TYPES.map((wallType) => {
+    const count = stats.wallTypeCounts.get(wallType.value) ?? 0;
+
+    return `
+      <span class="gallery-curation-type-pill" data-wall-type-pill="${escapeHtml(wallType.value)}">
+        ${escapeHtml(wallType.label)} <strong>${escapeHtml(String(count))}</strong>
+      </span>
+    `;
+  }).join("");
+}
+
+function renderGalleryCurationSummary(state, records) {
+  const stats = getGalleryCurationStats(state, records);
+  const activeUnassigned = records.filter((record) => {
+    return record.showInGallery !== false && !getCurationImage(state, record.artworkId);
+  }).length;
+
+  return `
+    <section class="gallery-curation-summary" aria-label="Gallery curation summary">
+      <div class="gallery-curation-summary-heading">
+        <p class="eyebrow">Curation Status</p>
+        <h3>Wall assignments at a glance</h3>
+        <p>
+          Wall slots stay tied to the current blueprint, while wall block type controls physical scale and display status controls whether that wall participates in the room.
+        </p>
+      </div>
+
+      <div class="gallery-curation-stat-grid">
+        ${renderGalleryStatCard("Total wall slots", stats.total)}
+        ${renderGalleryStatCard("Active walls", stats.active)}
+        ${renderGalleryStatCard("Hidden walls", stats.hidden)}
+        ${renderGalleryStatCard("Assigned artwork", stats.assigned, activeUnassigned ? `${activeUnassigned} active wall(s) still need artwork.` : "")}
+      </div>
+
+      <div class="gallery-curation-type-strip" aria-label="Wall block type counts">
+        ${renderGalleryWallTypePills(stats)}
+      </div>
+    </section>
+  `;
+}
+
+function renderGalleryCurationFilters(state) {
+  const categoryOptionsMarkup = [
+    `<option value="all">All categories</option>`,
+    ...state.categories.map((category) => {
+      return `<option value="${escapeHtml(category.id)}">${escapeHtml(category.label)}</option>`;
+    })
+  ].join("");
+
+  const wallTypeOptions = [
+    `<option value="all">All wall block types</option>`,
+    ...GALLERY_WALL_TYPES.map((wallType) => {
+      return `<option value="${escapeHtml(wallType.value)}">${escapeHtml(wallType.label)}</option>`;
+    })
+  ].join("");
+
+  return `
+    <section class="gallery-curation-filters" aria-label="Gallery wall filters">
+      <label>
+        <span>Search walls/artwork</span>
+        <input data-gallery-curation-filter="search" placeholder="Search title, wall slot, type, or ID" />
+      </label>
+
+      <label>
+        <span>Display status</span>
+        <select data-gallery-curation-filter="status">
+          <option value="all">All statuses</option>
+          <option value="active">Active / visible</option>
+          <option value="hidden">Hidden / inactive</option>
+          <option value="needs-artwork">Needs artwork</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Wall block type</span>
+        <select data-gallery-curation-filter="wallType">
+          ${wallTypeOptions}
+        </select>
+      </label>
+
+      <label>
+        <span>Artwork category</span>
+        <select data-gallery-curation-filter="category">
+          ${categoryOptionsMarkup}
+        </select>
+      </label>
+    </section>
+  `;
+}
+
+function renderGalleryArtworkPickerCategoryOptions(state) {
+  return [
+    `<option value="all">All categories</option>`,
+    ...state.categories.map((category) => {
+      return `<option value="${escapeHtml(category.id)}">${escapeHtml(category.label)}</option>`;
+    })
+  ].join("");
+}
+
 function renderGalleryArtworkPickerOverlay(state) {
   const imageCards = state.images.map((image) => {
     const categoryLabel = getCategoryLabel(state, image.category);
     const thumbSrc = image.thumbSrc ?? image.src ?? "";
     const thumbnailPosition = image.thumbnailPosition ?? "50% 50%";
+    const searchText = [image.title, image.id, categoryLabel, image.year, image.location]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
 
     return `
       <button
         class="gallery-artwork-picker-card"
         type="button"
         data-artwork-picker-option="${escapeHtml(image.id)}"
+        data-artwork-picker-category="${escapeHtml(image.category)}"
+        data-artwork-picker-search="${escapeHtml(searchText)}"
       >
         <span class="gallery-artwork-picker-image">
           <img
@@ -1388,11 +1542,21 @@ function renderGalleryArtworkPickerOverlay(state) {
           <button class="button" type="button" data-artwork-picker-close>Close</button>
         </div>
 
-        <div class="gallery-artwork-picker-actions">
+        <div class="gallery-artwork-picker-toolbar">
+          <label>
+            <span>Search images</span>
+            <input data-artwork-picker-filter="search" placeholder="Search title, ID, location, or year" />
+          </label>
+          <label>
+            <span>Category</span>
+            <select data-artwork-picker-filter="category">
+              ${renderGalleryArtworkPickerCategoryOptions(state)}
+            </select>
+          </label>
           <button class="button" type="button" data-artwork-picker-option="">No artwork</button>
         </div>
 
-        <div class="gallery-artwork-picker-grid">
+        <div class="gallery-artwork-picker-grid" data-artwork-picker-grid>
           ${imageCards}
         </div>
       </div>
@@ -1405,14 +1569,34 @@ function renderGalleryCurationCard(state, record, index) {
   const thumbSrc = image?.thumbSrc ?? image?.src ?? "";
   const thumbnailPosition = image?.thumbnailPosition ?? "50% 50%";
   const showInGallery = record.showInGallery !== false;
+  const displayStatus = showInGallery ? "active" : "hidden";
+  const artworkState = image ? "assigned" : "unassigned";
   const plaqueEnabled = record.plaqueEnabled !== false;
   const wallType = getGalleryWallType(record);
   const wallTypeMeta = getGalleryWallTypeMeta(wallType);
   const wallDisplayName = getGalleryWallDisplayName(record, index);
   const plaqueSide = record.plaqueSide ?? "auto";
+  const searchText = [
+    wallDisplayName,
+    record.wallId,
+    wallTypeMeta.label,
+    image?.title,
+    image?.id,
+    image ? getCategoryLabel(state, image.category) : "",
+    displayStatus
+  ].filter(Boolean).join(" ").toLowerCase();
 
   return `
-    <article class="gallery-curation-card" data-gallery-curation-card data-wall-id="${escapeHtml(record.wallId)}">
+    <article
+      class="gallery-curation-card"
+      data-gallery-curation-card
+      data-wall-id="${escapeHtml(record.wallId)}"
+      data-gallery-curation-status="${escapeHtml(displayStatus)}"
+      data-gallery-curation-wall-type="${escapeHtml(wallType)}"
+      data-gallery-curation-artwork-state="${escapeHtml(artworkState)}"
+      data-gallery-curation-category="${escapeHtml(image?.category ?? "")}" 
+      data-gallery-curation-search="${escapeHtml(searchText)}"
+    >
       <div class="gallery-curation-thumb ${image ? "" : "is-empty"}" data-gallery-curation-thumb>
         ${image ? `
           <img
@@ -1426,8 +1610,17 @@ function renderGalleryCurationCard(state, record, index) {
 
       <div class="gallery-curation-fields">
         <div class="gallery-curation-heading">
-          <p class="eyebrow">Wall ${index + 1}</p>
-          <h3>${escapeHtml(wallDisplayName)}</h3>
+          <div class="gallery-curation-heading-row">
+            <div>
+              <p class="eyebrow">Wall ${index + 1}</p>
+              <h3>${escapeHtml(wallDisplayName)}</h3>
+            </div>
+            <div class="gallery-curation-badge-row" aria-label="Wall status">
+              <span class="gallery-curation-badge" data-gallery-status-badge="${escapeHtml(displayStatus)}">${showInGallery ? "Active" : "Hidden"}</span>
+              <span class="gallery-curation-badge" data-gallery-artwork-badge="${escapeHtml(artworkState)}">${image ? "Assigned" : "Needs artwork"}</span>
+              <span class="gallery-curation-badge" data-gallery-wall-type-badge>${escapeHtml(wallTypeMeta.label)}</span>
+            </div>
+          </div>
           <span>Blueprint slot: ${escapeHtml(record.wallId)} / Display order ${escapeHtml(String(record.displayOrder ?? index + 1))}</span>
         </div>
 
@@ -1511,9 +1704,17 @@ function renderGalleryCurationPage(state, elements) {
   }
 
   elements.galleryCurationList.innerHTML = `
-    <div class="category-page-actions">
+    ${renderGalleryCurationSummary(state, records)}
+
+    <div class="category-page-actions gallery-curation-actions">
       <button class="button primary" type="button" data-save-gallery-curation>Save All Gallery Curation</button>
     </div>
+
+    ${renderGalleryCurationFilters(state)}
+
+    <p class="gallery-curation-filter-result" data-gallery-curation-filter-result>
+      Showing ${escapeHtml(String(records.length))} wall slots.
+    </p>
 
     <div class="gallery-curation-list" data-gallery-curation-list>
       ${records.map((record, index) => renderGalleryCurationCard(state, record, index)).join("")}

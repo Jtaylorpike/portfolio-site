@@ -26,6 +26,7 @@ const reportDir = path.join(projectRoot, 'asset-reports');
 const galleryJsonPath = path.join(projectRoot, 'src', 'data', 'galleryImages.json');
 const categoriesJsonPath = path.join(projectRoot, 'src', 'data', 'categories.json');
 const heroSlidesJsonPath = path.join(projectRoot, 'src', 'data', 'heroSlides.json');
+const galleryCurationJsonPath = path.join(projectRoot, 'src', 'data', 'galleryCuration.json');
 
 const expectedRenditionPrefixes = {
   src: '/images/portfolio/display/',
@@ -44,6 +45,16 @@ const requiredStringFields = [
   'fullSrc',
   'alt'
 ];
+
+const validWallTypes = new Set([
+  'feature-wall',
+  'wide-display-wall',
+  'standard-display-wall',
+  'compact-display-wall',
+  'narrow-transition-wall'
+]);
+
+const validPlaqueSides = new Set(['auto', 'left', 'right', 'none']);
 
 function csvEscape(value) {
   if (value === null || value === undefined) {
@@ -108,16 +119,22 @@ function pushIssue(issues, severity, code, imageId, field, message, value = '') 
   });
 }
 
+function isPositiveInteger(value) {
+  return Number.isInteger(Number(value)) && Number(value) > 0;
+}
+
 async function main() {
   await fs.mkdir(reportDir, { recursive: true });
 
   const issues = [];
   const pathRows = [];
   const heroRows = [];
+  const galleryCurationRows = [];
 
   const galleryImages = await readJson(galleryJsonPath, null);
   const categories = await readJson(categoriesJsonPath, []);
   const heroSlides = await readJson(heroSlidesJsonPath, []);
+  const galleryCuration = await readJson(galleryCurationJsonPath, []);
 
   if (!Array.isArray(galleryImages)) {
     pushIssue(issues, 'error', 'gallery-json-not-array', '', '', 'src/data/galleryImages.json must be an array.');
@@ -348,6 +365,81 @@ async function main() {
     }
   }
 
+  if (!Array.isArray(galleryCuration)) {
+    pushIssue(issues, 'error', 'gallery-curation-not-array', '', '', 'src/data/galleryCuration.json must be an array when present.');
+  } else {
+    const seenWallIds = new Set();
+    const displayOrders = new Map();
+
+    for (const [index, record] of galleryCuration.entries()) {
+      if (!record || typeof record !== 'object') {
+        pushIssue(issues, 'error', 'invalid-gallery-curation-record', '', `galleryCuration[${index}]`, 'Gallery curation row must be an object.');
+        continue;
+      }
+
+      const wallId = String(record.wallId ?? '').trim();
+      const artworkId = String(record.artworkId ?? '').trim();
+      const wallType = String(record.wallType ?? '').trim();
+      const plaqueSide = String(record.plaqueSide ?? '').trim();
+      const showInGallery = record.showInGallery !== false;
+      const image = artworkId ? images.find((candidate) => candidate.id === artworkId) : null;
+      const displayOrder = record.displayOrder;
+
+      galleryCurationRows.push({
+        index,
+        wallId,
+        artworkId,
+        artworkExists: artworkId ? Boolean(image) : '',
+        showInGallery,
+        displayOrder,
+        wallType,
+        plaqueEnabled: record.plaqueEnabled !== false,
+        plaqueSide
+      });
+
+      if (!wallId) {
+        pushIssue(issues, 'error', 'missing-gallery-wall-id', '', `galleryCuration[${index}].wallId`, 'Gallery curation row is missing wallId.');
+      } else if (seenWallIds.has(wallId)) {
+        pushIssue(issues, 'error', 'duplicate-gallery-wall-id', wallId, `galleryCuration[${index}].wallId`, `Duplicate gallery wall ID: ${wallId}`, wallId);
+      } else {
+        seenWallIds.add(wallId);
+      }
+
+      if (artworkId && !imageIds.has(artworkId)) {
+        pushIssue(issues, 'error', 'unknown-gallery-artwork-id', artworkId, `galleryCuration[${index}].artworkId`, `Gallery wall references an unknown image ID: ${artworkId}`, artworkId);
+      }
+
+      if (showInGallery && !artworkId) {
+        pushIssue(issues, 'warning', 'active-gallery-wall-no-artwork', wallId, `galleryCuration[${index}].artworkId`, 'Active gallery wall has no assigned artwork.', wallId);
+      }
+
+      if (!validWallTypes.has(wallType)) {
+        pushIssue(issues, 'error', 'invalid-gallery-wall-type', wallId, `galleryCuration[${index}].wallType`, `Invalid gallery wall type: ${wallType}`, wallType);
+      }
+
+      if (!validPlaqueSides.has(plaqueSide)) {
+        pushIssue(issues, 'error', 'invalid-gallery-plaque-side', wallId, `galleryCuration[${index}].plaqueSide`, `Invalid gallery plaque side: ${plaqueSide}`, plaqueSide);
+      }
+
+      if (!isPositiveInteger(displayOrder)) {
+        pushIssue(issues, 'error', 'invalid-gallery-display-order', wallId, `galleryCuration[${index}].displayOrder`, 'Gallery curation displayOrder must be a positive integer.', displayOrder);
+      } else {
+        const orderKey = String(Number(displayOrder));
+        const previousWallId = displayOrders.get(orderKey);
+
+        if (previousWallId) {
+          pushIssue(issues, 'warning', 'duplicate-gallery-display-order', wallId, `galleryCuration[${index}].displayOrder`, `Display order ${orderKey} is also used by ${previousWallId}.`, displayOrder);
+        }
+
+        displayOrders.set(orderKey, wallId);
+      }
+
+      if (record.plaqueEnabled === false && plaqueSide !== 'none') {
+        pushIssue(issues, 'warning', 'disabled-plaque-side-not-none', wallId, `galleryCuration[${index}].plaqueSide`, 'Plaque is disabled but plaqueSide is not none.', plaqueSide);
+      }
+    }
+  }
+
   const errors = issues.filter((issue) => issue.severity === 'error');
   const warnings = issues.filter((issue) => issue.severity === 'warning');
   const effectiveErrors = warningsAsErrors ? issues : errors;
@@ -370,6 +462,12 @@ async function main() {
     ['index', 'imageId', 'targetCategory', 'exists', 'orientation', 'src']
   );
 
+  await writeCsv(
+    path.join(reportDir, 'portfolio-gallery-curation-audit.csv'),
+    galleryCurationRows,
+    ['index', 'wallId', 'artworkId', 'artworkExists', 'showInGallery', 'displayOrder', 'wallType', 'plaqueEnabled', 'plaqueSide']
+  );
+
   const issueLines = [
     'Portfolio image data validation issues',
     '',
@@ -390,6 +488,7 @@ async function main() {
     `Image records:        ${images.length}`,
     `Categories:           ${Array.isArray(categories) ? categories.length : 0}`,
     `Hero slides:          ${Array.isArray(heroSlides) ? heroSlides.length : 0}`,
+    `Gallery wall slots:   ${Array.isArray(galleryCuration) ? galleryCuration.length : 0}`,
     `Path rows:            ${pathRows.length}`,
     `Errors:               ${errors.length}`,
     `Warnings:             ${warnings.length}`,
@@ -399,7 +498,8 @@ async function main() {
     'asset-reports/portfolio-image-data-issues.txt',
     'asset-reports/portfolio-image-data-issues.csv',
     'asset-reports/portfolio-image-data-paths.csv',
-    'asset-reports/portfolio-hero-slide-audit.csv'
+    'asset-reports/portfolio-hero-slide-audit.csv',
+    'asset-reports/portfolio-gallery-curation-audit.csv'
   ];
 
   await fs.writeFile(path.join(reportDir, 'portfolio-image-data-validation-summary.txt'), `${summary.join('\n')}\n`, 'utf8');
@@ -407,12 +507,13 @@ async function main() {
   console.log('');
   console.log('Portfolio image data validation');
   console.log('');
-  console.log(`Image records:      ${images.length}`);
-  console.log(`Categories:         ${Array.isArray(categories) ? categories.length : 0}`);
-  console.log(`Hero slides:        ${Array.isArray(heroSlides) ? heroSlides.length : 0}`);
-  console.log(`Errors:             ${errors.length}`);
-  console.log(`Warnings:           ${warnings.length}`);
-  console.log(`Warnings as errors: ${warningsAsErrors}`);
+  console.log(`Image records:        ${images.length}`);
+  console.log(`Categories:           ${Array.isArray(categories) ? categories.length : 0}`);
+  console.log(`Hero slides:          ${Array.isArray(heroSlides) ? heroSlides.length : 0}`);
+  console.log(`Gallery wall slots:   ${Array.isArray(galleryCuration) ? galleryCuration.length : 0}`);
+  console.log(`Errors:               ${errors.length}`);
+  console.log(`Warnings:             ${warnings.length}`);
+  console.log(`Warnings as errors:   ${warningsAsErrors}`);
   console.log('');
   console.log('Reports written to asset-reports/:');
   console.log('- portfolio-image-data-validation-summary.txt');
@@ -420,6 +521,7 @@ async function main() {
   console.log('- portfolio-image-data-issues.csv');
   console.log('- portfolio-image-data-paths.csv');
   console.log('- portfolio-hero-slide-audit.csv');
+  console.log('- portfolio-gallery-curation-audit.csv');
   console.log('');
 
   if (effectiveErrors.length > 0) {

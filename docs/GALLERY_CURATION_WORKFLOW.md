@@ -68,3 +68,8 @@ The wall ID remains an internal blueprint slot. The wall type is the human/edito
 The editor now treats wall type as physical wall-block metadata, not gallery-zone language. Use `feature-wall`, `wide-display-wall`, `standard-display-wall`, or `compact-display-wall` to describe the wall size/shape. The current wall slot still controls position/rotation, but wall type now affects the wall preset and artwork scale in the rendered Three.js gallery.
 
 Each wall card also has a local `Save Wall` action. Use it for isolated changes to one assignment. Use `Save All Gallery Curation` for batch edits, reordering, or multi-wall changes.
+
+## Current editor usability layer
+
+The Gallery tab now includes a curation summary, wall filters, wall-card badges, and searchable artwork assignment overlay filters. These are editor usability features; they do not alter the physical gallery room by themselves.
+

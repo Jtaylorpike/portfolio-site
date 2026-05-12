@@ -1,16 +1,15 @@
-# Taylor Pike Portfolio Upload Script Fix Pack
+# Replacement Pack Manifest
 
-Replace these files in your project:
-
-- scripts/New-TaylorPikePortfolioChatUpload.ps1
-- scripts/New-TaylorPikePortfolioChatUpload.cmd
-
-Reason:
-
-The previous upload script used [System.IO.Path]::GetRelativePath(), which is available in newer .NET/PowerShell runtimes but not in Windows PowerShell 5.1 on many Windows systems. This replacement uses a compatible URI-based relative path helper instead.
-
-Run after replacement:
-
-```powershell
-.\scripts\New-TaylorPikePortfolioChatUpload.cmd
-```
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/static/editor.css`
+- `local-editor/templates/editor.html`
+- `scripts/validate-portfolio-image-data.mjs`
+- `docs/GALLERY_CURATION_WORKFLOW.md`
+- `docs/GALLERY_EDITOR_STABILIZATION_AND_POLISH.md`
+- `docs/GALLERY_CURATION_VALIDATION.md`
+- `docs/GALLERY_MAP_EDITOR_PLAN.md`
+- `docs/THREE_D_GALLERY_PUBLIC_REVIEW_CHECKLIST.md`
+- `PROJECT_CHANGELOG_APPEND_20260512_GALLERY_EDITOR_STABILIZATION_AND_VALIDATION.md`
+- `REPLACEMENT_PACK_NOTES.md`
+- `REPLACEMENT_PACK_MANIFEST.md`
