@@ -583,34 +583,91 @@ export class GalleryScene {
       Math.cos(artwork.rotationY)
     );
 
-    const wallHalfWidth = artwork.wallWidth / 2;
-    const plaqueHalfWidth = this.artworkPlaqueWidth / 2;
-    const safeWallMargin = 0.14;
-    const desiredOffset =
-      dimensions.width / 2 +
-      this.artworkFrameBorder / 2 +
-      this.artworkPlaqueGap +
-      plaqueHalfWidth;
-    const maxOffset = Math.max(
-      plaqueHalfWidth,
-      wallHalfWidth - plaqueHalfWidth - safeWallMargin
-    );
-    const offset = Math.min(desiredOffset, maxOffset);
-
     // artwork.position is already slightly in front of the wall surface.
     // That offset is 0.018 in galleryLayout. To make the plaque truly flush,
     // place its center so the rear face lands exactly on the wall plane.
     const artworkSurfaceOffset = 0.018;
     const plaqueCenterOutset = this.artworkPlaqueDepth / 2;
+    const flushWallOffset = -artworkSurfaceOffset + plaqueCenterOutset;
+
+    if (this.canPlacePlaqueBesideArtwork(artwork, dimensions)) {
+      this.positionArtworkPlaqueBesideFrame(
+        plaque,
+        artwork,
+        dimensions,
+        tangent,
+        normal,
+        flushWallOffset
+      );
+    } else {
+      this.positionArtworkPlaqueBelowFrame(
+        plaque,
+        artwork,
+        dimensions,
+        normal,
+        flushWallOffset
+      );
+    }
+
+    plaque.rotation.copy(_frame.rotation);
+  }
+
+  private canPlacePlaqueBesideArtwork(
+    artwork: GalleryArtwork,
+    dimensions: FrameDimensions
+  ) {
+    const wallHalfWidth = artwork.wallWidth / 2;
+    const plaqueHalfWidth = this.artworkPlaqueWidth / 2;
+    const safeWallMargin = 0.14;
+    const frameHalfWidth = dimensions.width / 2 + this.artworkFrameBorder / 2;
+    const requiredCenterOffset = frameHalfWidth + this.artworkPlaqueGap + plaqueHalfWidth;
+    const maxCenterOffset = wallHalfWidth - safeWallMargin - plaqueHalfWidth;
+
+    return requiredCenterOffset <= maxCenterOffset;
+  }
+
+  private getPlaqueSideMultiplier(artwork: GalleryArtwork) {
+    return artwork.plaqueSide === 'left' ? -1 : 1;
+  }
+
+  private positionArtworkPlaqueBesideFrame(
+    plaque: THREE.Mesh,
+    artwork: GalleryArtwork,
+    dimensions: FrameDimensions,
+    tangent: THREE.Vector3,
+    normal: THREE.Vector3,
+    flushWallOffset: number
+  ) {
+    const plaqueHalfWidth = this.artworkPlaqueWidth / 2;
+    const frameHalfWidth = dimensions.width / 2 + this.artworkFrameBorder / 2;
+    const sideMultiplier = this.getPlaqueSideMultiplier(artwork);
+    const centerOffset = frameHalfWidth + this.artworkPlaqueGap + plaqueHalfWidth;
 
     plaque.position.set(...artwork.position);
-    plaque.position.addScaledVector(tangent, offset);
-    plaque.position.addScaledVector(normal, -artworkSurfaceOffset + plaqueCenterOutset);
+    plaque.position.addScaledVector(tangent, centerOffset * sideMultiplier);
+    plaque.position.addScaledVector(normal, flushWallOffset);
     plaque.position.y = Math.max(
       0.76,
       artwork.position[1] - dimensions.height / 2 + this.artworkPlaqueHeight / 2 + 0.044
     );
-    plaque.rotation.copy(_frame.rotation);
+    plaque.userData.plaquePlacement = artwork.plaqueSide;
+  }
+
+  private positionArtworkPlaqueBelowFrame(
+    plaque: THREE.Mesh,
+    artwork: GalleryArtwork,
+    dimensions: FrameDimensions,
+    normal: THREE.Vector3,
+    flushWallOffset: number
+  ) {
+    const frameHalfHeight = dimensions.height / 2 + this.artworkFrameBorder / 2;
+    const plaqueHalfHeight = this.artworkPlaqueHeight / 2;
+    const belowFrameY = artwork.position[1] - frameHalfHeight - this.artworkPlaqueGap - plaqueHalfHeight;
+
+    plaque.position.set(...artwork.position);
+    plaque.position.addScaledVector(normal, flushWallOffset);
+    plaque.position.y = Math.max(0.38, belowFrameY);
+    plaque.userData.plaquePlacement = 'below';
   }
 
   private createArtworkImage(
