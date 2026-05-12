@@ -12,6 +12,8 @@
     "imageHeight": 1855,
     "imageAspectRatio": 1.293801,
     "imageOrientation": "landscape",
+    "thumbSrc": "/images/portfolio/thumb/climbing-climbing-workbook-05.webp",
+    "textureSrc": "/images/portfolio/texture/climbing-climbing-workbook-05.webp",
     "fullSrc": "/images/portfolio/full/climbing-climbing-workbook-05.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "47% 100%",
@@ -20,9 +22,7 @@
     "heroFitMode": "contain",
     "galleryFitMode": "contain",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/climbing-climbing-workbook-05.webp",
-    "thumbSrc": "/images/portfolio/thumb/climbing-climbing-workbook-05.webp"
+    "gallerySize": 1
   },
   {
     "id": "climbing-01",
@@ -37,6 +37,8 @@
     "imageHeight": 3504,
     "imageAspectRatio": 1.5,
     "imageOrientation": "landscape",
+    "thumbSrc": "/images/portfolio/thumb/climbing-01.webp",
+    "textureSrc": "/images/portfolio/texture/climbing-01.webp",
     "fullSrc": "/images/portfolio/full/climbing-01.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -45,9 +47,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/climbing-01.webp",
-    "thumbSrc": "/images/portfolio/thumb/climbing-01.webp"
+    "gallerySize": 1
   },
   {
     "id": "climbing-02",
@@ -62,6 +62,8 @@
     "imageHeight": 6667,
     "imageAspectRatio": 0.667017,
     "imageOrientation": "portrait",
+    "thumbSrc": "/images/portfolio/thumb/climbing-02.webp",
+    "textureSrc": "/images/portfolio/texture/climbing-02.webp",
     "fullSrc": "/images/portfolio/full/climbing-02.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -70,9 +72,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "square",
-    "gallerySize": 1.14,
-    "textureSrc": "/images/portfolio/texture/climbing-02.webp",
-    "thumbSrc": "/images/portfolio/thumb/climbing-02.webp"
+    "gallerySize": 1.14
   },
   {
     "id": "climbing-03",
@@ -87,6 +87,8 @@
     "imageHeight": 6313,
     "imageAspectRatio": 0.667036,
     "imageOrientation": "portrait",
+    "thumbSrc": "/images/portfolio/thumb/climbing-03.webp",
+    "textureSrc": "/images/portfolio/texture/climbing-03.webp",
     "fullSrc": "/images/portfolio/full/climbing-03.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -95,9 +97,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/climbing-03.webp",
-    "thumbSrc": "/images/portfolio/thumb/climbing-03.webp"
+    "gallerySize": 1
   },
   {
     "id": "climbing-climbing-workbook-03",
@@ -112,6 +112,8 @@
     "imageHeight": 1600,
     "imageAspectRatio": 1.5,
     "imageOrientation": "landscape",
+    "thumbSrc": "/images/portfolio/thumb/climbing-climbing-workbook-03.webp",
+    "textureSrc": "/images/portfolio/texture/climbing-climbing-workbook-03.webp",
     "fullSrc": "/images/portfolio/full/climbing-climbing-workbook-03.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -120,9 +122,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/climbing-climbing-workbook-03.webp",
-    "thumbSrc": "/images/portfolio/thumb/climbing-climbing-workbook-03.webp"
+    "gallerySize": 1
   },
   {
     "id": "climbing-climbing-portfolio-08",
@@ -137,6 +137,8 @@
     "imageHeight": 3600,
     "imageAspectRatio": 0.666667,
     "imageOrientation": "portrait",
+    "thumbSrc": "/images/portfolio/thumb/climbing-climbing-portfolio-08.webp",
+    "textureSrc": "/images/portfolio/texture/climbing-climbing-portfolio-08.webp",
     "fullSrc": "/images/portfolio/full/climbing-climbing-portfolio-08.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -145,9 +147,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/climbing-climbing-portfolio-08.webp",
-    "thumbSrc": "/images/portfolio/thumb/climbing-climbing-portfolio-08.webp"
+    "gallerySize": 1
   },
   {
     "id": "climbing-climbing-portfolio-09",
@@ -162,6 +162,8 @@
     "imageHeight": 3600,
     "imageAspectRatio": 0.666667,
     "imageOrientation": "portrait",
+    "thumbSrc": "/images/portfolio/thumb/climbing-climbing-portfolio-09.webp",
+    "textureSrc": "/images/portfolio/texture/climbing-climbing-portfolio-09.webp",
     "fullSrc": "/images/portfolio/full/climbing-climbing-portfolio-09.webp",
     "thumbnailPosition": "29% 66%",
     "heroPosition": "28% 46%",
@@ -170,9 +172,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/climbing-climbing-portfolio-09.webp",
-    "thumbSrc": "/images/portfolio/thumb/climbing-climbing-portfolio-09.webp"
+    "gallerySize": 1
   },
   {
     "id": "climbing-climbing-workbook-01",
@@ -187,6 +187,8 @@
     "imageHeight": 3600,
     "imageAspectRatio": 0.666667,
     "imageOrientation": "portrait",
+    "thumbSrc": "/images/portfolio/thumb/climbing-climbing-workbook-01.webp",
+    "textureSrc": "/images/portfolio/texture/climbing-climbing-workbook-01.webp",
     "fullSrc": "/images/portfolio/full/climbing-climbing-workbook-01.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -195,9 +197,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/climbing-climbing-workbook-01.webp",
-    "thumbSrc": "/images/portfolio/thumb/climbing-climbing-workbook-01.webp"
+    "gallerySize": 1
   },
   {
     "id": "landscape-01",
@@ -212,6 +212,8 @@
     "imageHeight": 4884,
     "imageAspectRatio": 0.666667,
     "imageOrientation": "portrait",
+    "thumbSrc": "/images/portfolio/thumb/landscape-01.webp",
+    "textureSrc": "/images/portfolio/texture/landscape-01.webp",
     "fullSrc": "/images/portfolio/full/landscape-01.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -220,9 +222,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "contain",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/landscape-01.webp",
-    "thumbSrc": "/images/portfolio/thumb/landscape-01.webp"
+    "gallerySize": 1
   },
   {
     "id": "landscape-02",
@@ -237,6 +237,8 @@
     "imageHeight": 3742,
     "imageAspectRatio": 1.5,
     "imageOrientation": "landscape",
+    "thumbSrc": "/images/portfolio/thumb/landscape-02.webp",
+    "textureSrc": "/images/portfolio/texture/landscape-02.webp",
     "fullSrc": "/images/portfolio/full/landscape-02.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -245,9 +247,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/landscape-02.webp",
-    "thumbSrc": "/images/portfolio/thumb/landscape-02.webp"
+    "gallerySize": 1
   },
   {
     "id": "landscape-03",
@@ -262,6 +262,8 @@
     "imageHeight": 3083,
     "imageAspectRatio": 1.499838,
     "imageOrientation": "landscape",
+    "thumbSrc": "/images/portfolio/thumb/landscape-03.webp",
+    "textureSrc": "/images/portfolio/texture/landscape-03.webp",
     "fullSrc": "/images/portfolio/full/landscape-03.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -270,9 +272,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/landscape-03.webp",
-    "thumbSrc": "/images/portfolio/thumb/landscape-03.webp"
+    "gallerySize": 1
   },
   {
     "id": "climbing-landscape-portfolio-06",
@@ -287,6 +287,8 @@
     "imageHeight": 1600,
     "imageAspectRatio": 1.5,
     "imageOrientation": "landscape",
+    "thumbSrc": "/images/portfolio/thumb/climbing-landscape-portfolio-06.webp",
+    "textureSrc": "/images/portfolio/texture/climbing-landscape-portfolio-06.webp",
     "fullSrc": "/images/portfolio/full/climbing-landscape-portfolio-06.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -295,9 +297,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/climbing-landscape-portfolio-06.webp",
-    "thumbSrc": "/images/portfolio/thumb/climbing-landscape-portfolio-06.webp"
+    "gallerySize": 1
   },
   {
     "id": "landscape-landscape-workbook-03",
@@ -337,6 +337,8 @@
     "imageHeight": 3735,
     "imageAspectRatio": 1.499866,
     "imageOrientation": "landscape",
+    "thumbSrc": "/images/portfolio/thumb/personal-01.webp",
+    "textureSrc": "/images/portfolio/texture/personal-01.webp",
     "fullSrc": "/images/portfolio/full/personal-01.webp",
     "thumbnailPosition": "50% 50%",
     "heroPosition": "50% 50%",
@@ -345,8 +347,6 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1,
-    "textureSrc": "/images/portfolio/texture/personal-01.webp",
-    "thumbSrc": "/images/portfolio/thumb/personal-01.webp"
+    "gallerySize": 1
   }
 ]

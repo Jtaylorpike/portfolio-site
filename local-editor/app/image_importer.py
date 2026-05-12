@@ -1,10 +1,17 @@
-"""Import reviewed images and create optimized web versions.
+"""Import reviewed images and create portfolio rendition files.
 
 The local editor lets the user choose image files, review metadata, and then save
-those files into the portfolio. This module handles the backend side: it copies
-the original file, creates smaller WebP versions for different parts of the
-site, creates the image JSON record, validates the final data set, and creates a
-backup before the JSON files are changed.
+those files into the portfolio. This module handles the backend side: it stores
+the uploaded source temporarily, creates the standard WebP renditions, creates
+the image JSON record, validates the final data set, and creates a backup before
+the JSON files are changed.
+
+The active image architecture is rendition-based, not category-folder-based:
+
+/images/portfolio/full/<image-id>.webp
+/images/portfolio/display/<image-id>.webp
+/images/portfolio/texture/<image-id>.webp
+/images/portfolio/thumb/<image-id>.webp
 """
 
 from __future__ import annotations
@@ -26,7 +33,8 @@ from .data_store import (
 from .utils import clean_string, make_unique_value, slugify, title_from_filename
 
 
-IMPORTED_IMAGES_DIR = PUBLIC_DIR / "images" / "imported"
+PORTFOLIO_IMAGES_DIR = PUBLIC_DIR / "images" / "portfolio"
+SOURCE_IMPORT_DIR = Path(__file__).resolve().parents[2] / "source-images" / "editor-imports"
 
 ALLOWED_IMAGE_EXTENSIONS = {
     ".jpg",
@@ -35,15 +43,32 @@ ALLOWED_IMAGE_EXTENSIONS = {
     ".webp",
 }
 
-THUMB_MAX_WIDTH = 700
-OPTIMIZED_MAX_WIDTH = 1600
-TEXTURE_MAX_WIDTH = 1400
-FULL_MAX_WIDTH = 2400
-
-THUMB_WEBP_QUALITY = 76
-OPTIMIZED_WEBP_QUALITY = 82
-TEXTURE_WEBP_QUALITY = 80
-FULL_WEBP_QUALITY = 88
+RENDITION_CONFIGS = {
+    "thumb": {
+        "field": "thumbSrc",
+        "folder": "thumb",
+        "max_width": 520,
+        "quality": 74,
+    },
+    "display": {
+        "field": "src",
+        "folder": "display",
+        "max_width": 1600,
+        "quality": 84,
+    },
+    "texture": {
+        "field": "textureSrc",
+        "folder": "texture",
+        "max_width": 1024,
+        "quality": 78,
+    },
+    "full": {
+        "field": "fullSrc",
+        "folder": "full",
+        "max_width": 2400,
+        "quality": 88,
+    },
+}
 
 GALLERY_DEFAULT_SIZE_BY_STYLE = {
     "landscape": 1.0,
@@ -60,15 +85,17 @@ GALLERY_MAX_SIZE_BY_STYLE = {
 GALLERY_MIN_SIZE = 0.55
 
 
-# Converts an absolute file path under public/ into the URL used by the site.
 def get_public_url_for_file(path: Path) -> str:
+    """Convert an absolute file path under public/ into a site URL."""
+
     relative_path = path.relative_to(PUBLIC_DIR).as_posix()
 
     return f"/{relative_path}"
 
 
-# Allows only image formats the importer knows how to process safely.
 def is_allowed_image_file(filename: str) -> bool:
+    """Allow only image formats the importer knows how to process safely."""
+
     extension = Path(filename).suffix.lower()
 
     return extension in ALLOWED_IMAGE_EXTENSIONS
@@ -81,8 +108,9 @@ def get_resampling_filter():
         return Image.LANCZOS
 
 
-# Applies EXIF rotation and converts the image into a WebP-friendly color mode.
 def prepare_image_for_webp(image: Image.Image) -> Image.Image:
+    """Apply EXIF rotation and convert into a WebP-friendly color mode."""
+
     image = ImageOps.exif_transpose(image)
 
     if image.mode in ("RGBA", "LA"):
@@ -101,13 +129,14 @@ def resize_image(image: Image.Image, max_width: int) -> Image.Image:
     return image.resize((max_width, new_height), get_resampling_filter())
 
 
-# Creates one optimized WebP copy for thumbnails, site display, texture loading, or fullscreen use.
 def save_webp_version(
     source_path: Path,
     destination_path: Path,
     max_width: int,
     quality: int,
 ) -> None:
+    """Create one optimized WebP copy for a given rendition."""
+
     destination_path.parent.mkdir(parents=True, exist_ok=True)
 
     with Image.open(source_path) as image:
@@ -123,8 +152,9 @@ def save_webp_version(
         )
 
 
-# Reads image dimensions so the editor can infer portrait, landscape, or square behavior.
 def get_image_metadata(source_path: Path) -> dict[str, Any]:
+    """Read dimensions so the editor can infer orientation behavior."""
+
     with Image.open(source_path) as image:
         image = ImageOps.exif_transpose(image)
         width = int(image.width)
@@ -146,15 +176,14 @@ def get_image_metadata(source_path: Path) -> dict[str, Any]:
     }
 
 
-def make_import_paths(category: str, file_stem: str, extension: str) -> dict[str, Path]:
-    category_dir = IMPORTED_IMAGES_DIR / category
+def make_source_path(file_stem: str, extension: str) -> Path:
+    return SOURCE_IMPORT_DIR / f"{file_stem}{extension}"
 
+
+def make_rendition_paths(image_id: str) -> dict[str, Path]:
     return {
-        "original": category_dir / "original" / f"{file_stem}{extension}",
-        "thumb": category_dir / "thumb" / f"{file_stem}.webp",
-        "optimized": category_dir / "optimized" / f"{file_stem}.webp",
-        "texture": category_dir / "texture" / f"{file_stem}.webp",
-        "full": category_dir / "full" / f"{file_stem}.webp",
+        rendition_name: PORTFOLIO_IMAGES_DIR / str(config["folder"]) / f"{image_id}.webp"
+        for rendition_name, config in RENDITION_CONFIGS.items()
     }
 
 
@@ -162,6 +191,11 @@ def get_used_file_stems(images: list[dict[str, Any]]) -> set[str]:
     used_file_stems: set[str] = set()
 
     for image in images:
+        image_id = clean_string(image.get("id"))
+
+        if image_id:
+            used_file_stems.add(image_id)
+
         for field in ["src", "thumbSrc", "textureSrc", "fullSrc"]:
             value = clean_string(image.get(field, ""))
 
@@ -237,8 +271,27 @@ def normalize_gallery_size(
     return round(min(max_size, max(GALLERY_MIN_SIZE, size)), 3)
 
 
-# Main import endpoint worker: validates the upload, writes image files, updates JSON, and creates a backup.
+def save_all_renditions(source_path: Path, rendition_paths: dict[str, Path]) -> dict[str, str]:
+    urls: dict[str, str] = {}
+
+    for rendition_name, config in RENDITION_CONFIGS.items():
+        destination_path = rendition_paths[rendition_name]
+
+        save_webp_version(
+            source_path,
+            destination_path,
+            int(config["max_width"]),
+            int(config["quality"]),
+        )
+
+        urls[str(config["field"])] = get_public_url_for_file(destination_path)
+
+    return urls
+
+
 def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any], int]:
+    """Validate reviewed uploads, create renditions, update JSON, and create a backup."""
+
     categories, images, hero_slides = get_current_data()
 
     valid_category_ids = {category["id"] for category in categories}
@@ -289,68 +342,32 @@ def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any
         original_stem = Path(original_filename).stem
         clean_stem = slugify(original_stem)
 
-        file_stem = make_unique_value(clean_stem, used_file_stems)
-        import_paths = make_import_paths(category, file_stem, extension)
+        requested_id = slugify(clean_string(raw_record.get("id")) or f"{category}-{clean_stem}")
+        image_id = make_unique_value(requested_id, used_image_ids)
+        used_image_ids.add(image_id)
 
-        for path in import_paths.values():
-            path.parent.mkdir(parents=True, exist_ok=True)
+        source_stem = make_unique_value(image_id, used_file_stems)
+        used_file_stems.add(source_stem)
 
-        uploaded_file.save(import_paths["original"])
+        source_path = make_source_path(source_stem, extension)
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        uploaded_file.save(source_path)
+
+        rendition_paths = make_rendition_paths(image_id)
 
         try:
-            image_metadata = get_image_metadata(import_paths["original"])
-
-            save_webp_version(
-                import_paths["original"],
-                import_paths["thumb"],
-                THUMB_MAX_WIDTH,
-                THUMB_WEBP_QUALITY,
-            )
-
-            save_webp_version(
-                import_paths["original"],
-                import_paths["optimized"],
-                OPTIMIZED_MAX_WIDTH,
-                OPTIMIZED_WEBP_QUALITY,
-            )
-
-            save_webp_version(
-                import_paths["original"],
-                import_paths["texture"],
-                TEXTURE_MAX_WIDTH,
-                TEXTURE_WEBP_QUALITY,
-            )
-
-            save_webp_version(
-                import_paths["original"],
-                import_paths["full"],
-                FULL_MAX_WIDTH,
-                FULL_WEBP_QUALITY,
-            )
-
-            thumb_url = get_public_url_for_file(import_paths["thumb"])
-            src_url = get_public_url_for_file(import_paths["optimized"])
-            texture_url = get_public_url_for_file(import_paths["texture"])
-            full_src_url = get_public_url_for_file(import_paths["full"])
+            image_metadata = get_image_metadata(source_path)
+            rendition_urls = save_all_renditions(source_path, rendition_paths)
 
         except Exception as error:
             print(f"Could not optimize {original_filename}: {error}")
 
-            fallback_url = get_public_url_for_file(import_paths["original"])
-            thumb_url = fallback_url
-            src_url = fallback_url
-            texture_url = fallback_url
-            full_src_url = fallback_url
+            if source_path.exists():
+                source_path.unlink()
 
-            image_metadata = {
-                "imageWidth": None,
-                "imageHeight": None,
-                "imageAspectRatio": None,
-                "imageOrientation": None,
-            }
+            skipped_files.append(original_filename)
+            continue
 
-        requested_id = slugify(clean_string(raw_record.get("id")) or f"{category}-{file_stem}")
-        image_id = make_unique_value(requested_id, used_image_ids)
         title = clean_string(raw_record.get("title")) or title_from_filename(original_filename)
         alt = clean_string(raw_record.get("alt")) or f"Photograph by Taylor Pike: {title}"
 
@@ -364,11 +381,13 @@ def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any
             "year": clean_string(raw_record.get("year")),
             "location": clean_string(raw_record.get("location")),
             "note": clean_string(raw_record.get("note")),
-            "src": src_url,
-            "thumbSrc": thumb_url,
-            "textureSrc": texture_url,
+            "src": rendition_urls["src"],
+            "thumbSrc": rendition_urls["thumbSrc"],
+            "textureSrc": rendition_urls["textureSrc"],
             "thumbnailPosition": normalize_position(raw_record.get("thumbnailPosition")),
             "heroPosition": normalize_position(raw_record.get("heroPosition")),
+            "heroFrameStyle": normalize_frame_style(raw_record.get("heroFrameStyle")),
+            "heroFitMode": normalize_hero_fit_mode(raw_record.get("heroFitMode")),
             "galleryPosition": normalize_position(raw_record.get("galleryPosition")),
             "galleryFitMode": normalize_gallery_fit_mode(raw_record.get("galleryFitMode")),
             "galleryFrameStyle": gallery_frame_style,
@@ -378,7 +397,7 @@ def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any
                 gallery_orientation,
             ),
             "alt": alt,
-            "fullSrc": full_src_url,
+            "fullSrc": rendition_urls["fullSrc"],
         }
 
         for key, value in image_metadata.items():

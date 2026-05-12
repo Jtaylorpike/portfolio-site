@@ -20,6 +20,19 @@ portfolio-*-pack.zip
 asset-reports/
 asset-archive/
 
-# Local holding area for images that still need to be imported into the site
+# Local holding areas for source images that still need to be imported into the site
 assets-to-import/
 source-images/
+
+# Workspace cleanup rules
+# Local archive/report/source folders
+# Local ChatGPT transfer and generated pack artifacts
+_chat-uploads/
+_chat-uploads.zip
+asset-reports.zip
+TaylorPikePortfolio-*.zip
+Taylor_Pike_Portfolio_*.zip
+PROJECT_CHANGELOG_APPEND_*.md
+REPLACEMENT_PACK_NOTES.md
+# Old generated/local working folders
+portfolio-public-site-polish-pack/

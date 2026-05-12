@@ -101,27 +101,27 @@ function resolveGalleryImage(image: GalleryImage): GalleryImage {
 const rawCardImages = {
   climbing: {
     title: 'Climbing',
-    src: '/images/card-optimized/climbing-01.webp',
+    src: '/images/ui/cards/climbing.webp',
     alt: 'Climbing photograph by Taylor Pike'
   },
   commercial: {
     title: 'Commercial',
-    src: '/images/card-optimized/commercial-01.webp',
+    src: '/images/ui/cards/commercial.webp',
     alt: 'Commercial photograph by Taylor Pike'
   },
   portraits: {
     title: 'Portraits',
-    src: '/images/card-optimized/portrait-01.webp',
+    src: '/images/ui/cards/portraits.webp',
     alt: 'Portrait photograph by Taylor Pike'
   },
   productBrand: {
     title: 'Product / Brand',
-    src: '/images/card-optimized/product-01.webp',
+    src: '/images/ui/cards/product-brand.webp',
     alt: 'Product and brand photograph by Taylor Pike'
   },
   personal: {
     title: 'Personal Work',
-    src: '/images/card-optimized/personal-01.webp',
+    src: '/images/ui/cards/personal.webp',
     alt: 'Personal photograph by Taylor Pike'
   }
 } satisfies Record<string, CardImage>;
@@ -133,3 +133,4 @@ export const cardImages = Object.fromEntries(
 ) as Record<keyof typeof rawCardImages, CardImage>;
 
 export const galleryImages = (galleryImagesJson as GalleryImage[]).map(resolveGalleryImage);
+
