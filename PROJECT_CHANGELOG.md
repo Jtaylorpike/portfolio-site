@@ -522,3 +522,25 @@ Current source files remain the source of truth. This changelog is a historical 
 ### Notes
 - This is intended to prevent generated archives, reports, source images, pack notes, and changelog fragments from accidentally staying tracked.
 
+
+---
+
+## Appended changelog fragments - 20260512-132415
+
+
+## 2026-05-12 — Dev to main release readiness
+
+### Changed
+- Added a dev-to-main release readiness audit.
+- Added a release merge checklist generator.
+- Added documentation for merging validated `dev` work into public `main`.
+
+### Files changed
+- `scripts/Audit-DevToMainReleaseReadiness.ps1`
+- `scripts/Write-ReleaseMergeChecklist.ps1`
+- `docs/DEV_TO_MAIN_RELEASE_WORKFLOW.md`
+- `PROJECT_CHANGELOG_APPEND_20260512_DEV_TO_MAIN_RELEASE_READINESS.md`
+
+### Notes
+- This is intended for the final check before merging image pipeline/editor cleanup work into `main`.
+
