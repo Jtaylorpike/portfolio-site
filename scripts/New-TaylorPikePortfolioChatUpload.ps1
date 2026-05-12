@@ -298,6 +298,7 @@ foreach ($dir in $sourceDirectories) {
 # Small public context that helps verify data paths without duplicating image payloads inside 01-source.
 Copy-DirectoryIfExists -RelativePath 'public/data' -DestinationRoot $sourcePackage -ExcludeDirectories $commonExcludedDirectories -ExcludeFiles $commonExcludedFiles | Out-Null
 Copy-DirectoryIfExists -RelativePath 'public/images/logo' -DestinationRoot $sourcePackage -ExcludeDirectories $commonExcludedDirectories -ExcludeFiles $commonExcludedFiles | Out-Null
+Copy-DirectoryIfExists -RelativePath 'public/fonts' -DestinationRoot $sourcePackage -ExcludeDirectories $commonExcludedDirectories -ExcludeFiles $commonExcludedFiles | Out-Null
 
 # Runtime images needed for visual verification. This intentionally includes imported optimized/thumb/texture
 # folders by default, while avoiding full/original image folders unless explicitly requested.

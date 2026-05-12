@@ -369,8 +369,6 @@ def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any
             "textureSrc": texture_url,
             "thumbnailPosition": normalize_position(raw_record.get("thumbnailPosition")),
             "heroPosition": normalize_position(raw_record.get("heroPosition")),
-            "heroFrameStyle": normalize_frame_style(raw_record.get("heroFrameStyle")),
-            "heroFitMode": normalize_hero_fit_mode(raw_record.get("heroFitMode")),
             "galleryPosition": normalize_position(raw_record.get("galleryPosition")),
             "galleryFitMode": normalize_gallery_fit_mode(raw_record.get("galleryFitMode")),
             "galleryFrameStyle": gallery_frame_style,

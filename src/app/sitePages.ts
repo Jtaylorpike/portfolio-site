@@ -26,6 +26,20 @@ type ResolvedHeroSlide = {
   image: GalleryImage;
 };
 
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function formatTwoDigitNumber(index: number): string {
+  return String(index + 1).padStart(2, '0');
+}
+
 // Looks up a portfolio image by the ID stored in JSON.
 function getImageById(imageId: string): GalleryImage | undefined {
   return galleryImages.find((image) => image.id === imageId);
@@ -86,16 +100,16 @@ function getImagesForCategory(category: PortfolioCategoryFilter): GalleryImage[]
 function renderTopNav(activePage: PageName): string {
   return `
     <header class="modern-header">
-      <a class="modern-logo" href="#/home" aria-label="Taylor Pike Productions home">
-        <img src="/images/logo/logo-black-transparent.png" alt="Taylor Pike Productions" />
+      <a class="modern-brand" href="#/home" aria-label="Taylor Pike home">
+        <span class="modern-brand-name">Taylor Pike</span>
+        <span class="modern-brand-field">Photographer + Creative</span>
       </a>
 
       <nav class="modern-nav" aria-label="Main navigation">
         <a class="${activePage === 'home' ? 'is-active' : ''}" href="#/home">Home</a>
-        <button type="button" data-open-virtual-gallery>Virtual Gallery</button>
         <a class="${activePage === 'portfolio' ? 'is-active' : ''}" href="#/portfolio">Portfolio</a>
+        <button type="button" data-open-virtual-gallery>Gallery</button>
         <a class="${activePage === 'about' ? 'is-active' : ''}" href="#/about">About</a>
-        ${import.meta.env.DEV ? '<a href="#/editor">Editor</a>' : ''}
       </nav>
     </header>
   `;
@@ -122,8 +136,8 @@ function renderHeroImageLayer(image: GalleryImage, extraClassName = ''): string 
           class="home-hero-image"
           data-hero-image
           data-hero-layer-image
-          src="${image.src}"
-          alt="${image.alt}"
+          src="${escapeHtml(image.src)}"
+          alt="${escapeHtml(image.alt)}"
           style="${getHeroImageInlineStyle(image)}"
         />
       </div>
@@ -131,43 +145,153 @@ function renderHeroImageLayer(image: GalleryImage, extraClassName = ''): string 
   `;
 }
 
+function renderHeroSlideIndex(slides: ResolvedHeroSlide[]): string {
+  return slides
+    .map((slide, index) => {
+      const categoryLabel = getCategoryLabel(slide.targetCategory);
+      const activeClass = index === 0 ? ' is-active' : '';
+      const ariaCurrent = index === 0 ? ' aria-current="true"' : '';
+
+      return `
+        <button
+          class="hero-index-button${activeClass}"
+          type="button"
+          data-hero-jump="${index}"
+          ${ariaCurrent}
+          aria-label="Show hero image ${formatTwoDigitNumber(index)}: ${escapeHtml(slide.image.title)}"
+        >
+          <span class="hero-index-number">${formatTwoDigitNumber(index)}</span>
+          <span class="hero-index-label">${escapeHtml(categoryLabel)}</span>
+        </button>
+      `;
+    })
+    .join('');
+}
+
+function renderHeroThumbnailStrip(slides: ResolvedHeroSlide[]): string {
+  return slides
+    .map((slide, index) => {
+      const activeClass = index === 0 ? ' is-active' : '';
+      const ariaCurrent = index === 0 ? ' aria-current="true"' : '';
+      const imageSource = slide.image.thumbSrc ?? slide.image.src;
+
+      return `
+        <button
+          class="hero-thumbnail-button${activeClass}"
+          type="button"
+          data-hero-jump="${index}"
+          ${ariaCurrent}
+          aria-label="Show thumbnail ${formatTwoDigitNumber(index)}: ${escapeHtml(slide.image.title)}"
+        >
+          <img src="${escapeHtml(imageSource)}" alt="" loading="lazy" decoding="async" />
+          <span>${formatTwoDigitNumber(index)}</span>
+        </button>
+      `;
+    })
+    .join('');
+}
+
+function renderHeroMetadata(slide: ResolvedHeroSlide, index: number, totalSlides: number): string {
+  const categoryLabel = getCategoryLabel(slide.targetCategory);
+  const location = slide.image.location || 'Selected work';
+  const hasYear = Boolean(slide.image.year);
+  const yearLabel = hasYear ? 'Year' : 'Status';
+  const yearValue = slide.image.year || 'Archive';
+
+  return `
+    <dl class="home-hero-meta" aria-label="Current hero image details">
+      <div>
+        <dt>Series</dt>
+        <dd data-hero-meta-category>${escapeHtml(categoryLabel)}</dd>
+      </div>
+      <div>
+        <dt>Location</dt>
+        <dd data-hero-meta-location>${escapeHtml(location)}</dd>
+      </div>
+      <div>
+        <dt data-hero-meta-year-label>${yearLabel}</dt>
+        <dd data-hero-meta-year>${escapeHtml(yearValue)}</dd>
+      </div>
+      <div>
+        <dt>Image</dt>
+        <dd data-hero-meta-image>${formatTwoDigitNumber(index)} / ${String(totalSlides).padStart(2, '0')}</dd>
+      </div>
+    </dl>
+  `;
+}
+
 // Builds the home-page hero carousel shell and click targets.
 function renderHomeHeroSlideshow(): string {
-  const firstSlide = getFirstHeroSlide();
+  const slides = getResolvedHeroSlides();
+  const firstSlide = slides[0] ?? getFirstHeroSlide();
+  const totalSlides = slides.length || 1;
   const categoryLabel = getCategoryLabel(firstSlide.targetCategory);
 
   return `
     <section
-      class="home-hero-slideshow"
+      class="home-hero-slideshow home-hero-editorial"
       data-hero-slideshow
       data-hero-index="0"
       aria-label="Featured portfolio image"
     >
-      <div class="home-hero-image-shell" data-hero-image-shell style="${getHeroShellInlineStyle(firstSlide.image)}">
-        ${renderHeroImageLayer(firstSlide.image)}
+      <div class="home-hero-grid-mark home-hero-grid-mark-top-left" aria-hidden="true"></div>
+      <div class="home-hero-grid-mark home-hero-grid-mark-top-right" aria-hidden="true"></div>
+      <div class="home-hero-grid-mark home-hero-grid-mark-bottom-right" aria-hidden="true"></div>
 
-        <button
-          class="home-hero-click-zone home-hero-click-zone-left"
-          type="button"
-          data-hero-prev
-          aria-label="Previous featured image"
-        ></button>
+      <aside class="home-hero-index-rail" data-hero-wheel-zone aria-label="Hero image index">
+        <p class="home-hero-rail-label">Visual Index</p>
+        <div class="home-hero-index-list">
+          ${renderHeroSlideIndex(slides.length ? slides : [firstSlide])}
+        </div>
+        <p class="home-hero-scroll-hint"><span></span>Scroll wheel or use<br />arrow keys</p>
+      </aside>
 
-        <a
-          class="home-hero-center-link"
-          data-hero-link
-          href="#/portfolio/${firstSlide.targetCategory}"
-          aria-label="View ${categoryLabel} portfolio"
-        >
-          <span>View ${categoryLabel}</span>
-        </a>
+      <div class="home-hero-stage">
+        <div class="home-hero-image-shell" data-hero-image-shell data-hero-wheel-zone style="${getHeroShellInlineStyle(firstSlide.image)}">
+          ${renderHeroImageLayer(firstSlide.image)}
 
-        <button
-          class="home-hero-click-zone home-hero-click-zone-right"
-          type="button"
-          data-hero-next
-          aria-label="Next featured image"
-        ></button>
+          <button
+            class="home-hero-click-zone home-hero-click-zone-left"
+            type="button"
+            data-hero-prev
+            aria-label="Previous featured image"
+          ></button>
+
+          <button
+            class="home-hero-click-zone home-hero-click-zone-right"
+            type="button"
+            data-hero-next
+            aria-label="Next featured image"
+          ></button>
+        </div>
+
+        <div class="home-hero-copy-panel">
+          <p class="home-hero-welcome">Selected Work</p>
+          <p class="home-hero-statement">A visual archive of movement, space, and imagination.</p>
+
+          <div class="home-hero-actions">
+            <button class="home-hero-gallery-cta" type="button" data-open-virtual-gallery>
+              <span class="home-hero-gallery-icon" aria-hidden="true">↗</span>
+              <span>Enter Virtual Gallery</span>
+            </button>
+            <a
+              class="home-hero-portfolio-link"
+              data-hero-link
+              href="#/portfolio/${firstSlide.targetCategory}"
+              aria-label="View ${categoryLabel} portfolio"
+            >
+              <span>View Portfolio</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <aside class="home-hero-meta-panel">
+        ${renderHeroMetadata(firstSlide, 0, totalSlides)}
+      </aside>
+
+      <div class="home-hero-thumbnail-strip" data-hero-wheel-zone aria-label="Hero image thumbnails">
+        ${renderHeroThumbnailStrip(slides.length ? slides : [firstSlide])}
       </div>
     </section>
   `;
@@ -177,27 +301,35 @@ function renderHomeHeroSlideshow(): string {
 function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): string {
   const images = getImagesForCategory(initialCategory);
   const cards = images
-    .map((image) => {
+    .map((image, index) => {
+      const imageNumber = formatTwoDigitNumber(index);
+      const imageSource = image.thumbSrc ?? image.src;
+      const yearLabel = image.year || 'Selected Work';
+      const categoryLabel = getCategoryLabel(image.category);
+
       return `
         <article class="portfolio-grid-card">
           <button
             class="portfolio-grid-image-button"
             type="button"
-            data-lightbox-image-id="${image.id}"
-            aria-label="Open larger view of ${image.title}"
+            data-lightbox-image-id="${escapeHtml(image.id)}"
+            data-lightbox-category="${escapeHtml(initialCategory)}"
+            aria-label="Open larger view of ${escapeHtml(image.title)}"
           >
             <img
-              src="${image.thumbSrc ?? image.src}"
-              alt="${image.alt}"
+              src="${escapeHtml(imageSource)}"
+              alt="${escapeHtml(image.alt)}"
               loading="lazy"
               decoding="async"
-              style="object-position: ${image.thumbnailPosition ?? '50% 50%'};"
+              style="object-position: ${escapeHtml(image.thumbnailPosition ?? '50% 50%')};"
             />
+            <span class="portfolio-grid-card-index" aria-hidden="true">${imageNumber}</span>
+            <span class="portfolio-grid-card-open" aria-hidden="true">Open</span>
           </button>
 
           <div class="portfolio-grid-card-meta">
-            <p class="eyebrow">${getCategoryLabel(image.category)} / ${image.year || 'Selected Work'}</p>
-            <h2>${image.title}</h2>
+            <p class="eyebrow">${escapeHtml(categoryLabel)} / ${escapeHtml(yearLabel)}</p>
+            <h2>${escapeHtml(image.title)}</h2>
           </div>
         </article>
       `;
@@ -215,25 +347,30 @@ function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): 
 
 // Builds the portfolio category filter buttons.
 function renderCategoryButtons(initialCategory: PortfolioCategoryFilter): string {
-  const categoryButtons = portfolioCategories
-    .map((category) => {
+  const categories = [
+    { id: 'all', label: 'All Work' },
+    ...portfolioCategories
+  ];
+
+  return categories
+    .map((category, index) => {
+      const isActive = initialCategory === category.id;
+      const href = category.id === 'all' ? '#/portfolio' : `#/portfolio/${category.id}`;
+
       return `
         <button
-          class="${initialCategory === category.id ? 'is-active' : ''}"
+          class="portfolio-index-button${isActive ? ' is-active' : ''}"
           type="button"
           data-carousel-filter="${category.id}"
-          aria-pressed="${initialCategory === category.id}"
+          aria-pressed="${isActive}"
+          data-portfolio-filter-link="${href}"
         >
-          ${category.label}
+          <span class="portfolio-index-number">${String(index).padStart(2, '0')}</span>
+          <span class="portfolio-index-label">${escapeHtml(category.label)}</span>
         </button>
       `;
     })
     .join('');
-
-  return `
-    <button class="${initialCategory === 'all' ? 'is-active' : ''}" type="button" data-carousel-filter="all" aria-pressed="${initialCategory === 'all'}">All</button>
-    ${categoryButtons}
-  `;
 }
 
 // Builds the first landing screen that lets visitors choose website or virtual gallery.
@@ -241,11 +378,14 @@ export function renderEntryPage(): string {
   return `
     <main class="entry-page modern-entry-page" data-page="entry">
       <div class="modern-entry-card">
-        <img src="/images/logo/logo-black-transparent.png" alt="Taylor Pike Productions" />
+        <a class="modern-entry-brand" href="#/home" aria-label="Taylor Pike home">
+          <span>Taylor Pike</span>
+          <span>Photographer + Creative</span>
+        </a>
 
         <div>
-          <p class="eyebrow">Photography Portfolio</p>
-          <h1>Photography for outdoor spaces, movement, and quiet visual moments.</h1>
+          <p class="eyebrow">Creative Portfolio</p>
+          <h1>A visual archive for photography, climbing, landscape, and experimental web spaces.</h1>
           <p>
             Enter the traditional portfolio or move through the work in the desktop virtual gallery.
           </p>
@@ -273,13 +413,13 @@ export function renderHomePage(): string {
 
         <section class="modern-home-copy" aria-label="Portfolio introduction">
           <div class="modern-home-copy-kicker">
-            <p class="eyebrow">Taylor Pike Photography</p>
+            <p class="eyebrow">Taylor Pike / Creative Archive</p>
           </div>
 
           <div class="modern-home-copy-main">
-            <h1>Climbing, landscape, portrait, and commercial photography shaped by time outside.</h1>
+            <h1>Photography-first work shaped by climbing, landscape, people, and experimental web spaces.</h1>
             <p>
-              The work is built around outdoor spaces, human presence, and the small details that make a place feel specific. View the selected portfolio directly or enter the virtual gallery for a spatial way to move through the images.
+              The work is built around outdoor spaces, human presence, and the small details that make a place feel specific. The site is also a creative web object: part portfolio, part visual archive, and part spatial gallery.
             </p>
 
             <div class="home-copy-actions">
@@ -312,7 +452,7 @@ export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = '
         <div class="portfolio-grid-main">
           <header class="portfolio-page-heading">
             <p class="eyebrow">${activeCategoryLabel}</p>
-            <h1>Selected images across climbing, landscape, and personal work.</h1>
+            <h1>A visual index of climbing, landscape, personal work, and experimental image studies.</h1>
           </header>
 
           ${renderPortfolioGrid(initialCategory)}

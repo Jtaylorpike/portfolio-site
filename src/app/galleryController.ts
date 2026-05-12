@@ -8,6 +8,7 @@
 // - updating the artwork info panel
 // - blocking the virtual gallery on mobile/touch devices
 // - showing a mobile fallback message
+// - dismissing the controls card once the viewer has used the core inputs
 
 import { galleryArtworks, type GalleryArtwork } from '../gallery/artwork/galleryLayout';
 
@@ -18,10 +19,26 @@ type GallerySceneInstance = {
 let activeGallery: GallerySceneInstance | null = null;
 let galleryPreloadPromise: Promise<void> | null = null;
 let isGalleryOpening = false;
+let hasMovedMouseInGallery = false;
+let galleryInputListenersBound = false;
+let controlCardDismissTimeout: number | null = null;
+
+const usedMovementDirections = new Set<string>();
 
 const mobileGalleryQuery = window.matchMedia(
   '(hover: none), (pointer: coarse), (max-width: 860px)'
 );
+
+const movementDirectionByCode = new Map<string, string>([
+  ['KeyW', 'forward'],
+  ['ArrowUp', 'forward'],
+  ['KeyS', 'backward'],
+  ['ArrowDown', 'backward'],
+  ['KeyA', 'left'],
+  ['ArrowLeft', 'left'],
+  ['KeyD', 'right'],
+  ['ArrowRight', 'right']
+]);
 
 function shouldUseMobileFallback() {
   return mobileGalleryQuery.matches;
@@ -97,6 +114,7 @@ export function setupGalleryController() {
   const galleryOverlay = document.querySelector<HTMLDivElement>('#galleryOverlay');
   const galleryCanvas = document.querySelector<HTMLDivElement>('#galleryCanvas');
   const galleryLoading = document.querySelector<HTMLDivElement>('#galleryLoading');
+  const galleryControlCard = document.querySelector<HTMLElement>('#galleryControlCard');
 
   const closeGalleryButton = document.querySelector<HTMLButtonElement>('#closeGalleryButton');
 
@@ -105,13 +123,103 @@ export function setupGalleryController() {
   const galleryInfoTitle = document.querySelector<HTMLElement>('#galleryInfoTitle');
   const galleryInfoNote = document.querySelector<HTMLElement>('#galleryInfoNote');
 
+  function shouldDismissControlCard() {
+    return hasMovedMouseInGallery && usedMovementDirections.size >= 2;
+  }
+
+  function clearControlCardDismissTimeout() {
+    if (controlCardDismissTimeout !== null) {
+      window.clearTimeout(controlCardDismissTimeout);
+      controlCardDismissTimeout = null;
+    }
+  }
+
+  function updateControlCardVisibility() {
+    if (!galleryControlCard) {
+      return;
+    }
+
+    if (!shouldDismissControlCard()) {
+      clearControlCardDismissTimeout();
+      galleryControlCard.classList.remove('is-dismissing', 'is-dismissed');
+      return;
+    }
+
+    if (
+      galleryControlCard.classList.contains('is-dismissing') ||
+      galleryControlCard.classList.contains('is-dismissed')
+    ) {
+      return;
+    }
+
+    galleryControlCard.classList.add('is-dismissing');
+
+    clearControlCardDismissTimeout();
+    controlCardDismissTimeout = window.setTimeout(() => {
+      galleryControlCard.classList.add('is-dismissed');
+      controlCardDismissTimeout = null;
+    }, 940);
+  }
+
+  function resetControlCardState() {
+    clearControlCardDismissTimeout();
+    hasMovedMouseInGallery = false;
+    usedMovementDirections.clear();
+    galleryControlCard?.classList.remove('is-dismissing', 'is-dismissed');
+  }
+
+  function handleGalleryMouseMove() {
+    if (!activeGallery) {
+      return;
+    }
+
+    hasMovedMouseInGallery = true;
+    updateControlCardVisibility();
+  }
+
+  function handleGalleryKeyDown(event: KeyboardEvent) {
+    if (!activeGallery) {
+      return;
+    }
+
+    const movementDirection = movementDirectionByCode.get(event.code);
+
+    if (movementDirection) {
+      usedMovementDirections.add(movementDirection);
+      updateControlCardVisibility();
+    }
+  }
+
+  function bindGalleryInputListeners() {
+    if (galleryInputListenersBound) {
+      return;
+    }
+
+    document.addEventListener('mousemove', handleGalleryMouseMove, { passive: true });
+    document.addEventListener('keydown', handleGalleryKeyDown);
+    galleryInputListenersBound = true;
+  }
+
+  function unbindGalleryInputListeners() {
+    if (!galleryInputListenersBound) {
+      return;
+    }
+
+    document.removeEventListener('mousemove', handleGalleryMouseMove);
+    document.removeEventListener('keydown', handleGalleryKeyDown);
+    galleryInputListenersBound = false;
+  }
+
   function showArtworkInfo(artwork: GalleryArtwork) {
     if (!galleryInfoPanel || !galleryInfoMeta || !galleryInfoTitle || !galleryInfoNote) {
       return;
     }
 
+    const displayIndex = String(artwork.displayOrder).padStart(2, '0');
+    const yearLabel = artwork.year || 'Archive';
+
     galleryInfoPanel.classList.add('is-active');
-    galleryInfoMeta.textContent = `${artwork.category} / ${artwork.year} / ${artwork.location}`;
+    galleryInfoMeta.textContent = `${displayIndex} / ${artwork.wallSection} / ${artwork.category} / ${yearLabel}`;
     galleryInfoTitle.textContent = artwork.title;
     galleryInfoNote.textContent = artwork.note;
   }
@@ -122,9 +230,9 @@ export function setupGalleryController() {
     }
 
     galleryInfoPanel.classList.remove('is-active');
-    galleryInfoMeta.textContent = 'Selected work';
-    galleryInfoTitle.textContent = 'Look at a photo';
-    galleryInfoNote.textContent = 'Artwork details will appear here when you look directly at one of the images.';
+    galleryInfoMeta.textContent = '';
+    galleryInfoTitle.textContent = '';
+    galleryInfoNote.textContent = '';
   }
 
   async function openGallery() {
@@ -147,6 +255,7 @@ export function setupGalleryController() {
     galleryOverlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('gallery-is-open');
 
+    resetControlCardState();
     clearArtworkInfo();
     galleryLoading?.classList.add('is-active');
 
@@ -164,6 +273,8 @@ export function setupGalleryController() {
         onArtworkFocus: showArtworkInfo,
         onArtworkClear: clearArtworkInfo
       });
+
+      bindGalleryInputListeners();
 
       await waitForNextFrame();
 
@@ -189,6 +300,8 @@ export function setupGalleryController() {
       activeGallery = null;
     }
 
+    unbindGalleryInputListeners();
+    resetControlCardState();
     clearArtworkInfo();
 
     galleryOverlay.classList.remove('is-active');

@@ -4,15 +4,19 @@
 import { galleryImages } from '../../data/images';
 import {
   artworkSizes,
+  ceilingLightPanels,
   galleryFloor,
+  galleryRoom,
   galleryStart,
   movementBounds,
   wallBlocks,
   wallPresets,
-  type WallBlock
+  type PlaqueSide,
+  type WallBlock,
+  type WallSection
 } from '../environment/galleryBlueprint';
 
-export { galleryFloor, galleryStart, movementBounds };
+export { ceilingLightPanels, galleryFloor, galleryRoom, galleryStart, movementBounds };
 
 export const galleryMovementBounds = movementBounds;
 
@@ -38,6 +42,13 @@ export type GalleryArtwork = {
   year: string;
   location: string;
   note: string;
+
+  showInGallery: boolean;
+  displayOrder: number;
+  wallSection: WallSection;
+  plaqueEnabled: boolean;
+  plaqueSide: Exclude<PlaqueSide, 'none'>;
+  wallWidth: number;
 
   image: string;
   previewImage?: string;
@@ -107,6 +118,53 @@ function getArtworkPosition(wall: WallBlock): [number, number, number] {
   ];
 }
 
+
+function inferWallSection(wall: WallBlock): WallSection {
+  if (wall.wallSection) {
+    return wall.wallSection;
+  }
+
+  if (wall.id.includes('entry')) {
+    return 'Entry';
+  }
+
+  if (wall.id.includes('landscape')) {
+    return 'Landscape';
+  }
+
+  if (wall.id.includes('climbing')) {
+    return 'Climbing';
+  }
+
+  if (wall.id.includes('rear')) {
+    return 'Rear Wall';
+  }
+
+  if (wall.id.includes('personal')) {
+    return 'Personal';
+  }
+
+  return 'Unassigned';
+}
+
+function inferPlaqueSide(wall: WallBlock): Exclude<PlaqueSide, 'none'> {
+  if (wall.plaqueSide === 'left' || wall.plaqueSide === 'right') {
+    return wall.plaqueSide;
+  }
+
+  // Keep plaques toward the outside of the main walking path by default.
+  // This is intentionally deterministic so future editor controls can override it.
+  if (wall.position[0] < -1) {
+    return 'right';
+  }
+
+  if (wall.position[0] > 1) {
+    return 'left';
+  }
+
+  return 'right';
+}
+
 function normalizeFitMode(value: unknown): GalleryFitMode {
   return value === 'contain' ? 'contain' : 'cover';
 }
@@ -150,8 +208,8 @@ export const galleryWalls: GalleryWall[] = wallBlocks.map((wall) => {
   };
 });
 
-export const galleryArtworks: GalleryArtwork[] = wallBlocks.flatMap((wall) => {
-  if (!wall.artworkId) {
+export const galleryArtworks: GalleryArtwork[] = wallBlocks.flatMap((wall, wallIndex) => {
+  if (wall.showInGallery === false || !wall.artworkId) {
     return [];
   }
 
@@ -172,6 +230,13 @@ export const galleryArtworks: GalleryArtwork[] = wallBlocks.flatMap((wall) => {
       year: image.year,
       location: image.location,
       note: image.note,
+
+      showInGallery: wall.showInGallery !== false,
+      displayOrder: wall.displayOrder ?? wallIndex + 1,
+      wallSection: inferWallSection(wall),
+      plaqueEnabled: wall.plaqueEnabled !== false && wall.plaqueSide !== 'none',
+      plaqueSide: inferPlaqueSide(wall),
+      wallWidth: getWallPreset(wall).width,
 
       image: image.textureSrc ?? image.src,
       previewImage: image.thumbSrc ?? image.src,
@@ -195,4 +260,4 @@ export const galleryArtworks: GalleryArtwork[] = wallBlocks.flatMap((wall) => {
       maxHeight: artworkSize.height
     }
   ];
-});
+}).sort((a, b) => a.displayOrder - b.displayOrder);

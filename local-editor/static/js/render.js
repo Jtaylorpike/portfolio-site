@@ -39,7 +39,7 @@ function getHeroImages(state) {
     .map((slide) => {
       const image = state.images.find((item) => item.id === slide.imageId);
 
-      if (!image) {
+      if (!image || !isHeroEligibleImage(image)) {
         return null;
       }
 
@@ -93,78 +93,32 @@ function getFrameStyle(value) {
   return "auto";
 }
 
-// Reads the selected hero frame style for an image.
-function getHeroFrameStyle(image) {
-  return getFrameStyle(image.heroFrameStyle);
+// The homepage hero is locked to a 16:9 landscape cover frame.
+function isHeroEligibleImage(image) {
+  return getImageOrientation(image) === "landscape";
 }
 
-// Converts auto hero style into an actual frame shape.
-function getResolvedHeroFrameStyle(image) {
-  const frameStyle = getHeroFrameStyle(image);
-
-  if (frameStyle !== "auto") {
-    return frameStyle;
-  }
-
-  return getImageOrientation(image);
+function getHeroFrameStyle(_image) {
+  return "landscape";
 }
 
-// Reads hero cover/contain mode with a safe default.
-function getHeroFitMode(image) {
-  if (image.heroFitMode === "contain") {
-    return "contain";
-  }
+function getResolvedHeroFrameStyle(_image) {
+  return "landscape";
+}
 
+function getHeroFitMode(_image) {
   return "cover";
 }
 
-// Shows crop sliders only when the hero image is being cropped.
-function shouldShowHeroCropSliders(image) {
-  return getHeroFitMode(image) === "cover";
+function shouldShowHeroCropSliders(_image) {
+  return true;
 }
 
-// Builds the plain-language explanation shown on the crop page.
-function getHeroCropModeSummary(image) {
-  if (getHeroFitMode(image) === "cover") {
-    return "Cover mode is active. The image fills the full 16:9 hero frame, and the crop sliders control which part of the image remains visible.";
-  }
-
-  return "Fit Entire Image is active. The complete image is visible inside the 16:9 hero frame, so crop sliders are disabled because the image is not being cropped.";
+function getHeroCropModeSummary(_image) {
+  return "Hero images are locked to a 16:9 landscape frame. Use the crop sliders to choose which part of the image remains visible. Portrait and square images cannot be added to the home hero.";
 }
 
-
-// Calculates the hero preview frame size for the editor.
-function getEditorHeroFrameInlineStyle(image) {
-  if (getHeroFitMode(image) === "contain") {
-    return [
-      "width: 100% !important",
-      "height: 100% !important",
-      "max-width: 100% !important",
-      "max-height: 100% !important",
-      "aspect-ratio: auto !important"
-    ].join("; ");
-  }
-
-  const frameStyle = getResolvedHeroFrameStyle(image);
-
-  if (frameStyle === "portrait") {
-    return [
-      "width: auto !important",
-      "height: 100% !important",
-      "max-width: 100% !important",
-      "aspect-ratio: 0.6666667 !important"
-    ].join("; ");
-  }
-
-  if (frameStyle === "square") {
-    return [
-      "width: auto !important",
-      "height: 100% !important",
-      "max-width: 100% !important",
-      "aspect-ratio: 1 !important"
-    ].join("; ");
-  }
-
+function getEditorHeroFrameInlineStyle(_image) {
   return [
     "width: 100% !important",
     "height: 100% !important",
@@ -174,20 +128,7 @@ function getEditorHeroFrameInlineStyle(image) {
   ].join("; ");
 }
 
-// Calculates image sizing and crop style for the editor hero preview.
-function getEditorHeroImageInlineStyle(image, position) {
-  if (getHeroFitMode(image) === "contain") {
-    return [
-      "display: block !important",
-      "width: 100% !important",
-      "height: 100% !important",
-      "max-width: none !important",
-      "max-height: none !important",
-      "object-fit: contain !important",
-      "object-position: 50% 50% !important"
-    ].join("; ");
-  }
-
+function getEditorHeroImageInlineStyle(_image, position) {
   return [
     "display: block !important",
     "width: 100% !important",
@@ -640,7 +581,7 @@ function renderHeroImageOverview(state, elements) {
 
   elements.imagesPageEyebrow.textContent = "Hero Slideshow";
   elements.imagesPageTitle.textContent = "Hero slideshow order";
-  elements.imagesPageDescription.textContent = "This page controls the order of images in the home page hero slideshow. Add images to the slideshow from their individual image edit pages.";
+  elements.imagesPageDescription.textContent = "This page controls the order of landscape images in the home page hero slideshow. Portrait and square images are excluded because the public hero is locked to a 16:9 frame.";
 
   elements.editorList.innerHTML = `
     ${renderCategoryLinks(state, null, "hero")}
@@ -662,6 +603,7 @@ function renderImageEditCard(state, image) {
   const heroTargetCategory = heroSlide?.targetCategory ?? image.category ?? getFallbackCategoryId(state);
   const thumbnailPosition = image.thumbnailPosition ?? "50% 50%";
   const orientation = getImageOrientation(image);
+  const isHeroEligible = isHeroEligibleImage(image);
   const aspectRatio = getImageAspect(image);
   const galleryFitMode = getGalleryFitMode(image);
   const galleryFrameStyle = getGalleryFrameStyle(image);
@@ -756,23 +698,11 @@ function renderImageEditCard(state, image) {
           <input data-field="imageOrientation" value="${escapeHtml(orientation)}" readonly />
         </label>
 
-        <label>
-          <span>Hero display style</span>
-          <select data-field="heroFrameStyle">
-            <option value="auto" ${heroFrameStyle === "auto" ? "selected" : ""}>Auto</option>
-            <option value="landscape" ${heroFrameStyle === "landscape" ? "selected" : ""}>Landscape</option>
-            <option value="portrait" ${heroFrameStyle === "portrait" ? "selected" : ""}>Portrait mode</option>
-            <option value="square" ${heroFrameStyle === "square" ? "selected" : ""}>Square</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Hero fit mode</span>
-          <select data-field="heroFitMode">
-            <option value="cover" ${heroFitMode === "cover" ? "selected" : ""}>Cover / Crop to Hero Frame</option>
-            <option value="contain" ${heroFitMode === "contain" ? "selected" : ""}>Fit Entire Image</option>
-          </select>
-        </label>
+        <div class="wide hero-display-summary">
+          <p class="eyebrow">Home hero display</p>
+          <strong>Locked 16:9 landscape crop</strong>
+          <span>Hero slide size and aspect ratio are fixed. Use Edit Hero Crop to adjust composition. Portrait and square images cannot be added to the hero.</span>
+        </div>
 
         <label>
           <span>Gallery frame style</span>
@@ -810,16 +740,23 @@ function renderImageEditCard(state, image) {
           <textarea data-field="note">${escapeHtml(image.note)}</textarea>
         </label>
 
-        <div class="hero-controls">
+        <div class="hero-controls ${isHeroEligible ? "" : "is-disabled"}">
           <label class="checkbox">
-            <input type="checkbox" data-field="isHeroSlide" ${isHeroSlide ? "checked" : ""} />
+            <input
+              type="checkbox"
+              data-field="isHeroSlide"
+              ${isHeroSlide && isHeroEligible ? "checked" : ""}
+              ${isHeroEligible ? "" : "disabled"}
+            />
             <span>Use in home hero slideshow</span>
           </label>
 
           <label>
             <span>Hero target category</span>
-            <select data-field="heroTargetCategory">${categoryOptions(state.categories, heroTargetCategory)}</select>
+            <select data-field="heroTargetCategory" ${isHeroEligible ? "" : "disabled"}>${categoryOptions(state.categories, heroTargetCategory)}</select>
           </label>
+
+          ${isHeroEligible ? "" : `<p class="editor-inline-note">Hero slides must be landscape. This image is ${escapeHtml(orientation)} and cannot be added to the homepage carousel.</p>`}
         </div>
 
         <div class="crop-shortcuts wide">
@@ -843,7 +780,7 @@ function renderImageDetail(state, elements, imageId) {
   elements.imagesPageEyebrow.textContent = "Image Editor";
   elements.imagesPageTitle.textContent = image ? image.title : "Image not found";
   elements.imagesPageDescription.textContent = image
-    ? "Edit this image record. Hero portrait mode, gallery fit mode, and gallery size are controlled here."
+    ? "Edit this image record. Hero images use a locked 16:9 crop; virtual gallery fit mode and gallery size are controlled here."
     : "The image ID in the route does not exist in galleryImages.json.";
 
   if (!image) {
@@ -964,25 +901,9 @@ function renderCropPage(state, elements, imageId, cropMode) {
 
           ${isHeroCrop ? `
             <div class="gallery-mode-panel hero-mode-panel">
-              <label>
-                <span>Hero display style</span>
-                <select data-crop-setting="heroFrameStyle">
-                  <option value="auto" ${heroFrameStyle === "auto" ? "selected" : ""}>Auto</option>
-                  <option value="landscape" ${heroFrameStyle === "landscape" ? "selected" : ""}>Landscape hero frame</option>
-                  <option value="portrait" ${heroFrameStyle === "portrait" ? "selected" : ""}>Portrait hero frame</option>
-                  <option value="square" ${heroFrameStyle === "square" ? "selected" : ""}>Square hero frame</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="gallery-mode-panel hero-fit-panel">
-              <label>
-                <span>Hero fit mode</span>
-                <select data-crop-setting="heroFitMode">
-                  <option value="cover" ${heroFitMode === "cover" ? "selected" : ""}>Cover / Crop to selected frame</option>
-                  <option value="contain" ${heroFitMode === "contain" ? "selected" : ""}>Fit Entire Image</option>
-                </select>
-              </label>
+              <p class="eyebrow">Hero frame</p>
+              <strong>Locked 16:9 landscape crop</strong>
+              <span>The public homepage hero no longer supports portrait, square, or fit-entire-image modes. Crop position is the only hero display control.</span>
             </div>
           ` : ""}
 
@@ -1040,7 +961,7 @@ function renderCropPage(state, elements, imageId, cropMode) {
             <p><strong>Detected orientation:</strong> ${escapeHtml(getImageOrientation(image))}</p>
             <p><strong>Image aspect:</strong> ${escapeHtml(getImageAspect(image).toFixed(3))}</p>
             <p><strong>Preview aspect:</strong> ${escapeHtml(cropPreviewAspect.toFixed(3))}</p>
-            ${isHeroCrop ? `<p><strong>Resolved hero style:</strong> ${escapeHtml(resolvedHeroFrameStyle)}</p><p><strong>Hero fit mode:</strong> ${escapeHtml(heroFitMode)}</p>` : ""}
+            ${isHeroCrop ? `<p><strong>Hero frame:</strong> locked 16:9 landscape cover</p>` : ""}
             ${isGalleryCrop ? `<p><strong>Gallery size:</strong> ${escapeHtml(String(Math.round(getGallerySize(image) * 100)))}%</p>` : ""}
           </div>
         </div>

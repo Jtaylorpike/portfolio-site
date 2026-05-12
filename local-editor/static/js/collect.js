@@ -20,6 +20,60 @@ export function getCheckboxValue(card, field) {
   return Boolean(input?.checked);
 }
 
+function getCardImageOrientation(card) {
+  const savedOrientation = getFieldValue(card, "imageOrientation");
+
+  if (["landscape", "portrait", "square"].includes(savedOrientation)) {
+    return savedOrientation;
+  }
+
+  const aspectRatio = Number(getFieldValue(card, "imageAspectRatio"));
+
+  if (Number.isFinite(aspectRatio) && aspectRatio > 0) {
+    if (Math.abs(aspectRatio - 1) <= 0.04) {
+      return "square";
+    }
+
+    return aspectRatio > 1 ? "landscape" : "portrait";
+  }
+
+  const width = Number(getFieldValue(card, "imageWidth"));
+  const height = Number(getFieldValue(card, "imageHeight"));
+
+  if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+    return width / height > 1 ? "landscape" : "portrait";
+  }
+
+  return "landscape";
+}
+
+function isHeroEligibleCard(card) {
+  return getCardImageOrientation(card) === "landscape";
+}
+
+function isHeroEligibleImage(image) {
+  const orientation = image?.imageOrientation;
+
+  if (["landscape", "portrait", "square"].includes(orientation)) {
+    return orientation === "landscape";
+  }
+
+  const aspectRatio = Number(image?.imageAspectRatio);
+
+  if (Number.isFinite(aspectRatio) && aspectRatio > 0) {
+    return aspectRatio > 1;
+  }
+
+  const width = Number(image?.imageWidth);
+  const height = Number(image?.imageHeight);
+
+  if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+    return width > height;
+  }
+
+  return true;
+}
+
 // Collects category rows from the category settings page.
 export function collectCategories() {
   const rows = Array.from(document.querySelectorAll("[data-category-row]"));
@@ -58,8 +112,6 @@ function collectEditedImageFromCard(card, fallbackCategoryId, validCategoryIds) 
     "textureSrc",
     "thumbnailPosition",
     "heroPosition",
-    "heroFrameStyle",
-    "heroFitMode",
     "galleryPosition",
     "galleryFitMode",
     "galleryFrameStyle",
@@ -222,7 +274,7 @@ function applyCategoryPageOrder(images, categories) {
   ], categories);
 }
 
-function collectHeroPageOrder(categories) {
+function collectHeroPageOrder(categories, images) {
   const heroGrid = document.querySelector("[data-hero-order-grid]");
 
   if (!heroGrid) {
@@ -231,6 +283,7 @@ function collectHeroPageOrder(categories) {
 
   const validCategoryIds = new Set(categories.map((category) => category.id));
   const fallbackCategoryId = categories[0]?.id ?? "personal";
+  const imagesById = new Map(images.map((image) => [image.id, image]));
 
   return Array.from(heroGrid.querySelectorAll("[data-hero-order-card]"))
     .map((card) => {
@@ -239,6 +292,12 @@ function collectHeroPageOrder(categories) {
       const targetCategory = String(select?.value ?? "").trim();
 
       if (!imageId) {
+        return null;
+      }
+
+      const image = imagesById.get(imageId);
+
+      if (!image || !isHeroEligibleImage(image)) {
         return null;
       }
 
@@ -283,7 +342,7 @@ export function collectEditorData(state) {
   });
 
   const images = applyCategoryPageOrder(imagesWithEdits, categories);
-  const heroPageOrder = collectHeroPageOrder(categories);
+  const heroPageOrder = collectHeroPageOrder(categories, images);
 
   if (heroPageOrder) {
     return {
@@ -295,12 +354,16 @@ export function collectEditorData(state) {
 
   const editedImageIds = new Set(editedImagesById.keys());
 
+  const imagesById = new Map(images.map((image) => [image.id, image]));
+
   const heroSlidesFromUneditedImages = state.heroSlides.filter((slide) => {
-    return !editedImageIds.has(slide.imageId);
+    const image = imagesById.get(slide.imageId);
+
+    return !editedImageIds.has(slide.imageId) && image && isHeroEligibleImage(image);
   });
 
   const heroSlidesFromEditedImages = cards
-    .filter((card) => getCheckboxValue(card, "isHeroSlide"))
+    .filter((card) => getCheckboxValue(card, "isHeroSlide") && isHeroEligibleCard(card))
     .map((card) => {
       const heroCategory = getFieldValue(card, "heroTargetCategory");
 
@@ -340,8 +403,6 @@ export function collectImportReviewRecords(state) {
       note: getImportFieldValue(card, "note"),
       thumbnailPosition: "50% 50%",
       heroPosition: "50% 50%",
-      heroFrameStyle: "auto",
-      heroFitMode: "cover",
       galleryPosition: "50% 50%",
       galleryFitMode: "cover",
       galleryFrameStyle: "auto",

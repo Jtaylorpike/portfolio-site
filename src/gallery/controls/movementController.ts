@@ -31,7 +31,12 @@ export class MovementController {
   };
 
   private lastFrameTime = performance.now();
-  private wallCollisionRadius = 0.36;
+
+  // Interior wall-block collision only.
+  // Exterior room-shell distance is controlled by movementBounds in
+  // galleryBlueprint.ts so perimeter-wall tuning does not make the editable
+  // gallery wall blocks feel too tight or too loose.
+  private wallCollisionRadius = 0.52;
   private speed = 3.35;
 
   public getFrameDelta(timestamp?: number) {

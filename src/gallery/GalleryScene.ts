@@ -4,6 +4,7 @@
 // - renderer
 // - camera
 // - floor
+// - architectural room shell
 // - lighting
 // - wall blocks
 // - orientation-aware artwork frames
@@ -13,8 +14,10 @@
 
 import * as THREE from 'three';
 import {
+  ceilingLightPanels,
   galleryArtworks,
   galleryFloor,
+  galleryRoom,
   galleryStart,
   galleryWalls,
   type GalleryArtwork,
@@ -32,9 +35,14 @@ import { MovementController } from './controls/movementController';
 import { LookController } from './controls/lookController';
 import {
   createArtworkImageMaterial,
+  createCeilingLightPanelMaterial,
+  createCeilingMaterial,
   createFloorMaterial,
   createFrameMaterial,
   createMatMaterial,
+  createPlaqueBodyMaterial,
+  createPlaqueMaterial,
+  createRoomShellWallMaterial,
   createWallMaterial,
   createWallTrimMaterial
 } from './environment/galleryMaterials';
@@ -57,6 +65,7 @@ type ArtworkMeshSet = {
   frame: THREE.Mesh;
   mat: THREE.Mesh;
   image: THREE.Mesh;
+  plaque?: THREE.Mesh;
 };
 
 export class GalleryScene {
@@ -77,6 +86,14 @@ export class GalleryScene {
   private artworkMeshSets: ArtworkMeshSet[] = [];
   private focusedArtworkId: string | null = null;
   private readonly artworkFocusMaxDistance = 8.75;
+  private readonly artworkFrameDepth = 0.052;
+  private readonly artworkFrameBorder = 0.2;
+  private readonly artworkMatBorder = 0.072;
+  private readonly artworkPlaqueWidth = 0.74;
+  private readonly artworkPlaqueHeight = 0.22;
+  private readonly artworkPlaqueDepth = 0.012;
+  private readonly artworkPlaqueGap = 0.11;
+  private plaqueTextures = new Set<THREE.Texture>();
 
   private movementController = new MovementController();
   private lookController!: LookController;
@@ -102,6 +119,7 @@ export class GalleryScene {
     });
 
     this.createFloor();
+    this.createRoomShell();
     this.createLights();
     this.createWalls();
     this.createArtwork();
@@ -114,7 +132,6 @@ export class GalleryScene {
     const scene = new THREE.Scene();
 
     scene.background = new THREE.Color(0xf8f7f3);
-    scene.fog = new THREE.Fog(0xf8f7f3, 24, 42);
 
     return scene;
   }
@@ -161,6 +178,148 @@ export class GalleryScene {
     };
 
     this.scene.add(floor);
+  }
+
+  private createRoomShell() {
+    const wallMaterial = createRoomShellWallMaterial();
+    const ceilingMaterial = createCeilingMaterial();
+
+    this.createPerimeterWall({
+      id: 'room-shell-north',
+      width: galleryRoom.width,
+      height: galleryRoom.height,
+      depth: galleryRoom.wallThickness,
+      position: [0, galleryRoom.height / 2, -galleryRoom.depth / 2],
+      material: wallMaterial
+    });
+
+    this.createPerimeterWall({
+      id: 'room-shell-south',
+      width: galleryRoom.width,
+      height: galleryRoom.height,
+      depth: galleryRoom.wallThickness,
+      position: [0, galleryRoom.height / 2, galleryRoom.depth / 2],
+      material: wallMaterial
+    });
+
+    this.createPerimeterWall({
+      id: 'room-shell-west',
+      width: galleryRoom.wallThickness,
+      height: galleryRoom.height,
+      depth: galleryRoom.depth,
+      position: [-galleryRoom.width / 2, galleryRoom.height / 2, 0],
+      material: wallMaterial
+    });
+
+    this.createPerimeterWall({
+      id: 'room-shell-east',
+      width: galleryRoom.wallThickness,
+      height: galleryRoom.height,
+      depth: galleryRoom.depth,
+      position: [galleryRoom.width / 2, galleryRoom.height / 2, 0],
+      material: wallMaterial
+    });
+
+    const ceiling = new THREE.Mesh(
+      new THREE.BoxGeometry(galleryRoom.width, galleryRoom.ceilingThickness, galleryRoom.depth),
+      ceilingMaterial
+    );
+
+    ceiling.position.set(0, galleryRoom.height + galleryRoom.ceilingThickness / 2, 0);
+    ceiling.userData = {
+      gallerySurface: 'ceiling'
+    };
+
+    this.scene.add(ceiling);
+    this.createRoomBaseTrim();
+    this.createCeilingLightPanels();
+  }
+
+  private createRoomBaseTrim() {
+    const material = createWallTrimMaterial();
+    const trimHeight = 0.082;
+    const trimDepth = 0.062;
+    const trimY = 0.12;
+    const northZ = -galleryRoom.depth / 2 + galleryRoom.wallThickness / 2 + trimDepth / 2;
+    const southZ = galleryRoom.depth / 2 - galleryRoom.wallThickness / 2 - trimDepth / 2;
+    const westX = -galleryRoom.width / 2 + galleryRoom.wallThickness / 2 + trimDepth / 2;
+    const eastX = galleryRoom.width / 2 - galleryRoom.wallThickness / 2 - trimDepth / 2;
+
+    const trims = [
+      new THREE.Mesh(
+        new THREE.BoxGeometry(galleryRoom.width, trimHeight, trimDepth),
+        material
+      ),
+      new THREE.Mesh(
+        new THREE.BoxGeometry(galleryRoom.width, trimHeight, trimDepth),
+        material
+      ),
+      new THREE.Mesh(
+        new THREE.BoxGeometry(trimDepth, trimHeight, galleryRoom.depth),
+        material
+      ),
+      new THREE.Mesh(
+        new THREE.BoxGeometry(trimDepth, trimHeight, galleryRoom.depth),
+        material
+      )
+    ];
+
+    trims[0].position.set(0, trimY, northZ);
+    trims[1].position.set(0, trimY, southZ);
+    trims[2].position.set(westX, trimY, 0);
+    trims[3].position.set(eastX, trimY, 0);
+
+    trims.forEach((trim, index) => {
+      trim.userData = {
+        roomTrimId: `room-shell-trim-${index + 1}`,
+        gallerySurface: 'room-shell-trim'
+      };
+
+      this.scene.add(trim);
+    });
+  }
+
+  private createPerimeterWall(options: {
+    id: string;
+    width: number;
+    height: number;
+    depth: number;
+    position: [number, number, number];
+    material: THREE.Material;
+  }) {
+    const wall = new THREE.Mesh(
+      new THREE.BoxGeometry(options.width, options.height, options.depth),
+      options.material
+    );
+
+    wall.position.set(...options.position);
+    wall.userData = {
+      wallId: options.id,
+      gallerySurface: 'room-shell-wall'
+    };
+
+    this.wallMeshes.push(wall);
+    this.scene.add(wall);
+  }
+
+  private createCeilingLightPanels() {
+    const material = createCeilingLightPanelMaterial();
+
+    ceilingLightPanels.forEach((panel) => {
+      const lightPanel = new THREE.Mesh(
+        new THREE.BoxGeometry(panel.width, 0.018, panel.depth),
+        material
+      );
+
+      lightPanel.position.set(panel.position[0], galleryRoom.height - 0.065, panel.position[1]);
+      lightPanel.rotation.y = panel.rotationY;
+      lightPanel.userData = {
+        lightPanelId: panel.id,
+        gallerySurface: 'ceiling-light-panel'
+      };
+
+      this.scene.add(lightPanel);
+    });
   }
 
   private createLights() {
@@ -226,17 +385,23 @@ export class GalleryScene {
       const frame = this.createArtworkFrame(artwork, dimensions, frameMaterial);
       const mat = this.createArtworkMat(artwork, dimensions, matMaterial, frame);
       const image = this.createArtworkImage(artwork, dimensions, initialTexture, frame);
+      const plaque = this.createArtworkPlaque(artwork, dimensions, frame);
 
       this.scene.add(frame);
       this.scene.add(mat);
       this.scene.add(image);
+
+      if (plaque) {
+        this.scene.add(plaque);
+      }
 
       this.artworkMeshes.push(image);
       this.artworkMeshSets.push({
         artwork,
         frame,
         mat,
-        image
+        image,
+        plaque
       });
     });
   }
@@ -247,7 +412,11 @@ export class GalleryScene {
     material: THREE.Material
   ) {
     const frame = new THREE.Mesh(
-      new THREE.PlaneGeometry(dimensions.width + 0.22, dimensions.height + 0.22),
+      new THREE.BoxGeometry(
+        dimensions.width + this.artworkFrameBorder,
+        dimensions.height + this.artworkFrameBorder,
+        this.artworkFrameDepth
+      ),
       material
     );
 
@@ -256,7 +425,7 @@ export class GalleryScene {
     frame.userData = {
       artworkFrameId: artwork.id
     };
-    this.offsetArtworkFromWall(frame, artwork.rotationY, 0);
+    this.offsetArtworkFromWall(frame, artwork.rotationY, this.artworkFrameDepth / 2 + 0.006);
 
     return frame;
   }
@@ -268,7 +437,7 @@ export class GalleryScene {
     frame: THREE.Mesh
   ) {
     const mat = new THREE.Mesh(
-      new THREE.PlaneGeometry(dimensions.width + 0.08, dimensions.height + 0.08),
+      new THREE.PlaneGeometry(dimensions.width + this.artworkMatBorder, dimensions.height + this.artworkMatBorder),
       material
     );
 
@@ -277,9 +446,171 @@ export class GalleryScene {
     mat.userData = {
       artworkMatId: artwork.id
     };
-    this.offsetArtworkFromWall(mat, artwork.rotationY, 0.012);
+    this.offsetArtworkFromWall(mat, artwork.rotationY, this.artworkFrameDepth / 2 + 0.014);
 
     return mat;
+  }
+
+  private createArtworkPlaqueTexture(artwork: GalleryArtwork) {
+    const canvas = document.createElement('canvas');
+    const width = 1024;
+    const height = 336;
+    const context = canvas.getContext('2d');
+
+    canvas.width = width;
+    canvas.height = height;
+
+    if (!context) {
+      return null;
+    }
+
+    context.clearRect(0, 0, width, height);
+    context.fillStyle = 'rgba(246, 242, 234, 1)';
+    context.fillRect(0, 0, width, height);
+
+    context.strokeStyle = 'rgba(10, 11, 10, 0.28)';
+    context.lineWidth = 3;
+    context.strokeRect(1.5, 1.5, width - 3, height - 3);
+
+    context.fillStyle = 'rgba(196, 186, 169, 1)';
+    context.fillRect(0, 0, width, 10);
+
+    const title = artwork.title.toUpperCase();
+    const metaParts = [
+      String(artwork.displayOrder).padStart(2, '0'),
+      artwork.wallSection,
+      artwork.year || 'Archive'
+    ];
+
+    context.fillStyle = 'rgba(8, 9, 8, 1)';
+    context.font = '700 54px Arial, Helvetica, sans-serif';
+    context.textBaseline = 'top';
+    context.fillText(this.truncatePlaqueText(context, title, width - 84), 38, 34);
+
+    context.fillStyle = 'rgba(8, 9, 8, 0.9)';
+    context.font = '700 30px Arial, Helvetica, sans-serif';
+    context.fillText(this.truncatePlaqueText(context, metaParts.join(' / ').toUpperCase(), width - 84), 38, 126);
+
+    context.fillStyle = 'rgba(8, 9, 8, 0.78)';
+    context.font = '600 28px Arial, Helvetica, sans-serif';
+    context.fillText(this.truncatePlaqueText(context, artwork.location.toUpperCase(), width - 84), 38, 178);
+
+    const texture = new THREE.CanvasTexture(canvas);
+
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 4;
+    texture.needsUpdate = true;
+
+    this.plaqueTextures.add(texture);
+
+    return texture;
+  }
+
+  private truncatePlaqueText(
+    context: CanvasRenderingContext2D,
+    value: string,
+    maxWidth: number
+  ) {
+    if (context.measureText(value).width <= maxWidth) {
+      return value;
+    }
+
+    let nextValue = value;
+
+    while (nextValue.length > 4 && context.measureText(`${nextValue}...`).width > maxWidth) {
+      nextValue = nextValue.slice(0, -1);
+    }
+
+    return `${nextValue}...`;
+  }
+
+  private createArtworkPlaque(
+    artwork: GalleryArtwork,
+    dimensions: FrameDimensions,
+    frame: THREE.Mesh
+  ) {
+    if (!artwork.plaqueEnabled) {
+      return undefined;
+    }
+
+    const texture = this.createArtworkPlaqueTexture(artwork);
+
+    if (!texture) {
+      return undefined;
+    }
+
+    const plaqueMaterials = [
+      createPlaqueBodyMaterial(),
+      createPlaqueBodyMaterial(),
+      createPlaqueBodyMaterial(),
+      createPlaqueBodyMaterial(),
+      createPlaqueMaterial(texture),
+      createPlaqueBodyMaterial()
+    ];
+
+    const plaque = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        this.artworkPlaqueWidth,
+        this.artworkPlaqueHeight,
+        this.artworkPlaqueDepth
+      ),
+      plaqueMaterials
+    );
+
+    plaque.rotation.copy(frame.rotation);
+    plaque.userData = {
+      artworkPlaqueId: artwork.id,
+      gallerySurface: 'artwork-plaque'
+    };
+
+    this.positionArtworkPlaque(plaque, artwork, dimensions, frame);
+
+    return plaque;
+  }
+
+  private positionArtworkPlaque(
+    plaque: THREE.Mesh,
+    artwork: GalleryArtwork,
+    dimensions: FrameDimensions,
+    _frame: THREE.Mesh
+  ) {
+    const tangent = new THREE.Vector3(1, 0, 0);
+    tangent.applyEuler(new THREE.Euler(0, artwork.rotationY, 0));
+
+    const normal = new THREE.Vector3(
+      Math.sin(artwork.rotationY),
+      0,
+      Math.cos(artwork.rotationY)
+    );
+
+    const wallHalfWidth = artwork.wallWidth / 2;
+    const plaqueHalfWidth = this.artworkPlaqueWidth / 2;
+    const safeWallMargin = 0.14;
+    const desiredOffset =
+      dimensions.width / 2 +
+      this.artworkFrameBorder / 2 +
+      this.artworkPlaqueGap +
+      plaqueHalfWidth;
+    const maxOffset = Math.max(
+      plaqueHalfWidth,
+      wallHalfWidth - plaqueHalfWidth - safeWallMargin
+    );
+    const offset = Math.min(desiredOffset, maxOffset);
+
+    // artwork.position is already slightly in front of the wall surface.
+    // That offset is 0.018 in galleryLayout. To make the plaque truly flush,
+    // place its center so the rear face lands exactly on the wall plane.
+    const artworkSurfaceOffset = 0.018;
+    const plaqueCenterOutset = this.artworkPlaqueDepth / 2;
+
+    plaque.position.set(...artwork.position);
+    plaque.position.addScaledVector(tangent, offset);
+    plaque.position.addScaledVector(normal, -artworkSurfaceOffset + plaqueCenterOutset);
+    plaque.position.y = Math.max(
+      0.76,
+      artwork.position[1] - dimensions.height / 2 + this.artworkPlaqueHeight / 2 + 0.044
+    );
+    plaque.rotation.copy(_frame.rotation);
   }
 
   private createArtworkImage(
@@ -307,7 +638,7 @@ export class GalleryScene {
       artworkId: artwork.id,
       textureUrl: artwork.image
     };
-    this.offsetArtworkFromWall(image, artwork.rotationY, 0.024);
+    this.offsetArtworkFromWall(image, artwork.rotationY, this.artworkFrameDepth / 2 + 0.03);
 
     return image;
   }
@@ -390,6 +721,11 @@ export class GalleryScene {
     mesh.geometry = new THREE.PlaneGeometry(width, height);
   }
 
+  private updateFrameGeometry(mesh: THREE.Mesh, width: number, height: number) {
+    mesh.geometry.dispose();
+    mesh.geometry = new THREE.BoxGeometry(width, height, this.artworkFrameDepth);
+  }
+
   private replaceMaterialTexture(
     material: THREE.MeshBasicMaterial | THREE.MeshStandardMaterial,
     texture: THREE.Texture
@@ -424,10 +760,21 @@ export class GalleryScene {
       }
 
       const dimensions = this.resolveArtworkDimensions(meshSet.artwork, texture);
-
-      this.updatePlaneGeometry(meshSet.frame, dimensions.width + 0.22, dimensions.height + 0.22);
-      this.updatePlaneGeometry(meshSet.mat, dimensions.width + 0.08, dimensions.height + 0.08);
+      this.updateFrameGeometry(
+        meshSet.frame,
+        dimensions.width + this.artworkFrameBorder,
+        dimensions.height + this.artworkFrameBorder
+      );
+      this.updatePlaneGeometry(
+        meshSet.mat,
+        dimensions.width + this.artworkMatBorder,
+        dimensions.height + this.artworkMatBorder
+      );
       this.updatePlaneGeometry(meshSet.image, dimensions.width, dimensions.height);
+
+      if (meshSet.plaque) {
+        this.positionArtworkPlaque(meshSet.plaque, meshSet.artwork, dimensions, meshSet.frame);
+      }
 
       const framedTexture = this.createFramedArtworkTexture(texture, meshSet.artwork, dimensions);
       const material = meshSet.image.material as THREE.MeshBasicMaterial | THREE.MeshStandardMaterial;
@@ -556,6 +903,7 @@ export class GalleryScene {
 
   private disposeSceneResources() {
     const disposedMaterials = new Set<THREE.Material>();
+    const disposedTextures = new Set<THREE.Texture>();
 
     this.scene.traverse((object) => {
       const mesh = object as THREE.Mesh;
@@ -567,22 +915,34 @@ export class GalleryScene {
       mesh.geometry?.dispose();
 
       if (Array.isArray(mesh.material)) {
-        mesh.material.forEach((material) => this.disposeMaterial(material, disposedMaterials));
+        mesh.material.forEach((material) => this.disposeMaterial(material, disposedMaterials, disposedTextures));
         return;
       }
 
       if (mesh.material) {
-        this.disposeMaterial(mesh.material, disposedMaterials);
+        this.disposeMaterial(mesh.material, disposedMaterials, disposedTextures);
       }
     });
   }
 
-  private disposeMaterial(material: THREE.Material, disposedMaterials: Set<THREE.Material>) {
+  private disposeMaterial(
+    material: THREE.Material,
+    disposedMaterials: Set<THREE.Material>,
+    disposedTextures: Set<THREE.Texture>
+  ) {
     if (disposedMaterials.has(material)) {
       return;
     }
 
     disposedMaterials.add(material);
+
+    const materialWithMap = material as THREE.Material & { map?: THREE.Texture | null };
+
+    if (materialWithMap.map && !disposedTextures.has(materialWithMap.map)) {
+      disposedTextures.add(materialWithMap.map);
+      materialWithMap.map.dispose();
+    }
+
     material.dispose();
   }
 
@@ -597,6 +957,12 @@ export class GalleryScene {
     });
 
     this.framedTextures.clear();
+
+    this.plaqueTextures.forEach((texture) => {
+      texture.dispose();
+    });
+
+    this.plaqueTextures.clear();
 
     this.lookController.releasePointerLock();
     this.unbindEvents();

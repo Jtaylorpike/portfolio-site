@@ -1,7 +1,7 @@
 // Top-down layout data for the 3D gallery.
 //
-// This file defines the floor size, wall block presets, artwork sizes,
-// starting camera position, movement boundaries, and placed wall blocks.
+// This file defines the floor size, room shell, wall block presets, artwork sizes,
+// starting camera position, movement boundaries, placed wall blocks, and light panels.
 //
 // The current layout is a perimeter-and-wing gallery: a central entry hero,
 // a left climbing wing, a right landscape wing, and a rear wall. The intent is
@@ -26,6 +26,34 @@ export type ArtworkSize = {
   height: number;
 };
 
+export type GalleryRoom = {
+  width: number;
+  depth: number;
+  height: number;
+  wallThickness: number;
+  ceilingThickness: number;
+};
+
+export type CeilingLightPanel = {
+  id: string;
+  position: [number, number];
+  width: number;
+  depth: number;
+  rotationY: number;
+  intensity: number;
+  distance: number;
+};
+
+export type PlaqueSide = 'auto' | 'left' | 'right' | 'none';
+
+export type WallSection =
+  | 'Entry'
+  | 'Climbing'
+  | 'Landscape'
+  | 'Rear Wall'
+  | 'Personal'
+  | 'Unassigned';
+
 export type WallBlock = {
   id: string;
   preset: WallPresetName;
@@ -48,6 +76,16 @@ export type WallBlock = {
 
   // Overrides the default artwork size from the selected wall preset.
   artworkSize?: ArtworkSizeName;
+
+  // Future editor-facing display controls.
+  // These optional fields let the local editor and eventual server-side editor
+  // control gallery visibility, ordering, wall grouping, and artwork label behavior
+  // without rewriting the Three.js scene code.
+  showInGallery?: boolean;
+  displayOrder?: number;
+  wallSection?: WallSection;
+  plaqueEnabled?: boolean;
+  plaqueSide?: PlaqueSide;
 };
 
 export const galleryFloor = {
@@ -56,16 +94,94 @@ export const galleryFloor = {
   color: 0xd8d0c3
 };
 
+export const galleryRoom: GalleryRoom = {
+  width: galleryFloor.width,
+  depth: galleryFloor.depth,
+  height: 3.9,
+  wallThickness: 0.34,
+  ceilingThickness: 0.12
+};
+
+// Visual ceiling fixtures. These are intentionally data-driven so the local
+// editor can eventually expose the same gallery-room controls instead of
+// treating lighting as hardcoded scene decoration.
+export const ceilingLightPanels: CeilingLightPanel[] = [
+  {
+    id: 'light-entry-panel',
+    position: [0, 8.4],
+    width: 1.18,
+    depth: 0.72,
+    rotationY: 0,
+    intensity: 0.18,
+    distance: 5.4
+  },
+  {
+    id: 'light-left-wing-front-panel',
+    position: [-8.75, 4.2],
+    width: 0.92,
+    depth: 0.92,
+    rotationY: 0,
+    intensity: 0.14,
+    distance: 4.8
+  },
+  {
+    id: 'light-left-wing-rear-panel',
+    position: [-8.75, -4.8],
+    width: 0.92,
+    depth: 0.92,
+    rotationY: 0,
+    intensity: 0.14,
+    distance: 4.8
+  },
+  {
+    id: 'light-right-wing-front-panel',
+    position: [8.75, 4.2],
+    width: 0.92,
+    depth: 0.92,
+    rotationY: 0,
+    intensity: 0.14,
+    distance: 4.8
+  },
+  {
+    id: 'light-right-wing-rear-panel',
+    position: [8.75, -4.8],
+    width: 0.92,
+    depth: 0.92,
+    rotationY: 0,
+    intensity: 0.14,
+    distance: 4.8
+  },
+  {
+    id: 'light-rear-panel',
+    position: [0, -10.8],
+    width: 1.18,
+    depth: 0.72,
+    rotationY: 0,
+    intensity: 0.16,
+    distance: 5.2
+  }
+];
+
 export const galleryStart = {
   position: [0, 1.65, 13.4] as [number, number, number],
   yaw: 0
 };
 
 export const movementBounds = {
-  minX: -15.3,
-  maxX: 15.3,
-  minZ: -15.3,
-  maxZ: 15.3
+  // Exterior room-shell movement bounds only.
+  // Interior gallery wall-block collision is handled separately in
+  // movementController.ts with its own wallCollisionRadius.
+  //
+  // The room shell is centered on +/-17 with 0.34m wall thickness, so the
+  // visible inner wall face is roughly +/-16.83. These bounds leave about
+  // 0.53m between the camera center and the perimeter wall face. This keeps
+  // the viewer close to the exterior walls without allowing the camera near-plane
+  // to feel like it is clipping into trim/corner geometry. Interior wall-block
+  // collision remains controlled separately in movementController.ts.
+  minX: -16.3,
+  maxX: 16.3,
+  minZ: -16.3,
+  maxZ: 16.3
 };
 
 // Reusable wall dimensions.

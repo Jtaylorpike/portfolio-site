@@ -13,11 +13,37 @@ function escapeAttribute(value: string) {
   return value.replace(/"/g, '&quot;');
 }
 
+function getImageOrientation(image: { imageOrientation?: string; imageAspectRatio?: number; imageWidth?: number; imageHeight?: number }): string {
+  if (image.imageOrientation === 'landscape' || image.imageOrientation === 'portrait' || image.imageOrientation === 'square') {
+    return image.imageOrientation;
+  }
+
+  if (typeof image.imageAspectRatio === 'number' && image.imageAspectRatio > 0) {
+    if (Math.abs(image.imageAspectRatio - 1) <= 0.04) {
+      return 'square';
+    }
+
+    return image.imageAspectRatio > 1 ? 'landscape' : 'portrait';
+  }
+
+  if (typeof image.imageWidth === 'number' && typeof image.imageHeight === 'number' && image.imageWidth > 0 && image.imageHeight > 0) {
+    return image.imageWidth > image.imageHeight ? 'landscape' : 'portrait';
+  }
+
+  return 'landscape';
+}
+
+function isHeroEligibleImage(image: { imageOrientation?: string; imageAspectRatio?: number; imageWidth?: number; imageHeight?: number }): boolean {
+  return getImageOrientation(image) === 'landscape';
+}
+
 export function renderImageEditorPage() {
   const imageRows = galleryImages
     .map((image) => {
       const isHeroSlide = heroSlides.some((slide) => slide.imageId === image.id);
       const heroSlide = heroSlides.find((slide) => slide.imageId === image.id);
+      const isHeroEligible = isHeroEligibleImage(image);
+      const imageOrientation = getImageOrientation(image);
 
       return `
         <article class="image-editor-card" data-editor-image-card data-image-id="${image.id}">
@@ -77,18 +103,25 @@ export function renderImageEditorPage() {
 
             <div class="image-editor-hero-controls">
               <label class="image-editor-checkbox">
-                <input type="checkbox" data-field="isHeroSlide" ${isHeroSlide ? 'checked' : ''} />
+                <input
+                  type="checkbox"
+                  data-field="isHeroSlide"
+                  ${isHeroSlide && isHeroEligible ? 'checked' : ''}
+                  ${isHeroEligible ? '' : 'disabled'}
+                />
                 <span>Use in home hero slideshow</span>
               </label>
 
               <label>
                 <span>Hero target category</span>
-                <select data-field="heroTargetCategory">
+                <select data-field="heroTargetCategory" ${isHeroEligible ? '' : 'disabled'}>
                   <option value="climbing" ${heroSlide?.targetCategory === 'climbing' ? 'selected' : ''}>Climbing</option>
                   <option value="landscape" ${heroSlide?.targetCategory === 'landscape' ? 'selected' : ''}>Landscape</option>
                   <option value="personal" ${heroSlide?.targetCategory === 'personal' ? 'selected' : ''}>Personal</option>
                 </select>
               </label>
+
+              ${isHeroEligible ? '' : `<p class="image-editor-wide-field">Hero slides must be landscape. This image is ${escapeAttribute(imageOrientation)} and cannot be added to the homepage carousel.</p>`}
             </div>
           </div>
         </article>
@@ -99,8 +132,9 @@ export function renderImageEditorPage() {
   return `
     <div class="modern-site image-editor-page" data-page="editor">
       <header class="modern-header">
-        <a class="modern-logo" href="#/home">
-          <img src="/images/logo/logo-black-transparent.png" alt="Taylor Pike Productions" />
+        <a class="modern-brand" href="#/home" aria-label="Taylor Pike home">
+          <span class="modern-brand-name">Taylor Pike</span>
+          <span class="modern-brand-field">Photographer + Creative</span>
         </a>
 
         <nav class="modern-nav" aria-label="Editor navigation">
@@ -114,7 +148,7 @@ export function renderImageEditorPage() {
           <p class="eyebrow">Dev Editor</p>
           <h1>Image data editor</h1>
           <p>
-            Edit metadata here, then export generated TypeScript. This is a local editing tool for now. It does not write directly to your files yet.
+            Edit metadata here, then export generated TypeScript. This is a local editing tool for now. The homepage hero uses a fixed 16:9 landscape crop; edit crop position rather than frame ratio.
           </p>
         </section>
 

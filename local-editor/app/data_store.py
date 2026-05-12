@@ -516,6 +516,43 @@ def normalize_image(
     return image
 
 
+# Returns True when an image is eligible for the fixed 16:9 homepage hero.
+def is_landscape_hero_image(image: dict[str, Any] | None) -> bool:
+    if not image:
+        return False
+
+    orientation = clean_string(image.get("imageOrientation"))
+
+    if orientation in SUPPORTED_ORIENTATIONS:
+        return orientation == "landscape"
+
+    aspect_ratio = clean_positive_float(image.get("imageAspectRatio"))
+
+    if aspect_ratio:
+        return aspect_ratio > 1
+
+    width = clean_positive_int(image.get("imageWidth"))
+    height = clean_positive_int(image.get("imageHeight"))
+
+    if width and height:
+        return width > height
+
+    return True
+
+
+def filter_hero_slides_for_landscape_images(
+    hero_slides: list[dict[str, str]],
+    images: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    images_by_id = {image["id"]: image for image in images}
+
+    return [
+        slide
+        for slide in hero_slides
+        if is_landscape_hero_image(images_by_id.get(slide.get("imageId", "")))
+    ]
+
+
 # Cleans one hero slide record and validates its target category.
 def normalize_hero_slide(
     raw_slide: dict[str, Any],
@@ -590,6 +627,7 @@ def validate_project_data(
             raise DataValidationError(f"Image '{image_id}' has an invalid gallery frame style.")
 
     valid_image_ids = set(image_ids)
+    images_by_id = {image["id"]: image for image in images}
 
     for slide in hero_slides:
         if slide.get("imageId") not in valid_image_ids:
@@ -597,6 +635,9 @@ def validate_project_data(
 
         if slide.get("targetCategory") not in valid_category_ids:
             raise DataValidationError(f"Hero slide for '{slide.get('imageId')}' has an invalid target category.")
+
+        if not is_landscape_hero_image(images_by_id.get(slide.get("imageId", ""))):
+            raise DataValidationError(f"Hero slide must use a landscape image: {slide.get('imageId')}")
 
 
 # Reads all JSON data files and returns normalized categories, images, and hero slides.
@@ -625,6 +666,7 @@ def get_current_data() -> tuple[list[dict[str, str]], list[dict[str, Any]], list
     ]
 
     hero_slides = [slide for slide in hero_slides if slide["imageId"] in image_ids]
+    hero_slides = filter_hero_slides_for_landscape_images(hero_slides, images)
 
     validate_project_data(categories, images, hero_slides)
 
@@ -674,6 +716,7 @@ def save_full_data(
 
     image_ids = {image["id"] for image in images}
     hero_slides = [slide for slide in hero_slides if slide["imageId"] in image_ids]
+    hero_slides = filter_hero_slides_for_landscape_images(hero_slides, images)
 
     backup = save_project_data(categories, images, hero_slides, "full-editor-save")
 
@@ -684,8 +727,6 @@ def save_full_data(
 DIRECT_IMAGE_UPDATE_FIELDS = {
     "thumbnailPosition",
     "heroPosition",
-    "heroFrameStyle",
-    "heroFitMode",
     "galleryPosition",
     "galleryFitMode",
     "galleryFrameStyle",
@@ -706,11 +747,6 @@ def normalize_direct_image_updates(raw_updates: dict[str, Any]) -> dict[str, Any
     if "galleryPosition" in raw_updates:
         updates["galleryPosition"] = normalize_object_position(raw_updates.get("galleryPosition"))
 
-    if "heroFrameStyle" in raw_updates:
-        updates["heroFrameStyle"] = normalize_frame_style(raw_updates.get("heroFrameStyle"))
-
-    if "heroFitMode" in raw_updates:
-        updates["heroFitMode"] = normalize_hero_fit_mode(raw_updates.get("heroFitMode"))
 
     if "galleryFitMode" in raw_updates:
         updates["galleryFitMode"] = normalize_gallery_fit_mode(raw_updates.get("galleryFitMode"))

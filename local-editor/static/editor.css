@@ -1092,3 +1092,47 @@ input[type="range"] {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Hero policy: homepage hero is fixed to a 16:9 landscape crop. */
+.hero-controls.is-disabled {
+  opacity: 0.64;
+}
+
+.hero-controls.is-disabled select,
+.hero-controls.is-disabled input {
+  cursor: not-allowed;
+}
+
+.editor-inline-note,
+.hero-display-summary,
+.gallery-mode-panel.hero-mode-panel {
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.editor-inline-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.hero-display-summary {
+  display: grid;
+  gap: 6px;
+}
+
+.hero-display-summary strong,
+.gallery-mode-panel.hero-mode-panel strong {
+  color: var(--text);
+}
+
+.hero-display-summary span,
+.gallery-mode-panel.hero-mode-panel span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}

@@ -8,23 +8,32 @@ export function renderSite(app: HTMLElement) {
     <div id="sitePage"></div>
 
     <div class="gallery-overlay" id="galleryOverlay" aria-hidden="true">
-      <div class="gallery-ui">
-        <div>
-          <p class="eyebrow">Virtual Gallery</p>
-          <p class="gallery-instructions">
-            Click inside the gallery, then use WASD or arrow keys to move. Move your mouse to look around. Look directly at a photo to see details. Press Escape to exit.
-          </p>
-        </div>
+      <button class="gallery-close" id="closeGalleryButton" type="button">Exit</button>
 
-        <button class="gallery-close" id="closeGalleryButton" type="button">Exit</button>
+      <div class="gallery-control-card" id="galleryControlCard" aria-hidden="true">
+        <p class="eyebrow">Controls</p>
+        <dl>
+          <div>
+            <dt>Move</dt>
+            <dd>WASD / Arrows</dd>
+          </div>
+          <div>
+            <dt>Look</dt>
+            <dd>Mouse</dd>
+          </div>
+          <div>
+            <dt>Exit</dt>
+            <dd>Esc</dd>
+          </div>
+        </dl>
       </div>
 
       <div class="gallery-crosshair" aria-hidden="true"></div>
 
       <aside class="gallery-info-panel" id="galleryInfoPanel" aria-live="polite">
-        <p class="eyebrow" id="galleryInfoMeta">Selected work</p>
-        <h2 id="galleryInfoTitle">Look at a photo</h2>
-        <p id="galleryInfoNote">Artwork details will appear here when you look directly at one of the images.</p>
+        <p class="eyebrow" id="galleryInfoMeta"></p>
+        <h2 id="galleryInfoTitle"></h2>
+        <p id="galleryInfoNote"></p>
       </aside>
 
       <div class="gallery-loading" id="galleryLoading" aria-live="polite">

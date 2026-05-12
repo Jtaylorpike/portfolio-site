@@ -41,7 +41,7 @@ export const GALLERY_SQUARE_FRAME_ASPECT = 1;
 // Portrait images get a larger default because the maximum tested portrait size better matches
 // the visual weight of landscape pieces on the same wall.
 export const GALLERY_DEFAULT_SIZE_BY_SHAPE: Record<GalleryFrameShape, number> = {
-  landscape: 1,
+  landscape: 0.92,
   portrait: 1.32,
   square: 1.08
 };
@@ -50,7 +50,7 @@ export const GALLERY_DEFAULT_SIZE_BY_SHAPE: Record<GalleryFrameShape, number> = 
 // The values are intentionally conservative because the gallery uses physical
 // walls and player movement, not an unlimited scroll page.
 export const GALLERY_MAX_SIZE_BY_SHAPE: Record<GalleryFrameShape, number> = {
-  landscape: 1,
+  landscape: 0.92,
   portrait: 1.32,
   square: 1.16
 };

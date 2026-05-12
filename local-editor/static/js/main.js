@@ -416,8 +416,6 @@ function prepareImportReview() {
       alt: `${altPrefix}: ${title}`,
       thumbnailPosition: "50% 50%",
       heroPosition: "50% 50%",
-      heroFrameStyle: "auto",
-      heroFitMode: "cover",
       galleryPosition: "50% 50%",
       galleryFitMode: "cover",
       galleryFrameStyle: "auto",
@@ -603,7 +601,7 @@ elements.editorList.addEventListener("input", (event) => {
 // Re-render preview sections when fit/frame dropdowns change.
 elements.editorList.addEventListener("change", (event) => {
   const cropSetting = event.target.closest("[data-crop-setting]");
-  const imageEditorSetting = event.target.closest('[data-field="galleryFrameStyle"], [data-field="galleryFitMode"], [data-field="heroFrameStyle"], [data-field="heroFitMode"]');
+  const imageEditorSetting = event.target.closest('[data-field="galleryFrameStyle"], [data-field="galleryFitMode"]');
   const editableField = event.target.closest("[data-field], [data-category-field]");
 
   if (!cropSetting && !imageEditorSetting && !editableField) {
