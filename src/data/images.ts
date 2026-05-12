@@ -3,6 +3,9 @@
 //
 // Editable image records live in galleryImages.json so a local editor can
 // modify the data without generating TypeScript.
+//
+// Public image paths are normalized through import.meta.env.BASE_URL so the same
+// JSON can work locally at "/" and on GitHub Pages at "/portfolio-site/".
 
 import galleryImagesJson from './galleryImages.json';
 
@@ -50,7 +53,52 @@ export type GalleryImage = {
   gallerySize?: number;
 };
 
-export const cardImages = {
+function isExternalOrSpecialUrl(value: string) {
+  return /^(https?:|data:|blob:|#)/i.test(value);
+}
+
+function getBaseUrl() {
+  const baseUrl = import.meta.env.BASE_URL || '/';
+
+  return baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+}
+
+export function resolvePublicAssetPath(path: string): string {
+  if (!path || isExternalOrSpecialUrl(path)) {
+    return path;
+  }
+
+  const baseUrl = getBaseUrl();
+
+  if (path.startsWith('/')) {
+    return `${baseUrl}${path.slice(1)}`;
+  }
+
+  return `${baseUrl}${path}`;
+}
+
+function resolveOptionalPublicAssetPath(path: string | undefined): string | undefined {
+  return path ? resolvePublicAssetPath(path) : undefined;
+}
+
+function resolveCardImage(card: CardImage): CardImage {
+  return {
+    ...card,
+    src: resolvePublicAssetPath(card.src)
+  };
+}
+
+function resolveGalleryImage(image: GalleryImage): GalleryImage {
+  return {
+    ...image,
+    src: resolvePublicAssetPath(image.src),
+    thumbSrc: resolveOptionalPublicAssetPath(image.thumbSrc),
+    textureSrc: resolveOptionalPublicAssetPath(image.textureSrc),
+    fullSrc: resolveOptionalPublicAssetPath(image.fullSrc)
+  };
+}
+
+const rawCardImages = {
   climbing: {
     title: 'Climbing',
     src: '/images/card-optimized/climbing-01.webp',
@@ -78,4 +126,10 @@ export const cardImages = {
   }
 } satisfies Record<string, CardImage>;
 
-export const galleryImages = galleryImagesJson as GalleryImage[];
+export const cardImages = Object.fromEntries(
+  Object.entries(rawCardImages).map(([key, card]) => {
+    return [key, resolveCardImage(card)];
+  })
+) as Record<keyof typeof rawCardImages, CardImage>;
+
+export const galleryImages = (galleryImagesJson as GalleryImage[]).map(resolveGalleryImage);
