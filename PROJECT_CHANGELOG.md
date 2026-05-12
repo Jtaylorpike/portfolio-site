@@ -6,20 +6,24 @@ Current source files remain the source of truth. This changelog is a historical 
 
 ---
 
-## 2026-05-12 — Image migration report output fix
+## 2026-05-12 — Image optimizer pipeline
 
 ### Changed
-- Rewrote the image rendition migration report generation to use explicit PowerShell lists instead of fragile pipeline output.
-- Added readable `.txt` review reports alongside CSV files.
-- Added image-record scan counts to the migration output.
-- Updated the rendition structure audit to write both CSV and readable text reports.
+- Added a local image optimizer pipeline for generating `full`, `display`, `texture`, and `thumb` WebP renditions from gallery image records.
+- Added a PowerShell wrapper for the optimizer.
+- Added an audit script for optimized portfolio image paths and missing files.
+- Added documentation for the optimizer workflow and rendition sizes.
 
 ### Files changed
-- `scripts/Migrate-PublicImagesToRenditions.ps1`
-- `scripts/Audit-PortfolioRenditionStructure.ps1`
+- `scripts/Optimize-PortfolioImageRenditions.ps1`
+- `scripts/optimize-portfolio-image-renditions.mjs`
+- `scripts/Audit-OptimizedPortfolioImages.ps1`
+- `docs/IMAGE_OPTIMIZER_PIPELINE.md`
 - `PROJECT_CHANGELOG.md`
 
 ### Notes
-- The previous migration pack could produce summaries without useful row data in the CSV review documents. This fix makes the report output explicit and easier to inspect.
+- This pipeline should be run on `dev`, not directly on `main`.
+- The optimizer does not delete old folders.
+- JSON backups are written to `asset-archive/json-backups/` when `-UpdateJson` is used.
 
 ---

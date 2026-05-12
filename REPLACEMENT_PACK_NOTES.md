@@ -1,41 +1,64 @@
-# TaylorPikePortfolio-GitHubPagesAssetPathRenditionStructurePack-20260511
+# TaylorPikePortfolio-ImageOptimizerPipelinePack-20260512
 
 ## Included files
-- `src/data/images.ts`
-- `scripts/Migrate-PublicImagesToRenditions.ps1`
-- `scripts/Audit-PublicAssetUrls.ps1`
-- `docs/PUBLIC_IMAGE_RENDITION_STRUCTURE.md`
+- `scripts/Optimize-PortfolioImageRenditions.ps1`
+- `scripts/optimize-portfolio-image-renditions.mjs`
+- `scripts/Audit-OptimizedPortfolioImages.ps1`
+- `docs/IMAGE_OPTIMIZER_PIPELINE.md`
 - `PROJECT_CHANGELOG.md`
 - `REPLACEMENT_PACK_NOTES.md`
 
 ## Purpose
-Fix image loading on GitHub Pages and establish a better long-term `public/images` structure.
+Add a real local image optimization pipeline that generates multiple runtime sizes per portfolio image.
 
-## What changed
-- Image paths from `galleryImages.json` are now resolved with `import.meta.env.BASE_URL`.
-- Card image paths are also resolved with `import.meta.env.BASE_URL`.
-- Added a migration script for moving images to rendition-based folders.
-- Added documentation recommending folders by optimization/size/purpose rather than category.
-
-## Why this matters
-On GitHub Pages, the site is served from `/portfolio-site/`. A runtime path like `/images/example.webp` points to `https://jtaylorpike.github.io/images/example.webp`, which is wrong. It needs to become `https://jtaylorpike.github.io/portfolio-site/images/example.webp`.
-
-## Recommended folder model
-- `public/images/portfolio/display/`
-- `public/images/portfolio/thumb/`
-- `public/images/portfolio/texture/`
+## Output structure
 - `public/images/portfolio/full/`
-- `public/images/ui/`
-- `public/images/logo/`
+- `public/images/portfolio/display/`
+- `public/images/portfolio/texture/`
+- `public/images/portfolio/thumb/`
 
-## Use
-Apply this pack, then run:
+## Dependency
+Install sharp once:
 
 ```powershell
-npm run build
-git add src/data/images.ts scripts/Migrate-PublicImagesToRenditions.ps1 scripts/Audit-PublicAssetUrls.ps1 docs/PUBLIC_IMAGE_RENDITION_STRUCTURE.md PROJECT_CHANGELOG.md REPLACEMENT_PACK_NOTES.md
-git commit -m "Fix GitHub Pages image paths and document image structure"
-git push origin main
+npm install -D sharp
 ```
 
-Do not run the migration script with `-Apply -UpdateJson` until the live Pages path fix is confirmed.
+or:
+
+```powershell
+.\scripts\Optimize-PortfolioImageRenditions.ps1 -InstallSharp
+```
+
+## Workflow
+Dry run:
+
+```powershell
+.\scripts\Optimize-PortfolioImageRenditions.ps1
+```
+
+Apply:
+
+```powershell
+.\scripts\Optimize-PortfolioImageRenditions.ps1 -Apply -UpdateJson
+```
+
+Audit:
+
+```powershell
+.\scripts\Audit-OptimizedPortfolioImages.ps1
+npm run build
+```
+
+Commit to dev:
+
+```powershell
+git add src/data/galleryImages.json public/images/portfolio scripts docs PROJECT_CHANGELOG.md REPLACEMENT_PACK_NOTES.md package.json package-lock.json
+git commit -m "Add image optimizer pipeline and portfolio renditions"
+git push -u origin dev
+```
+
+## Safety
+- No old folders are deleted.
+- Existing output files are skipped unless `-Force` is used.
+- JSON is backed up under `asset-archive/json-backups/` when `-UpdateJson` is used.

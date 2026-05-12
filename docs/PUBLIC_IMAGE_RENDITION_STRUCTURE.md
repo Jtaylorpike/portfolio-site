@@ -1,14 +1,12 @@
 # Public image rendition structure
 
-## Problem
+## Decision
 
-The current `public/images` tree mixes categories, old source folders, imported files, original files, optimized files, thumbnails, textures, and manifests.
+Portfolio image folders should be organized by rendition/purpose, not by category.
 
-That is not a good long-term structure because categories are editable data. The JSON editor can add, rename, or delete categories, but it should not need to create or delete filesystem folders.
+Categories are editable data. The JSON editor can add, rename, or delete categories, but it should not need to create or delete filesystem folders.
 
-## Recommended structure
-
-Use folders by rendition/purpose, not by category.
+## Target structure
 
 ```text
 public/images/portfolio/display/
@@ -22,28 +20,15 @@ public/images/logo/
 ## Meaning
 
 ```text
-display/ = default portfolio image used by the traditional site
-thumb/ = small thumbnails for index/contact sheets
-texture/ = lower-size 3D gallery texture if needed
-full/ = large lightbox/detail version
+display/ = default image used by the portfolio grid and standard site views
+thumb/ = small thumbnails for indexes, contact sheets, and fast UI previews
+texture/ = 3D gallery texture-sized image when a lighter GPU texture is useful
+full/ = large lightbox/detail image
 ui/ = non-portfolio interface images
 logo/ = brand assets only
 ```
 
-## Naming
-
-Use the image record id as the filename stem.
-
-Example:
-
-```text
-public/images/portfolio/display/climbing-workbook-05.webp
-public/images/portfolio/thumb/climbing-workbook-05.webp
-public/images/portfolio/texture/climbing-workbook-05.webp
-public/images/portfolio/full/climbing-workbook-05.webp
-```
-
-The JSON should carry category data:
+## JSON example
 
 ```json
 {
@@ -55,6 +40,10 @@ The JSON should carry category data:
   "fullSrc": "/images/portfolio/full/climbing-workbook-05.webp"
 }
 ```
+
+## Naming convention
+
+Use the image record `id` as the file stem. This keeps the relationship stable even if title, category, location, year, or display order changes.
 
 ## Source image rule
 
@@ -70,8 +59,28 @@ asset-archive/
 
 Only optimized runtime files should live under `public/images`.
 
-## GitHub Pages path rule
+## Migration command
 
-The site uses Vite. When deployed under a repository path like `/portfolio-site/`, runtime-generated public asset URLs need to be prefixed with `import.meta.env.BASE_URL`.
+Dry run first:
 
-The replacement `src/data/images.ts` handles this for image paths from JSON.
+```powershell
+.\scripts\Migrate-PublicImagesToRenditions.ps1
+```
+
+Apply after reviewing the plan:
+
+```powershell
+.\scripts\Migrate-PublicImagesToRenditions.ps1 -Apply -UpdateJson
+```
+
+Then audit:
+
+```powershell
+.\scripts\Audit-PortfolioImages.ps1
+.\scripts\Audit-PortfolioRenditionStructure.ps1
+npm run build
+```
+
+## Git rule
+
+Do this on `dev`, not directly on `main`, so the public WIP remains clean.

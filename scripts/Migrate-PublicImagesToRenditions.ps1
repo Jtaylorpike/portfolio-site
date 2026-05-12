@@ -5,31 +5,48 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
 $root = Resolve-Path $ProjectRoot
 Set-Location $root
 
 $jsonPath = "src\data\galleryImages.json"
-$publicRoot = Resolve-Path "public"
 $reportDir = "asset-reports"
+$backupDir = "asset-archive\json-backups"
+$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 
 if (-not (Test-Path $jsonPath)) {
-  throw "Could not find $jsonPath"
+  throw "Could not find $jsonPath."
 }
 
 if (-not (Test-Path "public\images")) {
-  throw "Could not find public\images"
+  throw "Could not find public\images."
 }
 
 New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
+New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
 
-$images = Get-Content $jsonPath -Raw | ConvertFrom-Json
-$plan = @()
+$jsonRaw = Get-Content $jsonPath -Raw
+$images = @($jsonRaw | ConvertFrom-Json)
 
-$fieldToTier = [ordered]@{
+# Some PowerShell versions unwrap JSON arrays differently. This keeps the
+# migration stable when galleryImages.json is an array of image records.
+if ($images.Count -eq 1 -and $images[0] -is [System.Array]) {
+  $images = @($images[0])
+}
+
+$fieldToRendition = [ordered]@{
   src = "display"
   thumbSrc = "thumb"
   textureSrc = "texture"
   fullSrc = "full"
+}
+
+function Test-IsExternalOrSpecialUrl([string]$value) {
+  if ([string]::IsNullOrWhiteSpace($value)) {
+    return $false
+  }
+
+  return $value -match "^(https?:|data:|blob:|#)"
 }
 
 function Get-LocalPublicPath([string]$publicUrl) {
@@ -37,7 +54,7 @@ function Get-LocalPublicPath([string]$publicUrl) {
     return $null
   }
 
-  if ($publicUrl -match "^(https?:|data:|blob:|#)") {
+  if (Test-IsExternalOrSpecialUrl $publicUrl) {
     return $null
   }
 
@@ -45,8 +62,8 @@ function Get-LocalPublicPath([string]$publicUrl) {
   return Join-Path "public" $clean
 }
 
-function Get-ExtensionFromPath([string]$path) {
-  $extension = [System.IO.Path]::GetExtension($path)
+function Get-FileExtension([string]$pathOrUrl) {
+  $extension = [System.IO.Path]::GetExtension($pathOrUrl)
 
   if ([string]::IsNullOrWhiteSpace($extension)) {
     return ".webp"
@@ -55,82 +72,212 @@ function Get-ExtensionFromPath([string]$path) {
   return $extension.ToLowerInvariant()
 }
 
-foreach ($image in $images) {
-  foreach ($field in $fieldToTier.Keys) {
-    if (-not $image.PSObject.Properties.Name.Contains($field)) {
-      continue
-    }
+function Get-CanonicalPortfolioUrl([string]$imageId, [string]$rendition, [string]$sourcePathOrUrl) {
+  $extension = Get-FileExtension $sourcePathOrUrl
+  return "/images/portfolio/$rendition/$imageId$extension"
+}
 
-    $currentUrl = [string]$image.$field
+function Get-ObjectPropertyValue($object, [string]$propertyName) {
+  $property = $object.PSObject.Properties[$propertyName]
+
+  if ($null -eq $property) {
+    return $null
+  }
+
+  return [string]$property.Value
+}
+
+function Set-ObjectPropertyValue($object, [string]$propertyName, [string]$value) {
+  $property = $object.PSObject.Properties[$propertyName]
+
+  if ($null -eq $property) {
+    $object | Add-Member -NotePropertyName $propertyName -NotePropertyValue $value
+  } else {
+    $property.Value = $value
+  }
+}
+
+$plan = New-Object System.Collections.Generic.List[object]
+$missing = New-Object System.Collections.Generic.List[object]
+$skippedExternal = New-Object System.Collections.Generic.List[object]
+
+foreach ($image in $images) {
+  $imageId = Get-ObjectPropertyValue $image "id"
+  $title = Get-ObjectPropertyValue $image "title"
+
+  if ([string]::IsNullOrWhiteSpace($imageId)) {
+    continue
+  }
+
+  foreach ($field in $fieldToRendition.Keys) {
+    $currentUrl = Get-ObjectPropertyValue $image $field
 
     if ([string]::IsNullOrWhiteSpace($currentUrl)) {
       continue
     }
 
-    $sourcePath = Get-LocalPublicPath $currentUrl
-
-    if (-not $sourcePath) {
+    if (Test-IsExternalOrSpecialUrl $currentUrl) {
+      $skippedExternal.Add([PSCustomObject]@{
+        imageId = $imageId
+        title = $title
+        field = $field
+        url = $currentUrl
+      }) | Out-Null
       continue
     }
 
-    $sourceExists = Test-Path $sourcePath
-    $tier = $fieldToTier[$field]
-    $extension = Get-ExtensionFromPath $sourcePath
-    $targetUrl = "/images/portfolio/$tier/$($image.id)$extension"
-    $targetPath = Get-LocalPublicPath $targetUrl
+    $rendition = $fieldToRendition[$field]
+    $sourcePath = Get-LocalPublicPath $currentUrl
+    $sourceExists = $false
 
-    $plan += [PSCustomObject]@{
-      imageId = $image.id
+    if ($sourcePath) {
+      $sourceExists = Test-Path $sourcePath
+    }
+
+    $targetUrl = Get-CanonicalPortfolioUrl $imageId $rendition $currentUrl
+    $targetPath = Get-LocalPublicPath $targetUrl
+    $alreadyCanonical = $currentUrl -eq $targetUrl
+
+    $row = [PSCustomObject]@{
+      imageId = $imageId
+      title = $title
       field = $field
-      tier = $tier
+      rendition = $rendition
       sourceUrl = $currentUrl
-      targetUrl = $targetUrl
+      sourcePath = $sourcePath
       sourceExists = $sourceExists
+      targetUrl = $targetUrl
+      targetPath = $targetPath
+      alreadyCanonical = $alreadyCanonical
       copied = $false
       jsonUpdated = $false
     }
 
-    if ($Apply -and $sourceExists) {
+    if (-not $sourceExists) {
+      $missing.Add($row) | Out-Null
+      $plan.Add($row) | Out-Null
+      continue
+    }
+
+    if ($Apply -and -not $alreadyCanonical) {
       New-Item -ItemType Directory -Force -Path (Split-Path $targetPath -Parent) | Out-Null
       Copy-Item -Force $sourcePath $targetPath
-      $plan[-1].copied = $true
+      $row.copied = $true
     }
 
     if ($UpdateJson) {
-      $image.$field = $targetUrl
-      $plan[-1].jsonUpdated = $true
+      Set-ObjectPropertyValue $image $field $targetUrl
+      $row.jsonUpdated = $true
     }
+
+    $plan.Add($row) | Out-Null
   }
 }
 
 $planPath = Join-Path $reportDir "rendition-migration-plan.csv"
-$plan | Export-Csv -NoTypeInformation -Path $planPath
+$planTextPath = Join-Path $reportDir "rendition-migration-plan.txt"
+$missingPath = Join-Path $reportDir "rendition-migration-missing-sources.csv"
+$missingTextPath = Join-Path $reportDir "rendition-migration-missing-sources.txt"
+$skippedExternalPath = Join-Path $reportDir "rendition-migration-skipped-external.csv"
+$summaryPath = Join-Path $reportDir "rendition-migration-summary.txt"
 
-Write-Host ""
-Write-Host "Rendition migration plan written to $planPath" -ForegroundColor Cyan
-Write-Host "Records: $($plan.Count)"
-Write-Host ""
+$planArray = @($plan.ToArray())
+$missingArray = @($missing.ToArray())
+$skippedExternalArray = @($skippedExternal.ToArray())
 
-$missing = @($plan | Where-Object { -not $_.sourceExists })
+$planArray | Export-Csv -NoTypeInformation -Path $planPath
+$missingArray | Export-Csv -NoTypeInformation -Path $missingPath
+$skippedExternalArray | Export-Csv -NoTypeInformation -Path $skippedExternalPath
 
-if ($missing.Count -gt 0) {
-  Write-Host "Missing source files:" -ForegroundColor Red
-  $missing | ForEach-Object { Write-Host "  $($_.sourceUrl)" }
-  Write-Host ""
+$planLines = @()
+$planLines += "Portfolio image rendition migration plan"
+$planLines += "Generated: $timestamp"
+$planLines += ""
+foreach ($row in $planArray) {
+  $status = if ($row.sourceExists) { "OK" } else { "MISSING" }
+  $planLines += "$status | $($row.imageId) | $($row.field) | $($row.sourceUrl) -> $($row.targetUrl)"
 }
+Set-Content -Path $planTextPath -Value $planLines
+
+$missingLines = @()
+$missingLines += "Missing source files"
+$missingLines += "Generated: $timestamp"
+$missingLines += ""
+if ($missingArray.Count -eq 0) {
+  $missingLines += "No missing source files."
+} else {
+  foreach ($row in $missingArray) {
+    $missingLines += "$($row.imageId) | $($row.field) | $($row.sourceUrl)"
+  }
+}
+Set-Content -Path $missingTextPath -Value $missingLines
+
+$summary = @(
+  "Portfolio image rendition migration"
+  "Generated: $timestamp"
+  ""
+  "Image records scanned:      $($images.Count)"
+  "Plan rows:                  $($planArray.Count)"
+  "Missing source rows:        $($missingArray.Count)"
+  "Skipped external rows:      $($skippedExternalArray.Count)"
+  "Apply enabled:              $($Apply.IsPresent)"
+  "UpdateJson enabled:         $($UpdateJson.IsPresent)"
+  ""
+  "CSV report:"
+  $planPath
+  ""
+  "Readable text report:"
+  $planTextPath
+  ""
+  "Target folders:"
+  "public/images/portfolio/display/"
+  "public/images/portfolio/thumb/"
+  "public/images/portfolio/texture/"
+  "public/images/portfolio/full/"
+  ""
+  "Dry run command:"
+  ".\scripts\Migrate-PublicImagesToRenditions.ps1"
+  ""
+  "Apply and update JSON command:"
+  ".\scripts\Migrate-PublicImagesToRenditions.ps1 -Apply -UpdateJson"
+)
+
+Set-Content -Path $summaryPath -Value $summary
 
 if ($UpdateJson) {
-  $json = $images | ConvertTo-Json -Depth 20
+  $backupPath = Join-Path $backupDir "galleryImages-$timestamp.json"
+  Copy-Item -Force $jsonPath $backupPath
+
+  $json = $images | ConvertTo-Json -Depth 30
   Set-Content -Path $jsonPath -Value $json
+
+  Write-Host ""
+  Write-Host "Backed up original JSON to $backupPath" -ForegroundColor Cyan
   Write-Host "Updated $jsonPath" -ForegroundColor Green
 }
 
-if ($Apply) {
-  Write-Host "Copied files into public\images\portfolio\{display,thumb,texture,full}" -ForegroundColor Green
-} else {
-  Write-Host "Dry run only. Re-run with -Apply to copy files." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Image records scanned: $($images.Count)"
+Write-Host "Plan rows:             $($planArray.Count)"
+Write-Host "Missing source rows:   $($missingArray.Count)"
+Write-Host "Skipped external rows: $($skippedExternalArray.Count)"
+Write-Host ""
+Write-Host "CSV plan:  $planPath" -ForegroundColor Cyan
+Write-Host "Text plan: $planTextPath" -ForegroundColor Cyan
+Write-Host "Summary:   $summaryPath" -ForegroundColor Cyan
+Write-Host ""
+
+if ($planArray.Count -eq 0) {
+  Write-Host "No migration rows were generated. That means no image fields were found in galleryImages.json." -ForegroundColor Red
+  Write-Host "Confirm that galleryImages.json contains src, thumbSrc, textureSrc, or fullSrc fields." -ForegroundColor Yellow
 }
 
-if (-not $UpdateJson) {
-  Write-Host "JSON was not updated. Add -UpdateJson when you are ready to switch paths." -ForegroundColor Yellow
+if ($missingArray.Count -gt 0) {
+  Write-Host "Some source files are missing. Review $missingTextPath before applying." -ForegroundColor Red
+}
+
+if (-not $Apply) {
+  Write-Host "Dry run only. Re-run with -Apply -UpdateJson when the plan looks correct." -ForegroundColor Yellow
+} else {
+  Write-Host "Copied files into public\images\portfolio\..." -ForegroundColor Green
 }
