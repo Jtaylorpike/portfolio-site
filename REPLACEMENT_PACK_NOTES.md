@@ -1,64 +1,59 @@
-# TaylorPikePortfolio-ImageOptimizerPipelinePack-20260512
+# TaylorPikePortfolio-StalePublicDataArchivePack-20260512
 
 ## Included files
-- `scripts/Optimize-PortfolioImageRenditions.ps1`
-- `scripts/optimize-portfolio-image-renditions.mjs`
-- `scripts/Audit-OptimizedPortfolioImages.ps1`
-- `docs/IMAGE_OPTIMIZER_PIPELINE.md`
+- `scripts/Archive-StalePublicData.ps1`
+- `scripts/Audit-PublicImageReferences.ps1`
+- `docs/STALE_PUBLIC_DATA_CLEANUP.md`
 - `PROJECT_CHANGELOG.md`
 - `REPLACEMENT_PACK_NOTES.md`
 
 ## Purpose
-Add a real local image optimization pipeline that generates multiple runtime sizes per portfolio image.
+Fix public image audit failures caused by stale `public/data` files.
 
-## Output structure
-- `public/images/portfolio/full/`
-- `public/images/portfolio/display/`
-- `public/images/portfolio/texture/`
-- `public/images/portfolio/thumb/`
+## Why this pack exists
+The current audit found four missing image references:
 
-## Dependency
-Install sharp once:
-
-```powershell
-npm install -D sharp
+```text
+/images/climbing/climbing-01.webp
+/images/commercial/commercial-01.webp
+/images/personal/personal-01.webp
+/images/portraits/portrait-01.webp
 ```
 
-or:
-
-```powershell
-.\scripts\Optimize-PortfolioImageRenditions.ps1 -InstallSharp
-```
+Those references come from `public/data/projects.json`, not the active app data.
 
 ## Workflow
 Dry run:
 
 ```powershell
-.\scripts\Optimize-PortfolioImageRenditions.ps1
+.\scripts\Archive-StalePublicData.ps1
+```
+
+Review:
+
+```text
+asset-reports\archive-stale-public-data-plan.txt
 ```
 
 Apply:
 
 ```powershell
-.\scripts\Optimize-PortfolioImageRenditions.ps1 -Apply -UpdateJson
+.\scripts\Archive-StalePublicData.ps1 -Apply
 ```
 
-Audit:
+Then re-run:
 
 ```powershell
-.\scripts\Audit-OptimizedPortfolioImages.ps1
-npm run build
+.\scripts\Audit-PublicImageReferences.ps1
 ```
 
-Commit to dev:
+Expected:
 
-```powershell
-git add src/data/galleryImages.json public/images/portfolio scripts docs PROJECT_CHANGELOG.md REPLACEMENT_PACK_NOTES.md package.json package-lock.json
-git commit -m "Add image optimizer pipeline and portfolio renditions"
-git push -u origin dev
+```text
+Missing referenced files: 0
 ```
 
 ## Safety
-- No old folders are deleted.
-- Existing output files are skipped unless `-Force` is used.
-- JSON is backed up under `asset-archive/json-backups/` when `-UpdateJson` is used.
+- `public/data` files are moved into `asset-archive/`.
+- Nothing is permanently deleted.
+- Do not commit `asset-archive/`.

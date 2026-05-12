@@ -6,24 +6,21 @@ Current source files remain the source of truth. This changelog is a historical 
 
 ---
 
-## 2026-05-12 — Image optimizer pipeline
+## 2026-05-12 — Stale public data archive cleanup
 
 ### Changed
-- Added a local image optimizer pipeline for generating `full`, `display`, `texture`, and `thumb` WebP renditions from gallery image records.
-- Added a PowerShell wrapper for the optimizer.
-- Added an audit script for optimized portfolio image paths and missing files.
-- Added documentation for the optimizer workflow and rendition sizes.
+- Added a dry-run-first script to move stale `public/data` files into `asset-archive/`.
+- Updated the public image reference audit message to point stale public data users to the archive script.
+- Added documentation explaining why active editable data should live in `src/data`, not stale deployed `public/data` snapshots.
 
 ### Files changed
-- `scripts/Optimize-PortfolioImageRenditions.ps1`
-- `scripts/optimize-portfolio-image-renditions.mjs`
-- `scripts/Audit-OptimizedPortfolioImages.ps1`
-- `docs/IMAGE_OPTIMIZER_PIPELINE.md`
+- `scripts/Archive-StalePublicData.ps1`
+- `scripts/Audit-PublicImageReferences.ps1`
+- `docs/STALE_PUBLIC_DATA_CLEANUP.md`
 - `PROJECT_CHANGELOG.md`
 
 ### Notes
-- This pipeline should be run on `dev`, not directly on `main`.
-- The optimizer does not delete old folders.
-- JSON backups are written to `asset-archive/json-backups/` when `-UpdateJson` is used.
+- This resolves missing image references caused by old `public/data/projects.json` entries.
+- The script does not delete stale data. It moves it to local `asset-archive/`.
 
 ---
