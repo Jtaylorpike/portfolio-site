@@ -1,28 +1,23 @@
-# TaylorPikePortfolio-GalleryLayoutTypeScriptBuildFixPack-20260511
+# TaylorPikePortfolio-ImageArchiveSafetyPack-20260511
 
 ## Included files
-- `src/gallery/artwork/galleryLayout.ts`
+- `.gitignore`
+- `docs/IMAGE_ARCHIVE_WORKFLOW.md`
+- `scripts/List-ArchivedImages.ps1`
 - `PROJECT_CHANGELOG.md`
 - `REPLACEMENT_PACK_NOTES.md`
 
 ## Purpose
-Fix the GitHub Actions build failure caused by TypeScript narrowing in `galleryLayout.ts`.
-
-## Error fixed
-`src/gallery/artwork/galleryLayout.ts#L234`
-`This comparison appears to be unintentional because the types 'true | undefined' and 'false' have no overlap.`
+Protect the local image archive so unimported images are not deleted or accidentally committed.
 
 ## What changed
-- Added `isWallVisibleInGallery(wall)`.
-- Added `isWallPlaqueEnabled(wall)`.
-- Replaced direct optional literal comparisons with helper functions.
-- Preserved the same runtime behavior.
+- Added `asset-archive/` to `.gitignore`.
+- Added `asset-reports/` to `.gitignore`.
+- Added ignored local staging folders:
+  - `assets-to-import/`
+  - `source-images/`
+- Added image archive workflow documentation.
+- Added a script to list archived images.
 
-## After applying
-Run:
-`npm run build`
-
-Then:
-`git add .`
-`git commit -m "Fix gallery layout TypeScript build"`
-`git push origin main`
+## Recommended use
+Keep `asset-archive/` locally. Do not delete it. Commit only `public/images` and `public/fonts` for GitHub Pages.
