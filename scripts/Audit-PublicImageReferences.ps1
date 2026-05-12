@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$ProjectRoot = "."
 )
 
@@ -40,13 +40,10 @@ foreach ($searchRoot in $searchRoots) {
         return $false
       }
 
-      # Do not scan image files for references.
       if ($relative -like "public\images\*") {
         return $false
       }
 
-      # public/data is intentionally scanned if it exists. If stale public data
-      # contains broken image references, archive it with Archive-StalePublicData.ps1.
       $_.Extension -in @(".ts", ".tsx", ".js", ".jsx", ".json", ".css", ".html", ".md")
     }
 
@@ -92,10 +89,35 @@ $referencedExisting = @(
   } | Sort-Object
 )
 
-$referenceRows.ToArray() | Export-Csv -NoTypeInformation -Path "$reportDir\public-image-reference-locations.csv"
-$referencedExisting | Set-Content "$reportDir\public-image-referenced-existing.txt"
-$missing | Set-Content "$reportDir\public-image-missing.txt"
-$unreferenced | Set-Content "$reportDir\public-image-unreferenced.txt"
+$referenceLocationsPath = "$reportDir\public-image-reference-locations.csv"
+$referencedExistingPath = "$reportDir\public-image-referenced-existing.txt"
+$missingPath = "$reportDir\public-image-missing.txt"
+$unreferencedPath = "$reportDir\public-image-unreferenced.txt"
+$summaryPath = "$reportDir\public-image-reference-summary.txt"
+
+# Always overwrite every report file. Windows PowerShell may skip Set-Content
+# when an empty array is piped into it, which can leave stale rows from a prior run.
+Remove-Item -Force -ErrorAction SilentlyContinue $referenceLocationsPath, $referencedExistingPath, $missingPath, $unreferencedPath, $summaryPath
+
+$referenceRows.ToArray() | Export-Csv -NoTypeInformation -Path $referenceLocationsPath
+
+if ($referencedExisting.Count -gt 0) {
+  Set-Content -Path $referencedExistingPath -Value $referencedExisting
+} else {
+  New-Item -ItemType File -Force -Path $referencedExistingPath | Out-Null
+}
+
+if ($missing.Count -gt 0) {
+  Set-Content -Path $missingPath -Value $missing
+} else {
+  New-Item -ItemType File -Force -Path $missingPath | Out-Null
+}
+
+if ($unreferenced.Count -gt 0) {
+  Set-Content -Path $unreferencedPath -Value $unreferenced
+} else {
+  New-Item -ItemType File -Force -Path $unreferencedPath | Out-Null
+}
 
 $summary = @(
   "Public image reference audit"
@@ -110,7 +132,7 @@ $summary = @(
   "asset-reports\public-image-unreferenced.txt"
 )
 
-Set-Content -Path "$reportDir\public-image-reference-summary.txt" -Value $summary
+Set-Content -Path $summaryPath -Value $summary
 
 Write-Host ""
 Write-Host "Referenced existing files: $($referencedExisting.Count)"
@@ -120,7 +142,6 @@ Write-Host "Reports written to asset-reports\" -ForegroundColor Cyan
 
 if ($missing.Count -gt 0) {
   Write-Host "Missing referenced image files were found." -ForegroundColor Red
-  Write-Host "If the references come from public\data, run Archive-StalePublicData.ps1 before archiving images." -ForegroundColor Yellow
 }
 
 if ($unreferenced.Count -gt 0) {

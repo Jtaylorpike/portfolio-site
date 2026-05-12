@@ -1,59 +1,24 @@
-# TaylorPikePortfolio-StalePublicDataArchivePack-20260512
+﻿# TaylorPikePortfolio-ValidationEmptyReportFixPack-20260512
 
 ## Included files
-- `scripts/Archive-StalePublicData.ps1`
 - `scripts/Audit-PublicImageReferences.ps1`
-- `docs/STALE_PUBLIC_DATA_CLEANUP.md`
-- `PROJECT_CHANGELOG.md`
+- `scripts/Validate-PortfolioDevBranch.ps1`
+- `PROJECT_CHANGELOG_APPEND_20260512_EMPTY_REPORT_FIX.md`
 - `REPLACEMENT_PACK_NOTES.md`
 
 ## Purpose
-Fix public image audit failures caused by stale `public/data` files.
+Fix the false validation failure where the audit summary says zero missing files but validation still fails.
 
-## Why this pack exists
-The current audit found four missing image references:
+## Root cause
+The summary was current, but `public-image-missing.txt` still contained stale rows from an earlier audit. Windows PowerShell can leave old report content behind when an empty array is written through `Set-Content`.
 
-```text
-/images/climbing/climbing-01.webp
-/images/commercial/commercial-01.webp
-/images/personal/personal-01.webp
-/images/portraits/portrait-01.webp
-```
+## What changed
+- The audit script now removes old report files before writing new ones.
+- Empty reports are explicitly recreated as empty files.
+- The validation script reads the missing count from `public-image-reference-summary.txt`.
 
-Those references come from `public/data/projects.json`, not the active app data.
-
-## Workflow
-Dry run:
-
-```powershell
-.\scripts\Archive-StalePublicData.ps1
-```
-
-Review:
-
-```text
-asset-reports\archive-stale-public-data-plan.txt
-```
-
-Apply:
-
-```powershell
-.\scripts\Archive-StalePublicData.ps1 -Apply
-```
-
-Then re-run:
-
+## Run
 ```powershell
 .\scripts\Audit-PublicImageReferences.ps1
+.\scripts\Validate-PortfolioDevBranch.ps1
 ```
-
-Expected:
-
-```text
-Missing referenced files: 0
-```
-
-## Safety
-- `public/data` files are moved into `asset-archive/`.
-- Nothing is permanently deleted.
-- Do not commit `asset-archive/`.
