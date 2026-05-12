@@ -18,6 +18,12 @@ import {
   updateGallerySizeControl
 } from "./render.js";
 import { formatObjectPosition, getFallbackCategoryId, slugify, titleFromFilename } from "./utils.js";
+import {
+  getImportGalleryDefaultSize,
+  getImportOutputPaths,
+  inferImageOrientation,
+  validateImportRecords
+} from "./importValidation.js";
 
 const VALID_PAGE_ROUTES = new Set(["images", "import", "categories", "backups"]);
 const VALID_CROP_MODES = new Set(["hero", "gallery"]);
@@ -57,6 +63,121 @@ function setDirtyState(isDirty, message = null) {
 // Updates the import workflow message shown below the import controls.
 function setImportSummary(message) {
   elements.importSummary.textContent = message;
+}
+
+
+// Reads image dimensions in the browser before the backend import runs.
+// This lets the review UI block bad hero/gallery values before Flask validation.
+function readImportImageMetadata(file) {
+  return new Promise((resolve) => {
+    const previewUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      const width = image.naturalWidth;
+      const height = image.naturalHeight;
+      const aspectRatio = width > 0 && height > 0 ? width / height : 1;
+
+      URL.revokeObjectURL(previewUrl);
+      resolve({
+        imageWidth: width,
+        imageHeight: height,
+        imageAspectRatio: Number(aspectRatio.toFixed(6)),
+        imageOrientation: inferImageOrientation(width, height)
+      });
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(previewUrl);
+      resolve({
+        imageWidth: "",
+        imageHeight: "",
+        imageAspectRatio: "",
+        imageOrientation: "landscape",
+        metadataWarning: "Browser could not read dimensions before import. Backend validation will still run."
+      });
+    };
+
+    image.src = previewUrl;
+  });
+}
+
+// Keeps the pending file list but updates metadata values after the user edits the review cards.
+function syncPendingImportItemsFromReview() {
+  if (!pendingImportItems.length) {
+    return;
+  }
+
+  const records = collectImportReviewRecords(state);
+
+  pendingImportItems = pendingImportItems.map((item, index) => {
+    return {
+      ...item,
+      ...(records[index] ?? {})
+    };
+  });
+}
+
+
+function updateImportOutputPathPreview(card) {
+  const idInput = card.querySelector('[data-import-field="id"]');
+  const outputPaths = getImportOutputPaths(idInput?.value);
+
+  Object.entries(outputPaths).forEach(([key, value]) => {
+    const output = card.querySelector(`[data-import-output-path="${key}"]`);
+
+    if (output) {
+      output.textContent = value;
+    }
+  });
+}
+
+// Gives immediate feedback on duplicate IDs, invalid fit modes, or unsupported values.
+function updateImportReviewValidation() {
+  if (!pendingImportItems.length) {
+    if (elements.saveReviewedImportButton) {
+      elements.saveReviewedImportButton.disabled = false;
+    }
+
+    return {
+      errors: [],
+      warnings: [],
+      isValid: true
+    };
+  }
+
+  const records = collectImportReviewRecords(state);
+  const validation = validateImportRecords(records, state.images);
+
+  document.querySelectorAll("[data-import-card]").forEach((card, index) => {
+    const cardErrors = validation.errors.filter((item) => item.index === index);
+    const cardWarnings = validation.warnings.filter((item) => item.index === index);
+    const status = card.querySelector("[data-import-card-status]");
+
+    updateImportOutputPathPreview(card);
+    card.dataset.importState = cardErrors.length ? "error" : cardWarnings.length ? "warning" : "valid";
+
+    if (status) {
+      const messages = [...cardErrors, ...cardWarnings].map((item) => item.message);
+      status.textContent = messages.length ? messages.join(" ") : "Ready to import into the portfolio rendition folders.";
+    }
+  });
+
+  if (elements.saveReviewedImportButton) {
+    elements.saveReviewedImportButton.disabled = !validation.isValid;
+  }
+
+  if (validation.errors.length) {
+    setImportSummary(`${validation.errors.length} issue${validation.errors.length === 1 ? "" : "s"} must be fixed before import.`);
+  }
+  else if (validation.warnings.length) {
+    setImportSummary(`${records.length} image${records.length === 1 ? "" : "s"} ready. ${validation.warnings.length} hero eligibility note${validation.warnings.length === 1 ? "" : "s"}.`);
+  }
+  else {
+    setImportSummary(`${records.length} image${records.length === 1 ? "" : "s"} ready for the portfolio rendition pipeline.`);
+  }
+
+  return validation;
 }
 
 // Converts backup metadata from the backend into a short status suffix.
@@ -373,7 +494,7 @@ function moveCategoryRow(row, direction) {
 }
 
 // Creates editable preview records for selected image files before import.
-function prepareImportReview() {
+async function prepareImportReview() {
   state = collectEditorData(state);
 
   if (!elements.importFiles.files.length) {
@@ -383,6 +504,7 @@ function prepareImportReview() {
   }
 
   clearPendingImportItems();
+  setStatus("Reading image dimensions...", "neutral");
 
   const category = elements.importCategory.value || getFallbackCategoryId(state);
   const year = elements.importYear.value.trim();
@@ -390,8 +512,9 @@ function prepareImportReview() {
   const note = elements.importNote.value.trim();
   const altPrefix = elements.importAltPrefix.value.trim() || "Photograph by Taylor Pike";
   const usedIds = new Set(state.images.map((image) => image.id));
+  const files = Array.from(elements.importFiles.files);
 
-  pendingImportItems = Array.from(elements.importFiles.files).map((file) => {
+  pendingImportItems = await Promise.all(files.map(async (file) => {
     const title = titleFromFilename(file.name);
     const baseId = `${category}-${slugify(file.name.replace(/\.[^/.]+$/, ""))}`;
     let id = baseId;
@@ -403,6 +526,9 @@ function prepareImportReview() {
     }
 
     usedIds.add(id);
+
+    const metadata = await readImportImageMetadata(file);
+    const gallerySize = getImportGalleryDefaultSize(metadata.imageOrientation);
 
     return {
       file,
@@ -416,15 +542,18 @@ function prepareImportReview() {
       alt: `${altPrefix}: ${title}`,
       thumbnailPosition: "50% 50%",
       heroPosition: "50% 50%",
+      heroFitMode: "cover",
+      heroFrameStyle: "landscape",
       galleryPosition: "50% 50%",
       galleryFitMode: "cover",
       galleryFrameStyle: "auto",
-      gallerySize: "1"
+      gallerySize,
+      ...metadata
     };
-  });
+  }));
 
   renderImportReview(state, elements, pendingImportItems);
-  setImportSummary(`Prepared ${pendingImportItems.length} images for review.`);
+  updateImportReviewValidation();
   setDirtyState(true, `Prepared ${pendingImportItems.length} images for review. Review each card, then save the import.`);
 }
 
@@ -437,8 +566,16 @@ async function saveReviewedImport() {
   setStatus("Importing reviewed images...", "neutral");
   setImportSummary("Copying files and saving JSON...");
 
+  syncPendingImportItemsFromReview();
+
   const formData = new FormData();
   const records = collectImportReviewRecords(state);
+  const validation = validateImportRecords(records, state.images);
+
+  if (!validation.isValid) {
+    updateImportReviewValidation();
+    throw new Error(validation.errors.map((item) => item.message).join(" "));
+  }
 
   pendingImportItems.forEach((item) => {
     formData.append("images", item.file);
@@ -615,13 +752,28 @@ elements.editorList.addEventListener("change", (event) => {
 
 elements.importReviewList.addEventListener("input", (event) => {
   const slider = event.target.closest("[data-position-axis]");
+  const gallerySizeRange = event.target.closest("[data-gallery-size-range]");
 
   if (slider) {
     updateFramingControl(slider);
+    updateImportReviewValidation();
     setDirtyState(true, "Import crop preview updated. Save the reviewed import to keep it.");
     return;
   }
 
+  if (gallerySizeRange) {
+    updateGallerySizeControl(gallerySizeRange);
+    updateImportReviewValidation();
+    setDirtyState(true, "Import gallery size updated. Save the reviewed import to keep it.");
+    return;
+  }
+
+  updateImportReviewValidation();
+  setDirtyState(true, "Import review has unsaved changes. Save the reviewed import to keep it.");
+});
+
+elements.importReviewList.addEventListener("change", () => {
+  updateImportReviewValidation();
   setDirtyState(true, "Import review has unsaved changes. Save the reviewed import to keep it.");
 });
 
@@ -763,7 +915,11 @@ elements.editorList.addEventListener("click", (event) => {
 });
 
 elements.prepareImportButton.addEventListener("click", () => {
-  prepareImportReview();
+  prepareImportReview().catch((error) => {
+    console.error(error);
+    setStatus(error.message, "error");
+    setImportSummary(error.message);
+  });
 });
 
 elements.saveReviewedImportButton.addEventListener("click", () => {

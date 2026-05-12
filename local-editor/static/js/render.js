@@ -15,6 +15,11 @@ import {
   resolveGalleryFrameShape,
   resolveGallerySize
 } from "./galleryFraming.js";
+import {
+  getImportOutputPaths,
+  normalizeImportFitMode,
+  normalizeImportFrameStyle
+} from "./importValidation.js";
 
 // Finds the hero slide record connected to one image.
 function getHeroSlideForImage(state, imageId) {
@@ -116,6 +121,44 @@ function shouldShowHeroCropSliders(_image) {
 
 function getHeroCropModeSummary(_image) {
   return "Hero images are locked to a 16:9 landscape frame. Use the crop sliders to choose which part of the image remains visible. Portrait and square images cannot be added to the home hero.";
+}
+
+
+function getImportFitMode(item) {
+  return normalizeImportFitMode(item.galleryFitMode);
+}
+
+function getImportFrameStyle(item) {
+  return normalizeImportFrameStyle(item.galleryFrameStyle);
+}
+
+function renderImportHiddenValue(fieldName, value) {
+  return `<input data-import-field="${fieldName}" value="${escapeHtml(value ?? "")}" type="hidden" />`;
+}
+
+function renderImportSelectOptions(options, selectedValue) {
+  return options.map((option) => {
+    const selected = option.value === selectedValue ? "selected" : "";
+
+    return `<option value="${escapeHtml(option.value)}" ${selected}>${escapeHtml(option.label)}</option>`;
+  }).join("");
+}
+
+function renderImportOutputSummary(item) {
+  const outputPaths = getImportOutputPaths(item.id);
+
+  return `
+    <div class="import-pipeline-summary wide" data-import-output-summary>
+      <p class="eyebrow">Rendition output</p>
+      <strong>Will write into public/images/portfolio/</strong>
+      <div class="import-path-grid">
+        <span>display</span><code data-import-output-path="display">${escapeHtml(outputPaths.display)}</code>
+        <span>thumb</span><code data-import-output-path="thumb">${escapeHtml(outputPaths.thumb)}</code>
+        <span>texture</span><code data-import-output-path="texture">${escapeHtml(outputPaths.texture)}</code>
+        <span>full</span><code data-import-output-path="full">${escapeHtml(outputPaths.full)}</code>
+      </div>
+    </div>
+  `;
 }
 
 function getEditorHeroFrameInlineStyle(_image) {
@@ -981,17 +1024,38 @@ export function renderImportReview(state, elements, pendingImportItems) {
   elements.importReview.classList.add("is-active");
 
   elements.importReviewList.innerHTML = pendingImportItems.map((item, index) => {
+    const orientation = item.imageOrientation || "landscape";
+    const aspectRatio = Number(item.imageAspectRatio) > 0 ? Number(item.imageAspectRatio).toFixed(3) : "—";
+    const galleryFitMode = getImportFitMode(item);
+    const galleryFrameStyle = getImportFrameStyle(item);
+    const heroEligible = orientation === "landscape";
+    const importPreviewImage = {
+      ...item,
+      galleryFitMode,
+      galleryFrameStyle
+    };
+
     return `
-      <article class="import-card" data-import-card data-import-index="${index}">
+      <article class="import-card" data-import-card data-import-index="${index}" data-import-state="valid">
         <div class="preview">
           <img
             src="${escapeHtml(item.previewUrl)}"
             alt=""
             style="object-position: ${escapeHtml(item.thumbnailPosition)};"
           />
+
+          <div class="image-diagnostics">
+            <span>${escapeHtml(orientation)}</span>
+            <span>${escapeHtml(String(item.imageWidth || "—"))} × ${escapeHtml(String(item.imageHeight || "—"))}</span>
+            <span>${escapeHtml(aspectRatio)}</span>
+          </div>
         </div>
 
         <div class="fields">
+          <div class="import-card-status wide" data-import-card-status>
+            Ready to import into the portfolio rendition folders.
+          </div>
+
           <label>
             <span>ID</span>
             <input data-import-field="id" value="${escapeHtml(item.id)}" />
@@ -1021,6 +1085,49 @@ export function renderImportReview(state, elements, pendingImportItems) {
             <span>Alt text</span>
             <input data-import-field="alt" value="${escapeHtml(item.alt)}" />
           </label>
+
+          <div class="import-hero-summary wide ${heroEligible ? "" : "is-disabled"}">
+            <p class="eyebrow">Home hero eligibility</p>
+            <strong>${heroEligible ? "Landscape image: eligible" : `${orientation} image: not hero eligible`}</strong>
+            <span>${heroEligible ? "The image can be added to the homepage hero later. Hero display remains locked to 16:9 cover." : "The image will still import, but it cannot be added to the homepage hero because the hero is landscape-only."}</span>
+          </div>
+
+          <label>
+            <span>Gallery frame style</span>
+            <select data-import-field="galleryFrameStyle">
+              ${renderImportSelectOptions([
+                { value: "auto", label: "Auto" },
+                { value: "landscape", label: "Landscape" },
+                { value: "portrait", label: "Portrait" },
+                { value: "square", label: "Square" }
+              ], galleryFrameStyle)}
+            </select>
+          </label>
+
+          <label>
+            <span>Gallery fit mode</span>
+            <select data-import-field="galleryFitMode">
+              ${renderImportSelectOptions([
+                { value: "cover", label: "Cover / Crop to Frame" },
+                { value: "contain", label: "Fit Entire Image" }
+              ], galleryFitMode)}
+            </select>
+          </label>
+
+          ${renderGallerySizeControl(importPreviewImage, "data-import-field")}
+
+          ${renderPositionControls("thumbnailPosition", "Thumbnail crop", item.thumbnailPosition ?? "50% 50%", true)}
+          ${renderPositionControls("galleryPosition", "Virtual gallery crop", item.galleryPosition ?? "50% 50%", true)}
+
+          ${renderImportHiddenValue("heroPosition", item.heroPosition ?? "50% 50%")}          
+          ${renderImportHiddenValue("heroFitMode", "cover")}
+          ${renderImportHiddenValue("heroFrameStyle", "landscape")}
+          ${renderImportHiddenValue("imageWidth", item.imageWidth ?? "")}
+          ${renderImportHiddenValue("imageHeight", item.imageHeight ?? "")}
+          ${renderImportHiddenValue("imageAspectRatio", item.imageAspectRatio ?? "")}
+          ${renderImportHiddenValue("imageOrientation", orientation)}
+
+          ${renderImportOutputSummary(item)}
 
           <label class="wide">
             <span>Note</span>

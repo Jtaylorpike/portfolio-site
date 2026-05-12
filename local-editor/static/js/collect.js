@@ -2,6 +2,11 @@
 // It reads visible form controls and converts them into data records that Flask can save.
 
 import { getFallbackCategoryId, slugify } from "./utils.js";
+import {
+  normalizeImportFitMode,
+  normalizeImportFrameStyle,
+  normalizeImportHeroFrameStyle
+} from "./importValidation.js";
 
 // Reads a field value from one editor card and trims it for JSON output.
 export function getFieldValue(card, field) {
@@ -392,6 +397,10 @@ export function collectImportReviewRecords(state) {
 
   return cards.map((card) => {
     const category = getImportFieldValue(card, "category");
+    const galleryFitMode = normalizeImportFitMode(getImportFieldValue(card, "galleryFitMode"));
+    const heroFitMode = normalizeImportFitMode(getImportFieldValue(card, "heroFitMode"));
+    const galleryFrameStyle = normalizeImportFrameStyle(getImportFieldValue(card, "galleryFrameStyle"));
+    const heroFrameStyle = normalizeImportHeroFrameStyle(getImportFieldValue(card, "heroFrameStyle"));
 
     return {
       id: getImportFieldValue(card, "id"),
@@ -401,12 +410,18 @@ export function collectImportReviewRecords(state) {
       location: getImportFieldValue(card, "location"),
       alt: getImportFieldValue(card, "alt"),
       note: getImportFieldValue(card, "note"),
-      thumbnailPosition: "50% 50%",
-      heroPosition: "50% 50%",
-      galleryPosition: "50% 50%",
-      galleryFitMode: "cover",
-      galleryFrameStyle: "auto",
-      gallerySize: "1"
+      thumbnailPosition: getImportFieldValue(card, "thumbnailPosition") || "50% 50%",
+      heroPosition: getImportFieldValue(card, "heroPosition") || "50% 50%",
+      heroFitMode,
+      heroFrameStyle,
+      galleryPosition: getImportFieldValue(card, "galleryPosition") || "50% 50%",
+      galleryFitMode,
+      galleryFrameStyle,
+      gallerySize: getImportFieldValue(card, "gallerySize") || "1",
+      imageWidth: getImportFieldValue(card, "imageWidth"),
+      imageHeight: getImportFieldValue(card, "imageHeight"),
+      imageAspectRatio: getImportFieldValue(card, "imageAspectRatio"),
+      imageOrientation: getImportFieldValue(card, "imageOrientation")
     };
   });
 }

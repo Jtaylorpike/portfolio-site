@@ -22,7 +22,7 @@
     "heroFitMode": "contain",
     "galleryFitMode": "contain",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "climbing-01",
@@ -47,7 +47,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "climbing-02",
@@ -97,7 +97,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "climbing-climbing-workbook-03",
@@ -122,7 +122,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "climbing-climbing-portfolio-08",
@@ -147,7 +147,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "climbing-climbing-portfolio-09",
@@ -172,7 +172,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "climbing-climbing-workbook-01",
@@ -197,7 +197,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "landscape-01",
@@ -222,7 +222,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "contain",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "landscape-02",
@@ -247,7 +247,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "landscape-03",
@@ -272,7 +272,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "climbing-landscape-portfolio-06",
@@ -297,7 +297,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "landscape-landscape-workbook-03",
@@ -322,7 +322,7 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
   },
   {
     "id": "personal-01",
@@ -347,6 +347,31 @@
     "heroFitMode": "cover",
     "galleryFitMode": "cover",
     "galleryFrameStyle": "auto",
-    "gallerySize": 1
+    "gallerySize": 1.0
+  },
+  {
+    "id": "landscape-201019-jtp6059",
+    "title": "201019 JTP6059",
+    "category": "landscape",
+    "year": "2019",
+    "location": "Boone, NC",
+    "note": "Linville Cove Viaduct",
+    "src": "/images/portfolio/display/landscape-201019-jtp6059.webp",
+    "alt": "Photograph by Taylor Pike: 201019 JTP6059",
+    "imageWidth": 6589,
+    "imageHeight": 4393,
+    "imageAspectRatio": 1.499886,
+    "imageOrientation": "landscape",
+    "thumbSrc": "/images/portfolio/thumb/landscape-201019-jtp6059.webp",
+    "textureSrc": "/images/portfolio/texture/landscape-201019-jtp6059.webp",
+    "fullSrc": "/images/portfolio/full/landscape-201019-jtp6059.webp",
+    "thumbnailPosition": "50% 50%",
+    "heroPosition": "50% 50%",
+    "galleryPosition": "50% 50%",
+    "heroFrameStyle": "landscape",
+    "heroFitMode": "cover",
+    "galleryFitMode": "cover",
+    "galleryFrameStyle": "auto",
+    "gallerySize": 1.0
   }
 ]

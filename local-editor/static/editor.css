@@ -1136,3 +1136,85 @@ input[type="range"] {
   font-size: 13px;
   line-height: 1.5;
 }
+
+/* Import pipeline review. These blocks make the new rendition-based image
+   pipeline visible before files are written to public/images/portfolio/. */
+.import-card[data-import-state="valid"] {
+  border-color: rgba(47, 93, 71, 0.28);
+}
+
+.import-card[data-import-state="warning"] {
+  border-color: rgba(138, 91, 31, 0.34);
+}
+
+.import-card[data-import-state="error"] {
+  border-color: rgba(138, 42, 36, 0.42);
+}
+
+.import-card-status,
+.import-pipeline-summary,
+.import-hero-summary {
+  display: grid;
+  gap: 8px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 253, 248, 0.62);
+  color: var(--muted-strong);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.import-card[data-import-state="valid"] .import-card-status {
+  border-color: rgba(47, 93, 71, 0.24);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.import-card[data-import-state="warning"] .import-card-status,
+.import-hero-summary.is-disabled {
+  border-color: rgba(138, 91, 31, 0.24);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.import-card[data-import-state="error"] .import-card-status {
+  border-color: rgba(138, 42, 36, 0.24);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.import-pipeline-summary strong,
+.import-hero-summary strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.import-path-grid {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: start;
+}
+
+.import-path-grid span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.import-path-grid code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 2px 0;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+button:disabled,
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
