@@ -1,7 +1,8 @@
 ﻿param(
   [string]$ProjectRoot = ".",
   [string]$ExpectedBranch = "dev",
-  [switch]$SkipBuild
+  [switch]$SkipBuild,
+  [switch]$ImageDataWarningsAsErrors
 )
 
 $ErrorActionPreference = "Stop"
@@ -129,8 +130,6 @@ Run-Step "Public image reference audit" {
     Get-Content $summaryPath | ForEach-Object { Add-Line "  $_" }
   }
 
-  # Use the summary count, not the text file content, because stale text report
-  # rows can survive if a prior PowerShell script wrote an empty array poorly.
   $missingCount = Get-SummaryCount -Path $summaryPath -Label "Missing referenced files"
 
   if ($missingCount -gt 0) {
@@ -164,6 +163,39 @@ Run-Step "Optimized portfolio image audit" {
     $prefixRows = @(Import-Csv $prefixPath)
     if ($prefixRows.Count -gt 0) {
       throw "Optimized image audit has $($prefixRows.Count) prefix violations."
+    }
+  }
+}
+
+Run-Step "Portfolio image data validation" {
+  if (-not (Test-Path "scripts\Validate-PortfolioImageData.ps1")) {
+    throw "scripts\Validate-PortfolioImageData.ps1 was not found."
+  }
+
+  if ($ImageDataWarningsAsErrors) {
+    & ".\scripts\Validate-PortfolioImageData.ps1" -WarningsAsErrors
+  }
+  else {
+    & ".\scripts\Validate-PortfolioImageData.ps1"
+  }
+
+  $summaryPath = "asset-reports\portfolio-image-data-validation-summary.txt"
+  if (Test-Path $summaryPath) {
+    Add-Line ""
+    Get-Content $summaryPath | ForEach-Object { Add-Line "  $_" }
+  }
+
+  $errorCount = Get-SummaryCount -Path $summaryPath -Label "Errors"
+
+  if ($errorCount -gt 0) {
+    throw "Portfolio image data validation has $errorCount errors."
+  }
+
+  if ($ImageDataWarningsAsErrors) {
+    $warningCount = Get-SummaryCount -Path $summaryPath -Label "Warnings"
+
+    if ($warningCount -gt 0) {
+      throw "Portfolio image data validation has $warningCount warnings and -ImageDataWarningsAsErrors was set."
     }
   }
 }
