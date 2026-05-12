@@ -1,37 +1,31 @@
-﻿# TaylorPikePortfolio-DevValidationImageDataIntegrationPack-20260512
+﻿# TaylorPikePortfolio-LocalEditorFitModeNormalizationFixPack-20260512
 
 ## Included files
-- `scripts/Validate-PortfolioDevBranch.ps1`
-- `docs/DEV_BRANCH_RELEASE_CHECKLIST.md`
-- `PROJECT_CHANGELOG_APPEND_20260512_DEV_VALIDATION_IMAGE_DATA.md`
+- `local-editor/app/data_store.py`
+- `scripts/Repair-PortfolioImageModes.ps1`
+- `docs/LOCAL_EDITOR_FIT_MODE_NORMALIZATION_FIX.md`
+- `PROJECT_CHANGELOG_APPEND_20260512_EDITOR_FIT_MODE_FIX.md`
 - `REPLACEMENT_PACK_NOTES.md`
 
 ## Purpose
-Integrate the new image data validator into the full dev branch validation script.
+Fix the local editor import error:
 
-## Run
-
-```powershell
-.\scripts\Validate-PortfolioDevBranch.ps1
-```
-
-Strict mode:
-
-```powershell
-.\scripts\Validate-PortfolioDevBranch.ps1 -ImageDataWarningsAsErrors
+```text
+Image 'landscape-201019-jtp6059' has an invalid hero fit mode.
 ```
 
 ## What changed
-The validation script now runs:
+- `save_project_data()` now normalizes categories, images, and hero slides before validating/writing JSON.
+- Invalid fit modes normalize to `cover`.
+- Invalid frame styles normalize to `auto`.
+- Added a repair script for existing JSON records.
 
+## Run
 ```powershell
+.\scripts\Repair-PortfolioImageModes.ps1
+.\scripts\Repair-PortfolioImageModes.ps1 -Apply
 .\scripts\Validate-PortfolioImageData.ps1
+.\scripts\Validate-PortfolioDevBranch.ps1
 ```
 
-and fails if the data validator reports errors.
-
-## Reports
-```text
-asset-reports\dev-branch-validation-latest.txt
-asset-reports\portfolio-image-data-validation-summary.txt
-```
+Then retry the editor import.

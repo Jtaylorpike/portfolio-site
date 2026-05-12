@@ -570,6 +570,46 @@ def normalize_hero_slide(
     }
 
 
+# Normalizes all project data immediately before writing JSON.
+#
+# This is intentionally repeated at the write boundary because some editor
+# workflows create a new record directly and then call save_project_data().
+# Without this final pass, an imported record can carry UI-only values such as
+# "auto" into heroFitMode/galleryFitMode and fail validation.
+def normalize_project_data_for_save(
+    raw_categories: list[Any],
+    raw_images: list[Any],
+    raw_hero_slides: list[Any],
+) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]]:
+    categories = normalize_categories(raw_categories)
+
+    if not categories:
+        categories = normalize_categories(DEFAULT_CATEGORIES)
+
+    valid_category_ids = {category["id"] for category in categories}
+    fallback_category_id = categories[0]["id"]
+
+    images = [
+        normalize_image(image, valid_category_ids, fallback_category_id)
+        for image in raw_images
+        if isinstance(image, dict)
+    ]
+
+    images = relocate_imported_image_assets(images)
+
+    hero_slides = [
+        normalize_hero_slide(slide, valid_category_ids, fallback_category_id)
+        for slide in raw_hero_slides
+        if isinstance(slide, dict)
+    ]
+
+    image_ids = {image["id"] for image in images}
+    hero_slides = [slide for slide in hero_slides if slide["imageId"] in image_ids]
+    hero_slides = filter_hero_slides_for_landscape_images(hero_slides, images)
+
+    return categories, images, hero_slides
+
+
 # Validates the normalized data before it is allowed to overwrite source JSON.
 def validate_project_data(
     categories: list[dict[str, str]],
@@ -673,13 +713,26 @@ def get_current_data() -> tuple[list[dict[str, str]], list[dict[str, Any]], list
     return categories, images, hero_slides
 
 
-# Writes all three source JSON files after validation and backup creation.
+# Writes all three source JSON files after a final normalization, validation,
+# and backup creation pass.
 def save_project_data(
     categories: list[dict[str, str]],
     images: list[dict[str, Any]],
     hero_slides: list[dict[str, str]],
     backup_reason: str,
 ) -> dict[str, Any]:
+    normalized_categories, normalized_images, normalized_hero_slides = normalize_project_data_for_save(
+        categories,
+        images,
+        hero_slides,
+    )
+
+    # Mutate the supplied lists in place so callers that return these objects
+    # to the editor receive the same cleaned data that was written to disk.
+    categories[:] = normalized_categories
+    images[:] = normalized_images
+    hero_slides[:] = normalized_hero_slides
+
     validate_project_data(categories, images, hero_slides)
     backup = create_data_backup(backup_reason)
 
