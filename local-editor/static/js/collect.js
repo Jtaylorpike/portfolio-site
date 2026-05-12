@@ -314,6 +314,58 @@ function collectHeroPageOrder(categories, images) {
     .filter(Boolean);
 }
 
+
+function getGalleryCurationFieldValue(card, field) {
+  const input = card.querySelector(`[data-gallery-curation-field="${field}"]`);
+
+  if (input?.type === "checkbox") {
+    return Boolean(input.checked);
+  }
+
+  return String(input?.value ?? "").trim();
+}
+
+function getGalleryDisplayStatusValue(card) {
+  const value = getGalleryCurationFieldValue(card, "showInGallery");
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  const normalizedValue = String(value ?? "").trim().toLowerCase();
+
+  return !["hidden", "inactive", "false", "0", "off", "hide"].includes(normalizedValue);
+}
+
+// Collects one virtual gallery wall/artwork curation card.
+export function collectGalleryCurationCard(card, state, fallbackDisplayOrder = 1) {
+  const validImageIds = new Set((state.images ?? []).map((image) => image.id).filter(Boolean));
+  const artworkId = getGalleryCurationFieldValue(card, "artworkId");
+  const wallType = getGalleryCurationFieldValue(card, "wallType") || "standard-display-wall";
+  const plaqueSide = getGalleryCurationFieldValue(card, "plaqueSide") || "auto";
+
+  return {
+    wallId: card.dataset.wallId ?? "",
+    artworkId: validImageIds.has(artworkId) ? artworkId : "",
+    showInGallery: getGalleryDisplayStatusValue(card),
+    displayOrder: fallbackDisplayOrder,
+    wallType,
+    plaqueEnabled: Boolean(getGalleryCurationFieldValue(card, "plaqueEnabled")),
+    plaqueSide
+  };
+}
+
+// Collects the virtual gallery wall/artwork curation page.
+export function collectGalleryCuration(state) {
+  const cards = Array.from(document.querySelectorAll("[data-gallery-curation-card]"));
+
+  if (!cards.length) {
+    return state.galleryCuration ?? [];
+  }
+
+  return cards.map((card, index) => collectGalleryCurationCard(card, state, index + 1));
+}
+
 // Builds the full JSON payload for normal Save JSON actions.
 export function collectEditorData(state) {
   const categories = collectCategories();

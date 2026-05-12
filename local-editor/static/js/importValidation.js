@@ -6,6 +6,32 @@ export const VALID_IMPORT_FRAME_STYLES = new Set(["auto", "landscape", "portrait
 export const VALID_IMPORT_ORIENTATIONS = new Set(["landscape", "portrait", "square"]);
 export const IMAGE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+export function makeImageIdFromTitle(title) {
+  const slug = String(title ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || "untitled-image";
+}
+
+export function makeUniqueImageId(baseId, existingIds = new Set(), currentId = "") {
+  const safeBaseId = makeImageIdFromTitle(baseId);
+  let candidate = safeBaseId;
+  let count = 2;
+
+  const ids = existingIds instanceof Set ? existingIds : new Set(existingIds);
+
+  while (ids.has(candidate) && candidate !== currentId) {
+    candidate = `${safeBaseId}-${count}`;
+    count += 1;
+  }
+
+  return candidate;
+}
+
+
 export function normalizeImportFitMode(value) {
   return value === "contain" ? "contain" : "cover";
 }
@@ -48,7 +74,7 @@ export function getImportGalleryDefaultSize(orientation) {
 }
 
 export function getImportOutputPaths(imageId) {
-  const safeId = String(imageId || "image-id").trim() || "image-id";
+  const safeId = makeImageIdFromTitle(imageId || "image-id");
 
   return {
     display: `/images/portfolio/display/${safeId}.webp`,

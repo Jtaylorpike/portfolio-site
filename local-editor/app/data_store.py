@@ -27,6 +27,7 @@ BACKUP_DIR = PROJECT_ROOT / "local-editor" / "backups"
 CATEGORIES_PATH = DATA_DIR / "categories.json"
 GALLERY_IMAGES_PATH = DATA_DIR / "galleryImages.json"
 HERO_SLIDES_PATH = DATA_DIR / "heroSlides.json"
+GALLERY_CURATION_PATH = DATA_DIR / "galleryCuration.json"
 
 DEFAULT_CATEGORIES = [
     {"id": "climbing", "label": "Climbing"},
@@ -51,7 +52,175 @@ GALLERY_MIN_SIZE = 0.55
 SUPPORTED_FIT_MODES = {"cover", "contain"}
 SUPPORTED_FRAME_STYLES = {"auto", "landscape", "portrait", "square"}
 SUPPORTED_ORIENTATIONS = {"landscape", "portrait", "square"}
+IMAGE_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+PORTFOLIO_RENDITION_FOLDERS = {
+    "src": "display",
+    "thumbSrc": "thumb",
+    "textureSrc": "texture",
+    "fullSrc": "full",
+}
 POSITION_PATTERN = re.compile(r"^\d{1,3}(?:\.\d+)?%\s+\d{1,3}(?:\.\d+)?%$")
+SUPPORTED_WALL_TYPES = {
+    "feature-wall",
+    "wide-display-wall",
+    "standard-display-wall",
+    "compact-display-wall",
+    "narrow-transition-wall",
+}
+LEGACY_WALL_TYPES = {
+    "entry-feature-wall": "feature-wall",
+    "transition-guide-wall": "wide-display-wall",
+    "outer-gallery-wall": "wide-display-wall",
+    "inner-partition-wall": "standard-display-wall",
+    "rear-gallery-wall": "wide-display-wall",
+    "unassigned-wall": "narrow-transition-wall",
+}
+SUPPORTED_PLAQUE_SIDES = {"auto", "left", "right", "none"}
+
+
+# Maps earlier semantic/gallery-zone wall labels into the current physical
+# wall-block type model. The editor now treats wall type as scale/shape metadata
+# because room placement will continue to evolve.
+def legacy_wall_section_to_type(value: str) -> str:
+    legacy = clean_string(value)
+
+    if legacy in {"Entry", "Personal"}:
+        return "feature-wall"
+
+    if legacy in {"Climbing", "Landscape", "Rear Wall"}:
+        return "wide-display-wall"
+
+    return "standard-display-wall"
+
+
+def make_unique_image_id(requested_image_id: str, existing_ids: set[str], current_image_id: str = "") -> str:
+    """Return a safe, unique image ID for the controlled rename workflow.
+
+    The browser sends a suggested title-based ID, but the backend remains the
+    authority. This mirrors the import review behavior by slugifying the value
+    and appending a numeric suffix only when another image already owns the ID.
+    """
+
+    base_id = slugify(clean_string(requested_image_id))
+    current_image_id = clean_string(current_image_id)
+
+    if current_image_id and base_id == current_image_id:
+        return current_image_id
+
+    candidate = base_id
+    count = 2
+
+    while candidate in existing_ids:
+        candidate = f"{base_id}-{count}"
+        count += 1
+
+    return candidate
+
+
+def make_portfolio_rendition_url(field_name: str, image_id: str) -> str:
+    """Build the canonical public URL for one image rendition field."""
+
+    folder_name = PORTFOLIO_RENDITION_FOLDERS.get(field_name)
+
+    if not folder_name:
+        raise DataValidationError(f"Unsupported rendition field for image ID rename: {field_name}")
+
+    return f"/images/portfolio/{folder_name}/{image_id}.webp"
+
+
+def resolve_public_url_path(url: str) -> Path:
+    """Resolve a public asset URL to a safe path inside public/."""
+
+    clean_url = clean_string(url)
+
+    if not clean_url.startswith("/"):
+        raise DataValidationError(f"Portfolio image path must start with '/': {clean_url}")
+
+    relative_path = clean_url.lstrip("/")
+    resolved_path = (PUBLIC_DIR / relative_path).resolve()
+    public_root = PUBLIC_DIR.resolve()
+
+    if public_root not in resolved_path.parents and resolved_path != public_root:
+        raise DataValidationError(f"Portfolio image path is outside public/: {clean_url}")
+
+    return resolved_path
+
+
+def get_rename_file_plan(image: dict[str, Any], new_image_id: str) -> list[dict[str, Any]]:
+    """Plan JSON path updates and filesystem moves for all portfolio renditions."""
+
+    file_plan: list[dict[str, Any]] = []
+
+    for field_name in ["src", "thumbSrc", "textureSrc", "fullSrc"]:
+        current_url = clean_string(image.get(field_name))
+
+        if not current_url:
+            raise DataValidationError(f"Image '{image.get('id', 'unknown')}' is missing {field_name}.")
+
+        target_url = make_portfolio_rendition_url(field_name, new_image_id)
+        current_path = resolve_public_url_path(current_url)
+        target_path = resolve_public_url_path(target_url)
+
+        if current_path == target_path:
+            file_plan.append(
+                {
+                    "field": field_name,
+                    "currentUrl": current_url,
+                    "targetUrl": target_url,
+                    "currentPath": current_path,
+                    "targetPath": target_path,
+                    "moveRequired": False,
+                }
+            )
+            continue
+
+        if not current_path.exists():
+            raise DataValidationError(f"Cannot rename missing rendition file: {current_url}")
+
+        if target_path.exists():
+            raise DataValidationError(f"Cannot rename image ID because target rendition already exists: {target_url}")
+
+        file_plan.append(
+            {
+                "field": field_name,
+                "currentUrl": current_url,
+                "targetUrl": target_url,
+                "currentPath": current_path,
+                "targetPath": target_path,
+                "moveRequired": True,
+            }
+        )
+
+    return file_plan
+
+
+def apply_rename_file_plan(file_plan: list[dict[str, Any]]) -> None:
+    """Move rendition files for an image ID rename and roll back on failure."""
+
+    moved_items: list[dict[str, Any]] = []
+
+    try:
+        for item in file_plan:
+            if not item.get("moveRequired"):
+                continue
+
+            current_path = item["currentPath"]
+            target_path = item["targetPath"]
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            current_path.rename(target_path)
+            moved_items.append(item)
+    except OSError as error:
+        for moved_item in reversed(moved_items):
+            current_path = moved_item["currentPath"]
+            target_path = moved_item["targetPath"]
+
+            try:
+                if target_path.exists() and not current_path.exists():
+                    target_path.rename(current_path)
+            except OSError:
+                pass
+
+        raise DataValidationError(f"Could not rename portfolio rendition files: {error}") from error
 
 
 class DataValidationError(ValueError):
@@ -96,7 +265,7 @@ def create_data_backup(reason: str) -> dict[str, Any]:
 
     backed_up_files: list[str] = []
 
-    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH]:
+    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH, GALLERY_CURATION_PATH]:
         if not source_path.exists():
             continue
 
@@ -172,7 +341,7 @@ def summarize_backup_folder(backup_path: Path) -> dict[str, Any]:
     manifest = read_backup_manifest(backup_path)
     files = [
         file_name
-        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json"]
+        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json"]
         if (backup_path / file_name).exists()
     ]
 
@@ -189,7 +358,7 @@ def summarize_backup_folder(backup_path: Path) -> dict[str, Any]:
         "reason": clean_string(manifest.get("reason")) or "backup",
         "createdAtUtc": created_at_utc,
         "files": files,
-        "canRestore": all(file_name in files for file_name in ["categories.json", "galleryImages.json", "heroSlides.json"]),
+        "canRestore": all(file_name in files for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json"]),
     }
 
 
@@ -287,6 +456,16 @@ def restore_data_backup(backup_name: str) -> tuple[list[dict[str, str]], list[di
     shutil.copy2(backup_path / "categories.json", CATEGORIES_PATH)
     shutil.copy2(backup_path / "galleryImages.json", GALLERY_IMAGES_PATH)
     shutil.copy2(backup_path / "heroSlides.json", HERO_SLIDES_PATH)
+
+    backup_gallery_curation_path = backup_path / "galleryCuration.json"
+
+    if backup_gallery_curation_path.exists():
+        raw_gallery_curation = read_json(backup_gallery_curation_path)
+        gallery_curation = normalize_gallery_curation(raw_gallery_curation, {image["id"] for image in images})
+    else:
+        gallery_curation = get_current_gallery_curation(images)
+
+    write_json(GALLERY_CURATION_PATH, gallery_curation)
 
     restored_backup = summarize_backup_folder(backup_path)
 
@@ -642,6 +821,9 @@ def validate_project_data(
         if not clean_string(image.get("id")):
             raise DataValidationError("Every image needs a non-empty ID.")
 
+        if not IMAGE_ID_PATTERN.match(clean_string(image.get("id"))):
+            raise DataValidationError(f"Image '{image_id}' ID must use lowercase letters, numbers, and hyphens only.")
+
         if not clean_string(image.get("title")):
             raise DataValidationError(f"Image '{image_id}' needs a title.")
 
@@ -678,6 +860,202 @@ def validate_project_data(
 
         if not is_landscape_hero_image(images_by_id.get(slide.get("imageId", ""))):
             raise DataValidationError(f"Hero slide must use a landscape image: {slide.get('imageId')}")
+
+
+# Converts incoming values into booleans for gallery curation controls.
+def clean_bool(value: Any, fallback: bool = True) -> bool:
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+
+        if lowered in {"true", "1", "yes", "on", "active", "visible", "show"}:
+            return True
+
+        if lowered in {"false", "0", "no", "off", "hidden", "inactive", "hide"}:
+            return False
+
+    return fallback
+
+
+# Converts incoming values into positive integers for curation ordering.
+def clean_positive_order(value: Any, fallback: int) -> int:
+    try:
+        order = int(float(value))
+    except (TypeError, ValueError):
+        return fallback
+
+    if order <= 0:
+        return fallback
+
+    return order
+
+
+# Normalizes one wall/artwork assignment row from galleryCuration.json.
+def normalize_gallery_curation_record(
+    raw_record: dict[str, Any],
+    valid_image_ids: set[str],
+    fallback_order: int,
+) -> dict[str, Any]:
+    wall_id = slugify(clean_string(raw_record.get("wallId")))
+    artwork_id = clean_string(raw_record.get("artworkId"))
+    wall_type = clean_string(raw_record.get("wallType"))
+    plaque_side = clean_string(raw_record.get("plaqueSide"))
+
+    if artwork_id and artwork_id not in valid_image_ids:
+        artwork_id = ""
+
+    if wall_type in LEGACY_WALL_TYPES:
+        wall_type = LEGACY_WALL_TYPES[wall_type]
+
+    if wall_type not in SUPPORTED_WALL_TYPES:
+        wall_type = legacy_wall_section_to_type(clean_string(raw_record.get("wallSection")))
+
+    if wall_type not in SUPPORTED_WALL_TYPES:
+        wall_type = "standard-display-wall"
+
+    if plaque_side not in SUPPORTED_PLAQUE_SIDES:
+        plaque_side = "auto"
+
+    return {
+        "wallId": wall_id,
+        "artworkId": artwork_id,
+        "showInGallery": clean_bool(raw_record.get("showInGallery"), True),
+        "displayOrder": clean_positive_order(raw_record.get("displayOrder"), fallback_order),
+        "wallType": wall_type,
+        "plaqueEnabled": clean_bool(raw_record.get("plaqueEnabled"), True),
+        "plaqueSide": plaque_side,
+    }
+
+
+# Normalizes the full list of editable gallery wall assignments.
+def normalize_gallery_curation(
+    raw_gallery_curation: Any,
+    valid_image_ids: set[str],
+) -> list[dict[str, Any]]:
+    if not isinstance(raw_gallery_curation, list):
+        return []
+
+    records: list[dict[str, Any]] = []
+    used_wall_ids: set[str] = set()
+
+    for index, raw_record in enumerate(raw_gallery_curation, start=1):
+        if not isinstance(raw_record, dict):
+            continue
+
+        record = normalize_gallery_curation_record(raw_record, valid_image_ids, index)
+
+        if not record["wallId"] or record["wallId"] in used_wall_ids:
+            continue
+
+        used_wall_ids.add(record["wallId"])
+        records.append(record)
+
+    return sorted(records, key=lambda record: record.get("displayOrder", 9999))
+
+
+# Reads the gallery curation file, using current images to drop broken artwork references.
+def get_current_gallery_curation(images: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    if images is None:
+        _categories, images, _hero_slides = get_current_data()
+
+    valid_image_ids = {image["id"] for image in images}
+
+    return normalize_gallery_curation(read_json(GALLERY_CURATION_PATH), valid_image_ids)
+
+
+# Validates gallery curation references before writing them to disk.
+def validate_gallery_curation(gallery_curation: list[dict[str, Any]], valid_image_ids: set[str]) -> None:
+    wall_ids = [record.get("wallId", "") for record in gallery_curation]
+
+    if len(wall_ids) != len(set(wall_ids)):
+        raise DataValidationError("Gallery curation contains duplicate wall IDs.")
+
+    for record in gallery_curation:
+        wall_id = clean_string(record.get("wallId"))
+        artwork_id = clean_string(record.get("artworkId"))
+
+        if not wall_id:
+            raise DataValidationError("Gallery curation rows must include a wall ID.")
+
+        if artwork_id and artwork_id not in valid_image_ids:
+            raise DataValidationError(f"Gallery wall '{wall_id}' references a missing image: {artwork_id}")
+
+        if record.get("wallType") not in SUPPORTED_WALL_TYPES:
+            raise DataValidationError(f"Gallery wall '{wall_id}' has an invalid wall type.")
+
+        if record.get("plaqueSide") not in SUPPORTED_PLAQUE_SIDES:
+            raise DataValidationError(f"Gallery wall '{wall_id}' has an invalid plaque side.")
+
+
+# Saves only the curation file so wall assignments do not rewrite image/category JSON.
+def save_gallery_curation(raw_gallery_curation: Any) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], list[dict[str, Any]], dict[str, Any]]:
+    categories, images, hero_slides = get_current_data()
+    valid_image_ids = {image["id"] for image in images}
+    gallery_curation = normalize_gallery_curation(raw_gallery_curation, valid_image_ids)
+
+    validate_gallery_curation(gallery_curation, valid_image_ids)
+    backup = create_data_backup("gallery-curation-save")
+    write_json(GALLERY_CURATION_PATH, gallery_curation)
+
+    return categories, images, hero_slides, gallery_curation, backup
+
+
+# Saves one gallery wall curation record by merging it into the current curation
+# file. This lets each wall card have a local save action without accidentally
+# treating every unsaved card on the page as part of the save.
+def save_gallery_curation_wall(raw_wall_record: Any) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], list[dict[str, Any]], dict[str, Any]]:
+    if not isinstance(raw_wall_record, dict):
+        raise DataValidationError("Gallery wall record must be an object.")
+
+    categories, images, hero_slides = get_current_data()
+    valid_image_ids = {image["id"] for image in images}
+    current_gallery_curation = get_current_gallery_curation(images)
+    fallback_order = len(current_gallery_curation) + 1
+    updated_record = normalize_gallery_curation_record(raw_wall_record, valid_image_ids, fallback_order)
+
+    if not updated_record["wallId"]:
+        raise DataValidationError("Gallery wall record must include a wall ID.")
+
+    merged_gallery_curation: list[dict[str, Any]] = []
+    found_wall = False
+
+    for existing_record in current_gallery_curation:
+        if existing_record.get("wallId") == updated_record["wallId"]:
+            found_wall = True
+            merged_gallery_curation.append(updated_record)
+        else:
+            merged_gallery_curation.append(existing_record)
+
+    if not found_wall:
+        merged_gallery_curation.append(updated_record)
+
+    gallery_curation = normalize_gallery_curation(merged_gallery_curation, valid_image_ids)
+    validate_gallery_curation(gallery_curation, valid_image_ids)
+    backup = create_data_backup(f"gallery-curation-wall-{updated_record['wallId']}")
+    write_json(GALLERY_CURATION_PATH, gallery_curation)
+
+    return categories, images, hero_slides, gallery_curation, backup
+
+
+# Updates gallery curation references when an image ID is renamed.
+def rename_gallery_curation_image_reference(
+    current_image_id: str,
+    new_image_id: str,
+    valid_image_ids: set[str],
+) -> list[dict[str, Any]]:
+    raw_gallery_curation = read_json(GALLERY_CURATION_PATH)
+
+    if isinstance(raw_gallery_curation, list):
+        for record in raw_gallery_curation:
+            if isinstance(record, dict) and clean_string(record.get("artworkId")) == current_image_id:
+                record["artworkId"] = new_image_id
+
+    gallery_curation = normalize_gallery_curation(raw_gallery_curation, valid_image_ids)
+    validate_gallery_curation(gallery_curation, valid_image_ids)
+
+    return gallery_curation
 
 
 # Reads all JSON data files and returns normalized categories, images, and hero slides.
@@ -774,6 +1152,87 @@ def save_full_data(
     backup = save_project_data(categories, images, hero_slides, "full-editor-save")
 
     return categories, images, hero_slides, backup
+
+
+def rename_image_id(
+    current_image_id: str,
+    requested_new_image_id: str,
+) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], dict[str, Any], dict[str, Any], list[dict[str, str]]]:
+    """Rename an image ID, update references, and rename portfolio rendition files."""
+
+    current_image_id = clean_string(current_image_id)
+    requested_new_image_id = clean_string(requested_new_image_id)
+
+    if not current_image_id:
+        raise ValueError("Current image ID is required.")
+
+    if not requested_new_image_id:
+        raise DataValidationError("New image ID is required.")
+
+    categories, images, hero_slides = get_current_data()
+    image_index = next((index for index, image in enumerate(images) if image.get("id") == current_image_id), -1)
+
+    if image_index < 0:
+        raise ValueError(f"Image not found: {current_image_id}")
+
+    existing_ids = {image["id"] for image in images if image.get("id") != current_image_id}
+    new_image_id = make_unique_image_id(requested_new_image_id, existing_ids, current_image_id)
+
+    if new_image_id == current_image_id:
+        return categories, images, hero_slides, images[image_index], {"backupFolder": ""}, []
+
+    if not IMAGE_ID_PATTERN.match(new_image_id):
+        raise DataValidationError("New image ID must use lowercase letters, numbers, and hyphens only.")
+
+    original_image = images[image_index]
+    file_plan = get_rename_file_plan(original_image, new_image_id)
+
+    updated_image = {
+        **original_image,
+        "id": new_image_id,
+    }
+
+    for item in file_plan:
+        updated_image[item["field"]] = item["targetUrl"]
+
+    images[image_index] = updated_image
+
+    hero_slides = [
+        {
+            **slide,
+            "imageId": new_image_id if slide.get("imageId") == current_image_id else slide.get("imageId", ""),
+        }
+        for slide in hero_slides
+    ]
+
+    gallery_curation = rename_gallery_curation_image_reference(
+        current_image_id,
+        new_image_id,
+        {image["id"] for image in images},
+    )
+
+    # Validate before touching files. This catches duplicate IDs and bad references.
+    validate_project_data(categories, images, hero_slides)
+    validate_gallery_curation(gallery_curation, {image["id"] for image in images})
+
+    backup = create_data_backup(f"rename-image-id-{current_image_id}-to-{new_image_id}")
+    apply_rename_file_plan(file_plan)
+
+    write_json(GALLERY_IMAGES_PATH, images)
+    write_json(HERO_SLIDES_PATH, hero_slides)
+    write_json(GALLERY_CURATION_PATH, gallery_curation)
+
+    file_moves = [
+        {
+            "field": item["field"],
+            "from": item["currentUrl"],
+            "to": item["targetUrl"],
+        }
+        for item in file_plan
+    ]
+
+    return categories, images, hero_slides, updated_image, backup, file_moves
+
 
 
 # Fields that can be updated by crop pages without rewriting the entire image list.

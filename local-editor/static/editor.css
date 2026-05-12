@@ -1218,3 +1218,314 @@ button:disabled,
   cursor: not-allowed;
   opacity: 0.52;
 }
+
+
+/* Image identity rename workflow. The ID is a data key and filename stem, so it
+   uses a controlled panel instead of a normal free-edit field. */
+.image-identity-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 253, 248, 0.68);
+}
+
+.image-identity-panel strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.image-identity-panel span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.image-identity-panel code,
+.identity-path-preview code {
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+
+.identity-path-preview {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: start;
+}
+
+.identity-path-preview span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.identity-actions,
+.import-id-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.import-id-actions {
+  align-self: end;
+}
+
+.import-id-actions span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.button.subtle {
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--text-soft);
+  border-color: var(--line);
+}
+
+
+/* Virtual gallery curation controls. These edit image-to-wall assignments while
+   the fixed architectural layout remains in the TypeScript gallery blueprint. */
+.gallery-curation-list {
+  display: grid;
+  gap: 14px;
+}
+
+.gallery-curation-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 253, 248, 0.78);
+  box-shadow: var(--shadow-soft);
+}
+
+.gallery-curation-thumb {
+  position: relative;
+  min-height: 170px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(28, 27, 24, 0.08);
+}
+
+.gallery-curation-thumb img {
+  width: 100%;
+  height: 100%;
+  min-height: 170px;
+  object-fit: cover;
+  display: block;
+}
+
+.gallery-curation-thumb.is-empty {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.gallery-curation-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.gallery-curation-heading {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+}
+
+.gallery-curation-heading h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.gallery-curation-heading span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.check-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  min-height: 42px;
+}
+
+.check-row input {
+  width: auto;
+}
+
+
+.gallery-selected-artwork {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.gallery-selected-artwork h4 {
+  margin: 4px 0 4px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.gallery-selected-artwork p:not(.eyebrow) {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fallback-select span {
+  color: var(--muted);
+}
+
+.gallery-wall-type-note {
+  align-self: stretch;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(28, 27, 24, 0.045);
+}
+
+.gallery-wall-type-note span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gallery-wall-type-note p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.gallery-artwork-picker[hidden] {
+  display: none;
+}
+
+.gallery-artwork-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.gallery-artwork-picker-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 15, 13, 0.68);
+  backdrop-filter: blur(8px);
+}
+
+.gallery-artwork-picker-panel {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, calc(100vw - 48px));
+  max-height: min(760px, calc(100vh - 48px));
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-lg);
+  background: rgba(246, 240, 229, 0.96);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.36);
+}
+
+.gallery-artwork-picker-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.gallery-artwork-picker-header h2 {
+  margin: 2px 0 6px;
+}
+
+.gallery-artwork-picker-actions {
+  margin-bottom: 14px;
+}
+
+.gallery-artwork-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.gallery-artwork-picker-card {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 253, 248, 0.84);
+  color: inherit;
+  cursor: pointer;
+}
+
+.gallery-artwork-picker-card:hover,
+.gallery-artwork-picker-card.is-selected {
+  border-color: rgba(28, 27, 24, 0.72);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.gallery-artwork-picker-image {
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: calc(var(--radius-md) - 4px);
+  background: rgba(28, 27, 24, 0.08);
+}
+
+.gallery-artwork-picker-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gallery-artwork-picker-title {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.gallery-artwork-picker-meta {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+@media (max-width: 760px) {
+  .gallery-curation-card {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-curation-fields {
+    grid-template-columns: 1fr;
+  }
+}

@@ -13,7 +13,7 @@ import {
   wallPresets,
   type PlaqueSide,
   type WallBlock,
-  type WallSection
+  type WallTypeName
 } from '../environment/galleryBlueprint';
 
 export { ceilingLightPanels, galleryFloor, galleryRoom, galleryStart, movementBounds };
@@ -45,7 +45,8 @@ export type GalleryArtwork = {
 
   showInGallery: boolean;
   displayOrder: number;
-  wallSection: WallSection;
+  wallType: WallTypeName;
+  wallSection: string;
   plaqueEnabled: boolean;
   plaqueSide: Exclude<PlaqueSide, 'none'>;
   wallWidth: number;
@@ -119,32 +120,49 @@ function getArtworkPosition(wall: WallBlock): [number, number, number] {
 }
 
 
-function inferWallSection(wall: WallBlock): WallSection {
-  if (wall.wallSection) {
-    return wall.wallSection;
+function inferWallType(wall: WallBlock): WallTypeName {
+  if (wall.wallType) {
+    return wall.wallType;
   }
 
-  if (wall.id.includes('entry')) {
-    return 'Entry';
+  if (wall.preset === 'hero') {
+    return 'feature-wall';
   }
 
-  if (wall.id.includes('landscape')) {
-    return 'Landscape';
+  if (wall.preset === 'long') {
+    return 'wide-display-wall';
   }
 
-  if (wall.id.includes('climbing')) {
-    return 'Climbing';
+  if (wall.preset === 'medium') {
+    return 'standard-display-wall';
   }
 
-  if (wall.id.includes('rear')) {
-    return 'Rear Wall';
+  if (wall.preset === 'short') {
+    return 'compact-display-wall';
   }
 
-  if (wall.id.includes('personal')) {
-    return 'Personal';
+  if (wall.preset === 'narrow') {
+    return 'narrow-transition-wall';
   }
 
-  return 'Unassigned';
+  return 'standard-display-wall';
+}
+
+function getWallTypeLabel(wallType: WallTypeName): string {
+  switch (wallType) {
+    case 'feature-wall':
+      return 'Feature wall';
+    case 'wide-display-wall':
+      return 'Wide display wall';
+    case 'standard-display-wall':
+      return 'Standard display wall';
+    case 'compact-display-wall':
+      return 'Compact display wall';
+    case 'narrow-transition-wall':
+      return 'Narrow transition wall';
+    default:
+      return 'Standard display wall';
+  }
 }
 
 function inferPlaqueSide(wall: WallBlock): Exclude<PlaqueSide, 'none'> {
@@ -232,6 +250,7 @@ export const galleryArtworks: GalleryArtwork[] = wallBlocks.flatMap((wall, wallI
   }
 
   const artworkSize = getArtworkSize(wall);
+  const wallType = inferWallType(wall);
 
   return [
     {
@@ -244,7 +263,8 @@ export const galleryArtworks: GalleryArtwork[] = wallBlocks.flatMap((wall, wallI
 
       showInGallery: isWallVisibleInGallery(wall),
       displayOrder: wall.displayOrder ?? wallIndex + 1,
-      wallSection: inferWallSection(wall),
+      wallType,
+      wallSection: getWallTypeLabel(wallType),
       plaqueEnabled: isWallPlaqueEnabled(wall),
       plaqueSide: inferPlaqueSide(wall),
       wallWidth: getWallPreset(wall).width,

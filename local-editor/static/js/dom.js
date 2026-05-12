@@ -8,6 +8,7 @@ export const elements = {
 
   editorList: document.querySelector("#editorList"),
   backupList: document.querySelector("#backupList"),
+  galleryCurationList: document.querySelector("#galleryCurationList"),
   categoryList: document.querySelector("#categoryList"),
   statusText: document.querySelector("#statusText"),
   saveButton: document.querySelector("#saveButton"),

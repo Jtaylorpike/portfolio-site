@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taylor Pike Portfolio Editor</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=15" />
-  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=15"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=22" />
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=22"></script>
 </head>
 
 <body>
@@ -30,6 +30,7 @@
     <nav class="editor-nav" aria-label="Editor navigation">
       <a href="#/images" data-editor-route-link="images">Images</a>
       <a href="#/import" data-editor-route-link="import">Import</a>
+      <a href="#/gallery" data-editor-route-link="gallery">Gallery</a>
       <a href="#/categories" data-editor-route-link="categories">Categories</a>
       <a href="#/backups" data-editor-route-link="backups">Backups</a>
     </nav>
@@ -105,6 +106,19 @@
           <div class="import-review-list" id="importReviewList"></div>
         </div>
       </section>
+    </section>
+
+    <!-- Gallery page: assigns portfolio images to fixed 3D gallery wall positions. -->
+    <section class="editor-page-section" data-editor-page="gallery">
+      <div class="section-heading">
+        <p class="eyebrow">Virtual Gallery</p>
+        <h2>Gallery curation controls</h2>
+        <p>
+          Choose which image appears on each gallery wall slot, assign descriptive wall types, and set plaque behavior without editing the Three.js blueprint by hand.
+        </p>
+      </div>
+
+      <section class="editor-list" id="galleryCurationList"></section>
     </section>
 
     <!-- Categories page: manages the order and labels used throughout the site. -->

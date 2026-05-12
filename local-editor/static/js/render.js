@@ -17,6 +17,7 @@ import {
 } from "./galleryFraming.js";
 import {
   getImportOutputPaths,
+  makeImageIdFromTitle,
   normalizeImportFitMode,
   normalizeImportFrameStyle
 } from "./importValidation.js";
@@ -160,6 +161,41 @@ function renderImportOutputSummary(item) {
     </div>
   `;
 }
+
+function renderImageIdentityPanel(image) {
+  const suggestedId = makeImageIdFromTitle(image.title || image.id);
+  const outputPaths = getImportOutputPaths(suggestedId);
+
+  return `
+    <div class="image-identity-panel wide">
+      <p class="eyebrow">Image identity</p>
+      <strong>Current ID: <code data-current-image-id>${escapeHtml(image.id)}</code></strong>
+      <span>
+        IDs drive hero references, editor routes, and portfolio rendition filenames.
+        Use this controlled rename instead of editing paths by hand.
+      </span>
+
+      <label>
+        <span>Suggested title-based ID</span>
+        <input data-image-id-suggestion value="${escapeHtml(suggestedId)}" />
+      </label>
+
+      <div class="identity-path-preview" data-image-id-path-preview>
+        <span>display</span><code data-image-id-preview-path="display">${escapeHtml(outputPaths.display)}</code>
+        <span>thumb</span><code data-image-id-preview-path="thumb">${escapeHtml(outputPaths.thumb)}</code>
+        <span>texture</span><code data-image-id-preview-path="texture">${escapeHtml(outputPaths.texture)}</code>
+        <span>full</span><code data-image-id-preview-path="full">${escapeHtml(outputPaths.full)}</code>
+      </div>
+
+      <div class="identity-actions">
+        <button class="button" type="button" data-suggest-title-id>Refresh From Title</button>
+        <button class="button danger" type="button" data-rename-image-id>Rename ID + Rendition Files</button>
+      </div>
+    </div>
+  `;
+}
+
+
 
 function getEditorHeroFrameInlineStyle(_image) {
   return [
@@ -671,10 +707,9 @@ function renderImageEditCard(state, image) {
       </div>
 
       <div class="fields">
-        <label>
-          <span>ID</span>
-          <input data-field="id" value="${escapeHtml(image.id)}" readonly />
-        </label>
+        <input type="hidden" data-field="id" value="${escapeHtml(image.id)}" />
+
+        ${renderImageIdentityPanel(image)}
 
         <label>
           <span>Title</span>
@@ -1036,7 +1071,7 @@ export function renderImportReview(state, elements, pendingImportItems) {
     };
 
     return `
-      <article class="import-card" data-import-card data-import-index="${index}" data-import-state="valid">
+      <article class="import-card" data-import-card data-import-index="${index}" data-import-id-manual="false" data-import-state="valid">
         <div class="preview">
           <img
             src="${escapeHtml(item.previewUrl)}"
@@ -1060,6 +1095,11 @@ export function renderImportReview(state, elements, pendingImportItems) {
             <span>ID</span>
             <input data-import-field="id" value="${escapeHtml(item.id)}" />
           </label>
+
+          <div class="import-id-actions">
+            <button class="button subtle" type="button" data-import-use-title-id>Use Title as ID</button>
+            <span>IDs default to a slug based on title. Manual edits are allowed before save.</span>
+          </div>
 
           <label>
             <span>Title</span>
@@ -1139,6 +1179,349 @@ export function renderImportReview(state, elements, pendingImportItems) {
   }).join("");
 }
 
+
+
+
+const GALLERY_WALL_TYPES = [
+  {
+    value: "feature-wall",
+    label: "Feature wall",
+    description: "Hero-scale wall block for the strongest first-read or anchor image. Uses the largest wall and artwork scale."
+  },
+  {
+    value: "wide-display-wall",
+    label: "Wide display wall",
+    description: "Long horizontal wall block for large landscape-oriented display moments."
+  },
+  {
+    value: "standard-display-wall",
+    label: "Standard display wall",
+    description: "Medium wall block for regular single-image display."
+  },
+  {
+    value: "compact-display-wall",
+    label: "Compact display wall",
+    description: "Short wall block for smaller works, visual pauses, or tighter room sections."
+  },
+  {
+    value: "narrow-transition-wall",
+    label: "Narrow transition wall",
+    description: "Slim wall block for tighter transitional moments, guide panels, or narrow room sections."
+  }
+];
+
+function getWallTypeFromLegacySection(value) {
+  switch (String(value ?? "").trim()) {
+    case "Entry":
+    case "Personal":
+      return "feature-wall";
+    case "Climbing":
+    case "Landscape":
+    case "Rear Wall":
+      return "wide-display-wall";
+    default:
+      return "standard-display-wall";
+  }
+}
+
+function getWallTypeFromLegacyType(value) {
+  switch (String(value ?? "").trim()) {
+    case "entry-feature-wall":
+      return "feature-wall";
+    case "transition-guide-wall":
+    case "outer-gallery-wall":
+    case "rear-gallery-wall":
+      return "wide-display-wall";
+    case "inner-partition-wall":
+      return "standard-display-wall";
+    case "unassigned-wall":
+      return "narrow-transition-wall";
+    default:
+      return "";
+  }
+}
+
+function getGalleryWallType(record) {
+  const value = record.wallType ?? getWallTypeFromLegacySection(record.wallSection);
+  const migratedValue = getWallTypeFromLegacyType(value) || value;
+
+  return GALLERY_WALL_TYPES.some((type) => type.value === migratedValue) ? migratedValue : "standard-display-wall";
+}
+
+function getGalleryWallTypeMeta(value) {
+  return GALLERY_WALL_TYPES.find((type) => type.value === value) ?? GALLERY_WALL_TYPES.find((type) => type.value === "standard-display-wall") ?? GALLERY_WALL_TYPES[0];
+}
+
+function getGalleryWallDisplayName(record, index) {
+  const wallId = String(record.wallId ?? "");
+  const number = String(index + 1).padStart(2, "0");
+
+  if (wallId === "wall-entry-hero-personal") {
+    return "Entry feature wall";
+  }
+
+  if (wallId === "wall-entry-left-guide") {
+    return "Left entry guide wall";
+  }
+
+  if (wallId === "wall-entry-right-guide") {
+    return "Right entry guide wall";
+  }
+
+  if (wallId.includes("left-inner")) {
+    return `Left inner partition ${number}`;
+  }
+
+  if (wallId.includes("right-inner")) {
+    return `Right inner partition ${number}`;
+  }
+
+  if (wallId.includes("left-climbing")) {
+    return `Left outer display wall ${number}`;
+  }
+
+  if (wallId.includes("right-landscape")) {
+    return `Right outer display wall ${number}`;
+  }
+
+  if (wallId.includes("rear")) {
+    return `Rear gallery wall ${number}`;
+  }
+
+  return `Gallery wall ${number}`;
+}
+
+function renderGalleryCurationImageOptions(state, selectedImageId) {
+  const options = [
+    `<option value="">No artwork assigned</option>`,
+    ...state.images.map((image) => {
+      const selected = image.id === selectedImageId ? "selected" : "";
+      const label = `${image.title} / ${getCategoryLabel(state, image.category)}`;
+
+      return `<option value="${escapeHtml(image.id)}" ${selected}>${escapeHtml(label)}</option>`;
+    })
+  ];
+
+  return options.join("");
+}
+
+function renderGalleryCurationWallTypeOptions(selectedValue) {
+  return GALLERY_WALL_TYPES.map((option) => {
+    const selected = option.value === selectedValue ? "selected" : "";
+
+    return `
+      <option
+        value="${escapeHtml(option.value)}"
+        data-description="${escapeHtml(option.description)}"
+        ${selected}
+      >${escapeHtml(option.label)}</option>
+    `;
+  }).join("");
+}
+
+function renderGalleryCurationPlaqueSideOptions(selectedValue) {
+  return [
+    { value: "auto", label: "Auto" },
+    { value: "left", label: "Left" },
+    { value: "right", label: "Right" },
+    { value: "none", label: "None" }
+  ].map((option) => {
+    const selected = option.value === selectedValue ? "selected" : "";
+
+    return `<option value="${escapeHtml(option.value)}" ${selected}>${escapeHtml(option.label)}</option>`;
+  }).join("");
+}
+
+function renderGalleryCurationDisplayStatusOptions(showInGallery) {
+  return [
+    { value: "active", label: "Active / visible" },
+    { value: "hidden", label: "Hidden / inactive" }
+  ].map((option) => {
+    const selected = (showInGallery ? "active" : "hidden") === option.value ? "selected" : "";
+
+    return `<option value="${escapeHtml(option.value)}" ${selected}>${escapeHtml(option.label)}</option>`;
+  }).join("");
+}
+
+function getCurationImage(state, imageId) {
+  return state.images.find((image) => image.id === imageId);
+}
+
+function renderGalleryArtworkPickerOverlay(state) {
+  const imageCards = state.images.map((image) => {
+    const categoryLabel = getCategoryLabel(state, image.category);
+    const thumbSrc = image.thumbSrc ?? image.src ?? "";
+    const thumbnailPosition = image.thumbnailPosition ?? "50% 50%";
+
+    return `
+      <button
+        class="gallery-artwork-picker-card"
+        type="button"
+        data-artwork-picker-option="${escapeHtml(image.id)}"
+      >
+        <span class="gallery-artwork-picker-image">
+          <img
+            src="${escapeHtml(thumbSrc)}"
+            alt="${escapeHtml(image.alt)}"
+            loading="lazy"
+            style="object-position: ${escapeHtml(thumbnailPosition)};"
+          />
+        </span>
+        <span class="gallery-artwork-picker-title">${escapeHtml(image.title)}</span>
+        <span class="gallery-artwork-picker-meta">${escapeHtml(categoryLabel)} / ${escapeHtml(image.year ?? "")}</span>
+      </button>
+    `;
+  }).join("");
+
+  return `
+    <section class="gallery-artwork-picker" data-artwork-picker-overlay hidden aria-label="Assign artwork overlay">
+      <div class="gallery-artwork-picker-backdrop" data-artwork-picker-close></div>
+      <div class="gallery-artwork-picker-panel" role="dialog" aria-modal="true" aria-labelledby="galleryArtworkPickerTitle">
+        <div class="gallery-artwork-picker-header">
+          <div>
+            <p class="eyebrow">Assign Artwork</p>
+            <h2 id="galleryArtworkPickerTitle">Choose an image visually</h2>
+            <p class="panel-description">
+              Select the photograph that should appear on this gallery wall slot. The ID select remains below each card as a precise fallback.
+            </p>
+          </div>
+          <button class="button" type="button" data-artwork-picker-close>Close</button>
+        </div>
+
+        <div class="gallery-artwork-picker-actions">
+          <button class="button" type="button" data-artwork-picker-option="">No artwork</button>
+        </div>
+
+        <div class="gallery-artwork-picker-grid">
+          ${imageCards}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderGalleryCurationCard(state, record, index) {
+  const image = getCurationImage(state, record.artworkId);
+  const thumbSrc = image?.thumbSrc ?? image?.src ?? "";
+  const thumbnailPosition = image?.thumbnailPosition ?? "50% 50%";
+  const showInGallery = record.showInGallery !== false;
+  const plaqueEnabled = record.plaqueEnabled !== false;
+  const wallType = getGalleryWallType(record);
+  const wallTypeMeta = getGalleryWallTypeMeta(wallType);
+  const wallDisplayName = getGalleryWallDisplayName(record, index);
+  const plaqueSide = record.plaqueSide ?? "auto";
+
+  return `
+    <article class="gallery-curation-card" data-gallery-curation-card data-wall-id="${escapeHtml(record.wallId)}">
+      <div class="gallery-curation-thumb ${image ? "" : "is-empty"}" data-gallery-curation-thumb>
+        ${image ? `
+          <img
+            src="${escapeHtml(thumbSrc)}"
+            alt="${escapeHtml(image.alt)}"
+            loading="lazy"
+            style="object-position: ${escapeHtml(thumbnailPosition)};"
+          />
+        ` : `<span>No artwork</span>`}
+      </div>
+
+      <div class="gallery-curation-fields">
+        <div class="gallery-curation-heading">
+          <p class="eyebrow">Wall ${index + 1}</p>
+          <h3>${escapeHtml(wallDisplayName)}</h3>
+          <span>Blueprint slot: ${escapeHtml(record.wallId)} / Display order ${escapeHtml(String(record.displayOrder ?? index + 1))}</span>
+        </div>
+
+        <div class="gallery-selected-artwork wide">
+          <p class="eyebrow">Assigned artwork</p>
+          <h4 data-gallery-curation-selected-title>${escapeHtml(image?.title ?? "No artwork assigned")}</h4>
+          <p data-gallery-curation-selected-meta>${image ? `${escapeHtml(getCategoryLabel(state, image.category))} / ${escapeHtml(image.id)}` : "Use the visual picker or choose an ID from the fallback select."}</p>
+          <div class="image-overview-actions">
+            <button class="button primary" type="button" data-open-artwork-picker>Assign artwork</button>
+          </div>
+        </div>
+
+        <label class="wide fallback-select">
+          <span>Assigned artwork ID fallback</span>
+          <select data-gallery-curation-field="artworkId">
+            ${renderGalleryCurationImageOptions(state, record.artworkId)}
+          </select>
+        </label>
+
+        <label>
+          <span>Wall block type</span>
+          <select data-gallery-curation-field="wallType">
+            ${renderGalleryCurationWallTypeOptions(wallType)}
+          </select>
+        </label>
+
+        <div class="gallery-wall-type-note" data-gallery-wall-type-note>
+          <span data-gallery-wall-type-label>${escapeHtml(wallTypeMeta.label)}</span>
+          <p data-gallery-wall-type-description>${escapeHtml(wallTypeMeta.description)}</p>
+        </div>
+
+        <label>
+          <span>Plaque side</span>
+          <select data-gallery-curation-field="plaqueSide">
+            ${renderGalleryCurationPlaqueSideOptions(plaqueSide)}
+          </select>
+        </label>
+
+        <label>
+          <span>Display status</span>
+          <select data-gallery-curation-field="showInGallery">
+            ${renderGalleryCurationDisplayStatusOptions(showInGallery)}
+          </select>
+        </label>
+
+        <label class="check-row">
+          <input data-gallery-curation-field="plaqueEnabled" type="checkbox" ${plaqueEnabled ? "checked" : ""} />
+          <span>Show plaque</span>
+        </label>
+
+        <div class="image-overview-actions wide">
+          <button class="button primary" type="button" data-save-gallery-curation-wall>Save Wall</button>
+          <button class="button" type="button" data-move-gallery-curation="top">Top</button>
+          <button class="button" type="button" data-move-gallery-curation="up">Up</button>
+          <button class="button" type="button" data-move-gallery-curation="down">Down</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+// Builds the virtual gallery curation page.
+function renderGalleryCurationPage(state, elements) {
+  const records = state.galleryCuration ?? [];
+
+  if (!elements.galleryCurationList) {
+    return;
+  }
+
+  if (!records.length) {
+    elements.galleryCurationList.innerHTML = `
+      <section class="panel backup-empty-state">
+        <p class="eyebrow">No curation rows</p>
+        <h2>galleryCuration.json is empty or missing.</h2>
+        <p class="panel-description">
+          The editor expects src/data/galleryCuration.json to define editable wall assignments for the virtual gallery.
+        </p>
+      </section>
+    `;
+    return;
+  }
+
+  elements.galleryCurationList.innerHTML = `
+    <div class="category-page-actions">
+      <button class="button primary" type="button" data-save-gallery-curation>Save All Gallery Curation</button>
+    </div>
+
+    <div class="gallery-curation-list" data-gallery-curation-list>
+      ${records.map((record, index) => renderGalleryCurationCard(state, record, index)).join("")}
+    </div>
+
+    ${renderGalleryArtworkPickerOverlay(state)}
+  `;
+}
 
 // Converts a backup creation timestamp into a readable local date/time.
 function formatBackupDate(value) {
@@ -1230,6 +1613,11 @@ export function renderAll(state, elements, route) {
 
   if (route.name === "backups") {
     renderBackupPage(state, elements);
+    return;
+  }
+
+  if (route.name === "gallery") {
+    renderGalleryCurationPage(state, elements);
     return;
   }
 

@@ -544,3 +544,164 @@ Current source files remain the source of truth. This changelog is a historical 
 ### Notes
 - This is intended for the final check before merging image pipeline/editor cleanup work into `main`.
 
+
+---
+
+## Appended changelog fragments - 20260512-174755
+
+
+# Changelog append - 2026-05-12 - Editor ID rename authoritative reload fix
+
+## Changed
+
+- Hardened the local editor image ID rename workflow after the initial route-refresh fix was still not enough.
+- After a successful rename, the editor now reloads authoritative data from `/api/data` before rendering the renamed image route.
+- Added a visible identity sync check that confirms the image card route, hidden ID field, and visible Current ID value all match the renamed ID.
+- Added a hard reload fallback if the dynamic editor render path remains stale after rename.
+- Added `data-current-image-id` to the visible Current ID element for deterministic post-rename verification.
+- Bumped local editor asset cache version to `v=18`.
+
+## Files
+
+```text
+local-editor/static/js/main.js
+local-editor/static/js/render.js
+local-editor/templates/editor.html
+docs/EDITOR_IMAGE_ID_RENAME_AUTHORITATIVE_RELOAD_FIX.md
+```
+
+
+## 2026-05-12 — Editor image ID rename backend fix
+
+- Added the missing backend helper functions used by `rename_image_id()` in `local-editor/app/data_store.py`.
+- Added safe title/slug-based ID de-duplication on the backend.
+- Added canonical portfolio rendition URL generation for image ID renames.
+- Added safe public path resolution so rename operations stay inside `public/`.
+- Added all-four-rendition file planning with missing-file and target-collision checks.
+- Added rollback behavior if a multi-file rename fails partway through.
+- Kept the prior authoritative editor reload behavior and bumped editor asset cache version to `v=19`.
+
+
+# Changelog append — Editor image ID rename UI refresh fix
+
+Date: 2026-05-12
+
+## Changed
+
+- Updated the local editor image ID rename flow so successful renames render the new image-detail route directly instead of rendering against the old image hash first.
+- Added a defensive check that the rename API response includes `updatedImage.id` before the UI updates the route.
+- Extended `applyLoadedState()` so callers can pass an explicit route when the current hash route is no longer valid after a data mutation.
+- Bumped the local editor CSS/JS cache-bust query from `v=16` to `v=17`.
+
+## Reason
+
+The previous rename flow could leave the visible Image identity panel stale after `Rename ID + Rendition Files` because the editor state updated before the browser hash moved from the old image ID to the new image ID.
+
+
+## 2026-05-12 � Editor image ID rename workflow
+
+### Changed
+- Added a controlled image ID rename endpoint to the Flask editor backend.
+- Added backend logic to update `galleryImages[].id`, `heroSlides[].imageId`, and portfolio rendition paths together.
+- Added copy-first file rename behavior for `display`, `thumb`, `texture`, and `full` WebP renditions.
+- Added browser API support for image ID renames.
+- Added image detail UI for title-based ID suggestions and future rendition path previews.
+- Changed new imports to default to title-based IDs instead of category-prefixed filename IDs.
+- Added import review title-to-ID auto-sync until the ID is manually edited.
+- Bumped the local editor asset cache version.
+
+### Files changed
+- `local-editor/app/data_store.py`
+- `local-editor/app/routes.py`
+- `local-editor/static/js/api.js`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/static/js/importValidation.js`
+- `local-editor/static/editor.css`
+- `local-editor/templates/editor.html`
+- `docs/EDITOR_IMAGE_ID_RENAME_WORKFLOW.md`
+- `PROJECT_CHANGELOG_APPEND_20260512_EDITOR_IMAGE_ID_RENAME.md`
+
+### Notes
+- Existing image IDs remain protected from direct free editing.
+- Renames should use the dedicated `Rename ID + Rendition Files` action.
+- This pack should be applied before the gallery curation controls pack is regenerated.
+
+
+## 2026-05-12 � Editor import UI validation
+
+### Changed
+- Added browser-side import validation for IDs, duplicate IDs, required text fields, fit modes, and frame styles.
+- Added browser-side image dimension detection before import review.
+- Expanded the import review cards to show orientation, hero eligibility, rendition output paths, gallery fit mode, gallery frame style, gallery size, thumbnail crop, and virtual gallery crop.
+- Added a dedicated `importValidation.js` module for shared import UI rules.
+- Bumped local editor asset cache version in `editor.html`.
+
+### Files changed
+- `local-editor/static/js/importValidation.js`
+- `local-editor/static/js/collect.js`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/static/editor.css`
+- `local-editor/templates/editor.html`
+- `docs/EDITOR_IMPORT_UI_VALIDATION.md`
+- `PROJECT_CHANGELOG_APPEND_20260512_EDITOR_IMPORT_UI_VALIDATION.md`
+
+### Notes
+- The backend remains the final source of validation truth.
+- This change prevents invalid import values earlier in the editor UI and makes the new rendition pipeline visible before save.
+
+
+# Changelog append - 2026-05-12 - Gallery curation controls regenerated
+
+- Added `src/data/galleryCuration.json` as the editable image-to-wall assignment layer for the 3D gallery.
+- Added a Gallery tab to the Flask local editor for assigning artwork, wall section metadata, display order metadata, plaque visibility, and plaque side.
+- Updated the local editor backend with gallery curation read/save support.
+- Updated backup creation/restore handling so gallery curation data is preserved when present.
+- Updated image ID rename handling so `galleryCuration[].artworkId` follows controlled ID renames.
+- Updated `galleryBlueprint.ts` so fixed architecture remains in TypeScript while artwork assignment is applied from JSON.
+- Replaced the stale hardcoded `climbing-landscape-portfolio-02` gallery reference with `landscape-201019-jtp6059`.
+- Added `docs/GALLERY_CURATION_WORKFLOW.md`.
+- Added `docs/PROJECT_CREATIVE_INTENT_AND_DESIGN_PHILOSOPHY.md` to preserve the human/design-philosophy side of the project.
+
+
+# Changelog Append — 2026-05-12 — Gallery Curation Visual Assignment and Wall Types
+
+- Added a visual **Assign artwork** overlay to the Gallery editor page so wall assignments can be chosen from image thumbnails instead of names/IDs only.
+- Kept the Assigned artwork ID select as a precise fallback control.
+- Replaced the ambiguous `wallSection` curation field with a smaller descriptive `wallType` model.
+- Added human-facing wall labels while preserving stable internal `wallId` blueprint slots.
+- Updated gallery curation normalization to migrate older `wallSection` values into the newer wall type model.
+- Updated `galleryCuration.json`, local editor UI, editor data collection, Flask data validation, and gallery blueprint types to use wall types.
+- Updated gallery artwork layout metadata so runtime artwork records keep a human-readable wall label while also carrying the new wall type.
+
+
+# Changelog Append - Gallery Wall Block Types and Card Save
+
+Date: 2026-05-12
+
+## Changed
+
+- Replaced location/zone-style gallery wall type labels with a smaller physical wall-block taxonomy.
+- Added `feature-wall`, `wide-display-wall`, `standard-display-wall`, `compact-display-wall`, and `unassigned-wall`.
+- Made wall block type affect the rendered gallery wall preset and artwork scale.
+- Added a per-card `Save Wall` action to the gallery curation editor.
+- Added a backend route for saving one gallery curation wall record into `galleryCuration.json`.
+- Kept the global `Save All Gallery Curation` action for batch edits and reorder operations.
+- Updated gallery curation docs for the new wall block type model.
+
+## Notes
+
+This does not add visual drag-and-drop wall placement. Wall position and rotation remain controlled by `galleryBlueprint.ts`.
+
+
+# Changelog Append — Gallery Wall Type Display Status Cleanup
+
+- Replaced the user-facing `unassigned-wall` option with `narrow-transition-wall`.
+- Added a separate Display status control for gallery wall cards.
+- Preserved `showInGallery` as the data field for active/hidden wall slots.
+- Updated TypeScript gallery wall type normalization and layout defaults.
+- Added a narrow wall preset for transition/guide wall slots.
+- Migrated current entry guide wall records to `narrow-transition-wall` while keeping them hidden/inactive.
+- Added documentation for the wall type/status separation.
+

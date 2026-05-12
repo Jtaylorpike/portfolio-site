@@ -12,10 +12,14 @@ from .data_store import (
     DataValidationError,
     PUBLIC_DIR,
     get_current_data,
+    get_current_gallery_curation,
     list_data_backups,
     restore_data_backup,
     save_full_data,
+    save_gallery_curation,
+    save_gallery_curation_wall,
     save_image_updates,
+    rename_image_id,
 )
 from .image_importer import import_reviewed_images_from_request
 
@@ -36,6 +40,7 @@ def get_data():
 
     try:
         categories, images, hero_slides = get_current_data()
+        gallery_curation = get_current_gallery_curation(images)
     except DataValidationError as error:
         return jsonify({"error": str(error)}), 400
 
@@ -44,6 +49,7 @@ def get_data():
             "categories": categories,
             "images": images,
             "heroSlides": hero_slides,
+            "galleryCuration": gallery_curation,
         }
     )
 
@@ -90,10 +96,76 @@ def save_data():
             "categories": categories,
             "images": images,
             "heroSlides": hero_slides,
+            "galleryCuration": get_current_gallery_curation(images),
             "backup": backup,
             "categoryCount": len(categories),
             "imageCount": len(images),
             "heroSlideCount": len(hero_slides),
+        }
+    )
+
+
+@bp.route("/api/gallery-curation", methods=["POST"])
+def save_gallery_curation_data():
+    """Validate and save 3D gallery wall/artwork curation controls."""
+
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Invalid JSON payload."}), 400
+
+    raw_gallery_curation = payload.get("galleryCuration")
+
+    if not isinstance(raw_gallery_curation, list):
+        return jsonify({"error": "galleryCuration must be a list."}), 400
+
+    try:
+        categories, images, hero_slides, gallery_curation, backup = save_gallery_curation(raw_gallery_curation)
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
+
+    return jsonify(
+        {
+            "ok": True,
+            "categories": categories,
+            "images": images,
+            "heroSlides": hero_slides,
+            "galleryCuration": gallery_curation,
+            "backup": backup,
+            "galleryCurationCount": len(gallery_curation),
+        }
+    )
+
+
+@bp.route("/api/gallery-curation/wall", methods=["POST"])
+def save_single_gallery_curation_wall():
+    """Validate and save one 3D gallery wall/artwork curation row."""
+
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Invalid JSON payload."}), 400
+
+    raw_wall_record = payload.get("wall")
+
+    if not isinstance(raw_wall_record, dict):
+        return jsonify({"error": "wall must be an object."}), 400
+
+    try:
+        categories, images, hero_slides, gallery_curation, backup = save_gallery_curation_wall(raw_wall_record)
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
+
+    return jsonify(
+        {
+            "ok": True,
+            "categories": categories,
+            "images": images,
+            "heroSlides": hero_slides,
+            "galleryCuration": gallery_curation,
+            "backup": backup,
+            "galleryCurationCount": len(gallery_curation),
+            "updatedWallId": raw_wall_record.get("wallId"),
         }
     )
 
@@ -129,6 +201,7 @@ def update_image_record():
             "categories": categories,
             "images": images,
             "heroSlides": hero_slides,
+            "galleryCuration": get_current_gallery_curation(images),
             "updatedImage": updated_image,
             "backup": backup,
             "categoryCount": len(categories),
@@ -136,6 +209,52 @@ def update_image_record():
             "heroSlideCount": len(hero_slides),
         }
     )
+
+
+@bp.route("/api/rename-image-id", methods=["POST"])
+def rename_image_record_id():
+    """Rename one image ID and its portfolio rendition files."""
+
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Invalid JSON payload."}), 400
+
+    current_image_id = payload.get("currentImageId")
+    new_image_id = payload.get("newImageId")
+
+    if not isinstance(current_image_id, str) or not current_image_id.strip():
+        return jsonify({"error": "currentImageId must be a non-empty string."}), 400
+
+    if not isinstance(new_image_id, str) or not new_image_id.strip():
+        return jsonify({"error": "newImageId must be a non-empty string."}), 400
+
+    try:
+        categories, images, hero_slides, updated_image, backup, file_moves = rename_image_id(
+            current_image_id.strip(),
+            new_image_id.strip(),
+        )
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 404
+
+    return jsonify(
+        {
+            "ok": True,
+            "categories": categories,
+            "images": images,
+            "heroSlides": hero_slides,
+            "galleryCuration": get_current_gallery_curation(images),
+            "updatedImage": updated_image,
+            "backup": backup,
+            "fileMoves": file_moves,
+            "categoryCount": len(categories),
+            "imageCount": len(images),
+            "heroSlideCount": len(hero_slides),
+        }
+    )
+
 
 
 @bp.route("/api/backups")
@@ -177,6 +296,7 @@ def restore_backup():
             "categories": categories,
             "images": images,
             "heroSlides": hero_slides,
+            "galleryCuration": get_current_gallery_curation(images),
             "backups": list_data_backups(),
             "restoredBackup": restored_backup,
             "backup": safety_backup,

@@ -33,6 +33,41 @@ export async function saveDataApi(payload) {
   return response.json();
 }
 
+export async function saveGalleryCurationApi(galleryCuration) {
+  const response = await fetch('/api/gallery-curation', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ galleryCuration })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.error ?? 'Could not save gallery curation.');
+  }
+
+  return response.json();
+}
+
+
+export async function saveGalleryCurationWallApi(wall) {
+  const response = await fetch('/api/gallery-curation/wall', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ wall })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.error ?? 'Could not save gallery wall curation.');
+  }
+
+  return response.json();
+}
+
 export async function saveImageUpdatesApi(imageId, updates) {
   const response = await fetch('/api/image-updates', {
     method: 'POST',
@@ -45,6 +80,24 @@ export async function saveImageUpdatesApi(imageId, updates) {
   if (!response.ok) {
     const error = await response.json().catch(() => null);
     throw new Error(error?.error ?? 'Could not save image updates.');
+  }
+
+  return response.json();
+}
+
+
+export async function renameImageIdApi(currentImageId, newImageId) {
+  const response = await fetch('/api/rename-image-id', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ currentImageId, newImageId })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.error ?? 'Could not rename image ID.');
   }
 
   return response.json();

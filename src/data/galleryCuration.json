@@ -1,0 +1,155 @@
+[
+  {
+    "wallId": "wall-entry-hero-personal",
+    "artworkId": "personal-01",
+    "showInGallery": true,
+    "displayOrder": 1,
+    "wallType": "feature-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-entry-left-guide",
+    "artworkId": "climbing-climbing-workbook-03",
+    "showInGallery": false,
+    "displayOrder": 2,
+    "wallType": "narrow-transition-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "none"
+  },
+  {
+    "wallId": "wall-entry-right-guide",
+    "artworkId": "",
+    "showInGallery": false,
+    "displayOrder": 3,
+    "wallType": "narrow-transition-wall",
+    "plaqueEnabled": false,
+    "plaqueSide": "none"
+  },
+  {
+    "wallId": "wall-left-climbing-01",
+    "artworkId": "climbing-01",
+    "showInGallery": true,
+    "displayOrder": 4,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-left-climbing-02",
+    "artworkId": "climbing-02",
+    "showInGallery": true,
+    "displayOrder": 5,
+    "wallType": "standard-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-left-climbing-03",
+    "artworkId": "climbing-03",
+    "showInGallery": true,
+    "displayOrder": 6,
+    "wallType": "standard-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-left-inner-workbook-05",
+    "artworkId": "",
+    "showInGallery": true,
+    "displayOrder": 7,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-left-inner-portfolio-08",
+    "artworkId": "climbing-climbing-portfolio-08",
+    "showInGallery": true,
+    "displayOrder": 8,
+    "wallType": "standard-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-left-inner-portfolio-09",
+    "artworkId": "climbing-climbing-portfolio-09",
+    "showInGallery": true,
+    "displayOrder": 9,
+    "wallType": "standard-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-rear-climbing-workbook-01",
+    "artworkId": "climbing-climbing-workbook-01",
+    "showInGallery": true,
+    "displayOrder": 10,
+    "wallType": "standard-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-rear-climbing-workbook-03",
+    "artworkId": "climbing-climbing-workbook-03",
+    "showInGallery": true,
+    "displayOrder": 11,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-right-landscape-01",
+    "artworkId": "landscape-01",
+    "showInGallery": true,
+    "displayOrder": 12,
+    "wallType": "standard-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-right-landscape-02",
+    "artworkId": "landscape-02",
+    "showInGallery": true,
+    "displayOrder": 13,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-right-landscape-03",
+    "artworkId": "landscape-03",
+    "showInGallery": true,
+    "displayOrder": 14,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-right-inner-landscape-portfolio-02",
+    "artworkId": "landscape-201019-jtp6059",
+    "showInGallery": true,
+    "displayOrder": 15,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-right-inner-landscape-portfolio-06",
+    "artworkId": "climbing-landscape-portfolio-06",
+    "showInGallery": true,
+    "displayOrder": 16,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  },
+  {
+    "wallId": "wall-rear-landscape-workbook-03",
+    "artworkId": "landscape-landscape-workbook-03",
+    "showInGallery": true,
+    "displayOrder": 17,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto"
+  }
+]
