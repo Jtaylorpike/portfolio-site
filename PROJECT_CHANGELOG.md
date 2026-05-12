@@ -500,3 +500,25 @@ Current source files remain the source of truth. This changelog is a historical 
 ### Notes
 - This fixes parser errors when generating the current project handoff snapshot.
 
+
+---
+
+## Appended changelog fragments - 20260512-131729
+
+
+## 2026-05-12 — Staged commit audit
+
+### Changed
+- Added a staged commit audit for large cleanup commits.
+- Added a single pre-commit command that runs workspace, changelog, staged-file, image-data, dev-branch, and build checks.
+- Added documentation for expected warnings during the cleanup commit.
+
+### Files changed
+- `scripts/Audit-StagedCommit.ps1`
+- `scripts/Run-PreCommitPortfolioChecks.ps1`
+- `docs/STAGED_COMMIT_AUDIT.md`
+- `PROJECT_CHANGELOG_APPEND_20260512_STAGED_COMMIT_AUDIT.md`
+
+### Notes
+- This is intended to prevent generated archives, reports, source images, pack notes, and changelog fragments from accidentally staying tracked.
+
