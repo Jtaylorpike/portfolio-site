@@ -78,14 +78,14 @@ LEGACY_WALL_TYPES = {
 SUPPORTED_PLAQUE_SIDES = {"auto", "left", "right", "none"}
 GALLERY_POSITION_MIN = -16.0
 GALLERY_POSITION_MAX = 16.0
-SUPPORTED_WALL_ROTATIONS_DEGREES = {-180.0, -90.0, 0.0, 90.0, 180.0}
+SUPPORTED_WALL_ROTATIONS_DEGREES = {-180.0, -135.0, -90.0, -45.0, 0.0, 45.0, 90.0, 135.0, 180.0}
 GALLERY_GRID_CELL_METERS = 0.5
 GALLERY_WALL_FOOTPRINTS = {
-    "feature-wall": {"width": 6.25, "thickness": 0.26},
-    "wide-display-wall": {"width": 4.9, "thickness": 0.22},
-    "standard-display-wall": {"width": 3.55, "thickness": 0.22},
-    "compact-display-wall": {"width": 2.7, "thickness": 0.22},
-    "narrow-transition-wall": {"width": 2.15, "thickness": 0.2},
+    "feature-wall": {"length_cells": 13, "thickness_cells": 1},
+    "wide-display-wall": {"length_cells": 11, "thickness_cells": 1},
+    "standard-display-wall": {"length_cells": 7, "thickness_cells": 1},
+    "compact-display-wall": {"length_cells": 5, "thickness_cells": 1},
+    "narrow-transition-wall": {"length_cells": 3, "thickness_cells": 1},
 }
 
 
@@ -926,10 +926,9 @@ def clean_gallery_rotation_degrees(value: Any, fallback: float = 0.0) -> float:
     while number <= -180:
         number += 360
 
-    # Keep the current editor constrained to cardinal wall facings so the room
-    # remains predictable until a true visual placement editor exists.
+    # The map editor supports cardinal and 45-degree diagonal wall facings.
     closest = min(SUPPORTED_WALL_ROTATIONS_DEGREES, key=lambda candidate: abs(candidate - number))
-    return 180.0 if closest == -180.0 and number > 0 else closest
+    return 180.0 if closest == -180.0 else closest
 
 
 # Normalizes one wall/artwork assignment row from galleryCuration.json.
@@ -965,6 +964,7 @@ def normalize_gallery_curation_record(
         "wallId": wall_id,
         "artworkId": artwork_id,
         "showInGallery": clean_bool(raw_record.get("showInGallery"), True),
+        "placedInGallery": clean_bool(raw_record.get("placedInGallery"), True),
         "displayOrder": clean_positive_order(raw_record.get("displayOrder"), fallback_order),
         "wallType": wall_type,
         "plaqueEnabled": clean_bool(raw_record.get("plaqueEnabled"), True),
@@ -1011,42 +1011,88 @@ def get_current_gallery_curation(images: list[dict[str, Any]] | None = None) -> 
     return normalize_gallery_curation(read_json(GALLERY_CURATION_PATH), valid_image_ids)
 
 
-def get_gallery_wall_footprint(record: dict[str, Any]) -> dict[str, float]:
+def make_centered_offsets(length: int) -> list[int]:
+    safe_length = max(1, int(length or 1))
+    half = safe_length // 2
+    offsets = list(range(-half, half + 1))
+    return offsets[:safe_length]
+
+
+def get_gallery_wall_axis_step(rotation_y_degrees: float) -> tuple[int, int]:
+    axis = rotation_y_degrees % 180.0
+
+    if axis < 0:
+        axis += 180.0
+
+    if axis == 45.0:
+        return (1, 1)
+
+    if axis == 90.0:
+        return (0, 1)
+
+    if axis == 135.0:
+        return (-1, 1)
+
+    return (1, 0)
+
+
+def get_gallery_wall_footprint_cells(record: dict[str, Any]) -> set[tuple[int, int]]:
     wall_type = clean_string(record.get("wallType"))
     footprint = GALLERY_WALL_FOOTPRINTS.get(wall_type, GALLERY_WALL_FOOTPRINTS["standard-display-wall"])
     position_x = float(record.get("positionX", 0.0))
     position_z = float(record.get("positionZ", 0.0))
-    rotation_y_degrees = float(record.get("rotationYDegrees", 0.0))
-    length_cells = max(1, int((footprint["width"] + GALLERY_GRID_CELL_METERS - 0.0001) // GALLERY_GRID_CELL_METERS))
-    thickness_cells = max(1, int((footprint["thickness"] + GALLERY_GRID_CELL_METERS - 0.0001) // GALLERY_GRID_CELL_METERS))
-    is_side_facing = abs(rotation_y_degrees) == 90.0
-    occupied_width_cells = thickness_cells if is_side_facing else length_cells
-    occupied_depth_cells = length_cells if is_side_facing else thickness_cells
+    rotation_y_degrees = clean_gallery_rotation_degrees(record.get("rotationYDegrees"), 0.0)
     grid_x = round(position_x / GALLERY_GRID_CELL_METERS)
     grid_z = round(position_z / GALLERY_GRID_CELL_METERS)
+    axis_x, axis_z = get_gallery_wall_axis_step(rotation_y_degrees)
+    perpendicular_x, perpendicular_z = -axis_z, axis_x
+    cells: set[tuple[int, int]] = set()
 
-    return {
-        "min_x": grid_x - occupied_width_cells / 2,
-        "max_x": grid_x + occupied_width_cells / 2,
-        "min_z": grid_z - occupied_depth_cells / 2,
-        "max_z": grid_z + occupied_depth_cells / 2,
-    }
+    for length_offset in make_centered_offsets(footprint["length_cells"]):
+        for thickness_offset in make_centered_offsets(footprint["thickness_cells"]):
+            cells.add((
+                grid_x + axis_x * length_offset + perpendicular_x * thickness_offset,
+                grid_z + axis_z * length_offset + perpendicular_z * thickness_offset,
+            ))
+
+    return cells
 
 
-def gallery_wall_footprints_overlap(first: dict[str, float], second: dict[str, float]) -> bool:
-    return (
-        first["min_x"] < second["max_x"]
-        and first["max_x"] > second["min_x"]
-        and first["min_z"] < second["max_z"]
-        and first["max_z"] > second["min_z"]
+
+
+def gallery_wall_footprint_inside_bounds(cells: set[tuple[int, int]]) -> bool:
+    min_cell = round(GALLERY_POSITION_MIN / GALLERY_GRID_CELL_METERS)
+    max_cell = round(GALLERY_POSITION_MAX / GALLERY_GRID_CELL_METERS)
+
+    return all(
+        min_cell <= x <= max_cell and min_cell <= z <= max_cell
+        for x, z in cells
     )
+
+
+def find_gallery_wall_boundary_violations(gallery_curation: list[dict[str, Any]]) -> list[str]:
+    violations: list[str] = []
+
+    for record in gallery_curation:
+        wall_id = clean_string(record.get("wallId"))
+
+        if not wall_id or not clean_bool(record.get("placedInGallery"), True):
+            continue
+
+        if not gallery_wall_footprint_inside_bounds(get_gallery_wall_footprint_cells(record)):
+            violations.append(wall_id)
+
+    return violations
+
+def gallery_wall_footprints_overlap(first: set[tuple[int, int]], second: set[tuple[int, int]]) -> bool:
+    return bool(first.intersection(second))
 
 
 def find_gallery_wall_placement_collisions(gallery_curation: list[dict[str, Any]]) -> list[tuple[str, str]]:
     footprints = [
-        (clean_string(record.get("wallId")), get_gallery_wall_footprint(record))
+        (clean_string(record.get("wallId")), get_gallery_wall_footprint_cells(record))
         for record in gallery_curation
-        if clean_string(record.get("wallId"))
+        if clean_string(record.get("wallId")) and clean_bool(record.get("placedInGallery"), True)
     ]
     collisions: list[tuple[str, str]] = []
 
@@ -1091,6 +1137,12 @@ def validate_gallery_curation(gallery_curation: list[dict[str, Any]], valid_imag
 
         if rotation_y_degrees not in SUPPORTED_WALL_ROTATIONS_DEGREES:
             raise DataValidationError(f"Gallery wall '{wall_id}' has an invalid rotationYDegrees value.")
+
+    boundary_violations = find_gallery_wall_boundary_violations(gallery_curation)
+
+    if boundary_violations:
+        violation_text = "; ".join(boundary_violations)
+        raise DataValidationError(f"Gallery wall placement extends beyond the floor-map border: {violation_text}")
 
     placement_collisions = find_gallery_wall_placement_collisions(gallery_curation)
 

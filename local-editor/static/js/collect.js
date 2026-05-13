@@ -325,8 +325,8 @@ function getGalleryCurationFieldValue(card, field) {
   return String(input?.value ?? "").trim();
 }
 
-function getGalleryDisplayStatusValue(card) {
-  const value = getGalleryCurationFieldValue(card, "showInGallery");
+function getGalleryBooleanSelectValue(card, field, trueValues, falseValues, fallback = true) {
+  const value = getGalleryCurationFieldValue(card, field);
 
   if (typeof value === "boolean") {
     return value;
@@ -334,7 +334,35 @@ function getGalleryDisplayStatusValue(card) {
 
   const normalizedValue = String(value ?? "").trim().toLowerCase();
 
-  return !["hidden", "inactive", "false", "0", "off", "hide"].includes(normalizedValue);
+  if (trueValues.includes(normalizedValue)) {
+    return true;
+  }
+
+  if (falseValues.includes(normalizedValue)) {
+    return false;
+  }
+
+  return fallback;
+}
+
+function getGalleryDisplayStatusValue(card) {
+  return getGalleryBooleanSelectValue(
+    card,
+    "showInGallery",
+    ["active", "visible", "true", "1", "on", "show"],
+    ["hidden", "inactive", "false", "0", "off", "hide"],
+    true
+  );
+}
+
+function getGalleryPlacementStatusValue(card) {
+  return getGalleryBooleanSelectValue(
+    card,
+    "placedInGallery",
+    ["placed", "true", "1", "on", "map"],
+    ["unplaced", "off-map", "false", "0", "off", "none"],
+    true
+  );
 }
 
 function getGalleryNumberFieldValue(card, field, fallback = 0) {
@@ -355,6 +383,7 @@ export function collectGalleryCurationCard(card, state, fallbackDisplayOrder = 1
     wallId: card.dataset.wallId ?? "",
     artworkId: validImageIds.has(artworkId) ? artworkId : "",
     showInGallery: getGalleryDisplayStatusValue(card),
+    placedInGallery: getGalleryPlacementStatusValue(card),
     displayOrder: fallbackDisplayOrder,
     wallType,
     plaqueEnabled: Boolean(getGalleryCurationFieldValue(card, "plaqueEnabled")),

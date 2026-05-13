@@ -27,12 +27,16 @@ import {
   GALLERY_GRID_MIN_CELLS,
   GALLERY_GRID_TOTAL_CELLS,
   GALLERY_GRID_CELL_METERS,
+  findGalleryPlacementBoundaryViolations,
   findGalleryPlacementCollisions,
+  getGalleryPlacementBoundaryIds,
   getGalleryPlacementCollisionIds,
   getGalleryPlacementCollisionText,
+  galleryGridSizeToPercent,
   getGalleryWallFootprintLabel,
   getGalleryWallGridInfo,
   gridToMeters,
+  isGalleryWallPlaced,
   metersToGrid
 } from "./galleryGrid.js";
 
@@ -1629,6 +1633,17 @@ function renderGalleryCurationDisplayStatusOptions(showInGallery) {
   }).join("");
 }
 
+function renderGalleryCurationPlacementStatusOptions(placedInGallery) {
+  return [
+    { value: "placed", label: "Placed on map" },
+    { value: "unplaced", label: "Not on map" }
+  ].map((option) => {
+    const selected = (placedInGallery ? "placed" : "unplaced") === option.value ? "selected" : "";
+
+    return `<option value="${escapeHtml(option.value)}" ${selected}>${escapeHtml(option.label)}</option>`;
+  }).join("");
+}
+
 function normalizeGalleryPlacementNumber(value, fallback = 0) {
   const numberValue = Number(value);
 
@@ -1685,6 +1700,8 @@ function getGalleryCurationStats(state, records) {
     assigned: 0,
     unassigned: 0,
     missingAssignedArtwork: 0,
+    placed: 0,
+    unplaced: 0,
     wallTypeCounts: new Map()
   };
 
@@ -1692,8 +1709,15 @@ function getGalleryCurationStats(state, records) {
     const showInGallery = record.showInGallery !== false;
     const image = getCurationImage(state, record.artworkId);
     const wallType = getGalleryWallType(record);
+    const placedInGallery = isGalleryWallPlaced(record);
 
     stats.wallTypeCounts.set(wallType, (stats.wallTypeCounts.get(wallType) ?? 0) + 1);
+
+    if (placedInGallery) {
+      stats.placed += 1;
+    } else {
+      stats.unplaced += 1;
+    }
 
     if (showInGallery) {
       stats.active += 1;
@@ -1737,80 +1761,166 @@ function renderGalleryWallTypePills(stats) {
   }).join("");
 }
 
-function galleryGridToPercent(value, invert = false) {
-  const normalized = (Number(value) - GALLERY_GRID_MIN_CELLS) / GALLERY_GRID_TOTAL_CELLS;
-  const percent = Math.max(0, Math.min(100, normalized * 100));
-
-  return `${(invert ? 100 - percent : percent).toFixed(3)}%`;
-}
-
-function galleryGridSizeToPercent(value) {
-  const percent = Math.max(0, Math.min(100, (Number(value) / GALLERY_GRID_TOTAL_CELLS) * 100));
+function galleryGridCellCenterToPercent(value, invert = false) {
+  const safeValue = Math.max(GALLERY_GRID_MIN_CELLS, Math.min(GALLERY_GRID_MAX_CELLS, Math.round(Number(value) || 0)));
+  const offset = invert
+    ? GALLERY_GRID_MAX_CELLS - safeValue
+    : safeValue - GALLERY_GRID_MIN_CELLS;
+  const percent = Math.max(0, Math.min(100, ((offset + 0.5) / GALLERY_GRID_TOTAL_CELLS) * 100));
 
   return `${percent.toFixed(3)}%`;
 }
 
-function getGalleryPlacementMapMarkerStyle(record) {
+function getGalleryVisualWallStyle(record, prefix = "marker") {
   const info = getGalleryWallGridInfo({
     ...record,
     wallType: getGalleryWallType(record)
   });
-  const left = galleryGridToPercent(info.gridX - info.occupiedWidthCells / 2);
-  const top = galleryGridToPercent(info.gridZ + info.occupiedDepthCells / 2, true);
-  const width = galleryGridSizeToPercent(info.occupiedWidthCells);
-  const depth = galleryGridSizeToPercent(info.occupiedDepthCells);
+  const centerX = galleryGridCellCenterToPercent(info.gridX, true);
+  const centerZ = galleryGridCellCenterToPercent(info.gridZ, true);
+  const length = galleryGridSizeToPercent(info.lengthCells);
+  const thickness = galleryGridSizeToPercent(info.thicknessCells);
+  const wallRotation = -Number(info.rotationYDegrees || 0);
 
   return [
-    `--marker-x: ${left}`,
-    `--marker-z: ${top}`,
-    `--marker-width: ${width}`,
-    `--marker-depth: ${depth}`
+    `--${prefix}-x: ${centerX}`,
+    `--${prefix}-z: ${centerZ}`,
+    `--${prefix}-width: ${length}`,
+    `--${prefix}-depth: ${thickness}`,
+    `--${prefix}-rotation: ${wallRotation}deg`,
+    `--${prefix}-label-rotation: ${Number(info.rotationYDegrees || 0)}deg`
   ].join('; ');
 }
 
-function renderGalleryPlacementMap(records) {
+function getGalleryPlacementMapMarkerStyle(record) {
+  return getGalleryVisualWallStyle(record, "marker");
+}
+
+function renderGalleryPlacementWallVisual() {
+  return `<span class="gallery-placement-wall-line" aria-hidden="true"></span>`;
+}
+
+function getGalleryFacingArrowStyle() {
+  return "";
+}
+
+function renderGalleryMapControls() {
+  return `
+    <div class="gallery-map-controls" data-gallery-map-controls>
+      <div>
+        <p class="eyebrow">Map controls</p>
+        <strong data-gallery-map-selected-label>No wall selected</strong>
+        <small>Click or drag a wall on the map, then rotate or flip it here.</small>
+      </div>
+      <div class="gallery-map-control-buttons">
+        <button class="button gallery-map-icon-button" type="button" data-gallery-map-rotate="-45" aria-label="Rotate selected wall left 45 degrees" title="Rotate left 45°" disabled>↺</button>
+        <button class="button gallery-map-icon-button" type="button" data-gallery-map-rotate="45" aria-label="Rotate selected wall right 45 degrees" title="Rotate right 45°" disabled>↻</button>
+        <button class="button gallery-map-icon-button" type="button" data-gallery-map-flip aria-label="Flip selected wall facing direction" title="Flip facing direction" disabled>⇄</button>
+        <button class="button" type="button" data-gallery-map-unplace disabled>Remove from map</button>
+        <button class="button primary" type="button" data-save-gallery-curation>Save Gallery Curation</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderGalleryPlacementSidebar(records, state) {
+  const items = records.map((record, index) => {
+    const wallType = getGalleryWallType(record);
+    const wallTypeMeta = getGalleryWallTypeMeta(wallType);
+    const placedInGallery = isGalleryWallPlaced(record);
+    const image = getCurationImage(state, record.artworkId);
+    const wallNumber = `Wall ${String(index + 1).padStart(2, "0")}`;
+    const artworkLabel = image?.title ?? "No artwork assigned";
+
+    return `
+      <button
+        class="gallery-placement-sidebar-item"
+        type="button"
+        draggable="true"
+        data-gallery-wall-drag-source
+        data-wall-id="${escapeHtml(record.wallId)}"
+        data-placement-state="${placedInGallery ? "placed" : "unplaced"}"
+      >
+        <span class="gallery-placement-sidebar-number">${escapeHtml(wallNumber)}</span>
+        <strong class="gallery-placement-sidebar-artwork">${escapeHtml(artworkLabel)}</strong>
+        <small>${escapeHtml(wallTypeMeta.label)} / ${placedInGallery ? "On map" : "Not on map"}</small>
+      </button>
+    `;
+  }).join("");
+
+  return `
+    <aside class="gallery-placement-sidebar" aria-label="Wall entities">
+      <div class="gallery-placement-sidebar-heading">
+        <p class="eyebrow">Wall entities</p>
+        <h5>Drag wall cards</h5>
+        <p>Drag a wall card onto the map to place it. Drag a placed footprint off the map to mark it as not on map without deleting the card.</p>
+      </div>
+      <div class="gallery-placement-sidebar-list" data-gallery-placement-sidebar>
+        ${items}
+      </div>
+    </aside>
+  `;
+}
+
+function renderGalleryPlacementMap(state, records) {
+  const placedRecords = records.filter(isGalleryWallPlaced);
   const collisions = findGalleryPlacementCollisions(records);
+  const boundaryViolations = findGalleryPlacementBoundaryViolations(records);
   const collisionIds = getGalleryPlacementCollisionIds(records);
-  const markers = records.map((record, index) => {
+  const boundaryIds = getGalleryPlacementBoundaryIds(records);
+  const markers = placedRecords.map((record, index) => {
     const placement = getGalleryWallPlacement(record);
     const wallType = getGalleryWallType(record);
     const showInGallery = record.showInGallery !== false;
     const label = getGalleryWallDisplayName(record, index);
     const hasCollision = collisionIds.has(record.wallId);
+    const hasBoundaryViolation = boundaryIds.has(record.wallId);
     const title = `${label}: grid ${placement.gridX}, ${placement.gridZ}; ${placement.positionX.toFixed(2)}m, ${placement.positionZ.toFixed(2)}m; ${placement.rotationYDegrees.toFixed(0)} degrees`;
 
     return `
-      <span
+      <button
         class="gallery-placement-map-marker"
+        type="button"
+        draggable="true"
+        data-placement-marker
+        data-placement-marker-wall-id="${escapeHtml(record.wallId)}"
         data-placement-marker-wall-type="${escapeHtml(wallType)}"
         data-placement-marker-status="${showInGallery ? "active" : "hidden"}"
-        data-placement-marker-collision="${hasCollision ? "true" : "false"}"
+        data-placement-marker-collision="${hasCollision || hasBoundaryViolation ? "true" : "false"}"
+        data-placement-marker-boundary="${hasBoundaryViolation ? "true" : "false"}"
+        data-placement-marker-facing="${escapeHtml(String(placement.rotationYDegrees))}"
         title="${escapeHtml(title)}"
         style="${escapeHtml(getGalleryPlacementMapMarkerStyle(record))}"
       >
-        <span>${escapeHtml(String(index + 1))}</span>
-      </span>
+        ${renderGalleryPlacementWallVisual()}
+        <span class="gallery-placement-marker-number">${escapeHtml(String(index + 1))}</span>
+        <span class="gallery-placement-facing-arrow" style="${getGalleryFacingArrowStyle(record)}" aria-hidden="true"></span>
+      </button>
     `;
   }).join("");
 
-  const collisionMessage = collisions.length
-    ? `<p class="gallery-placement-map-warning">${escapeHtml(`${collisions.length} placement collision${collisions.length === 1 ? "" : "s"} detected. Colliding walls cannot be saved until they are moved to separate floor cells.`)}</p>`
-    : `<p class="gallery-placement-map-success">No wall footprint collisions detected.</p>`;
+  const issueCount = collisions.length + boundaryViolations.length;
+  const collisionMessage = issueCount
+    ? `<p class="gallery-placement-map-warning">${escapeHtml(`${issueCount} placement issue${issueCount === 1 ? "" : "s"} detected. Move overlapping or border-crossing walls fully inside open floor cells before saving.`)}</p>`
+    : `<p class="gallery-placement-map-success">No wall footprint collisions or border conflicts detected.</p>`;
 
   return `
     <div class="gallery-placement-map" aria-label="Gallery placement map">
       <div>
         <p class="eyebrow">Floor Grid</p>
         <h4>Wall footprint map</h4>
-        <p>Each wall type occupies a different number of 0.5m floor cells. Move walls by grid cell instead of freehand meter values to avoid accidental overlap.</p>
+        <p>Drag wall cards from the right sidebar or drag placed footprints directly. Dragging a wall off the map marks it as not placed; it does not delete the wall card.</p>
         ${collisionMessage}
       </div>
-      <div class="gallery-placement-map-room" aria-hidden="true" data-gallery-placement-map>
-        <span class="gallery-placement-map-axis is-z-plus">+Z / front</span>
-        <span class="gallery-placement-map-axis is-z-minus">-Z / rear</span>
-        <span class="gallery-placement-map-axis is-x-minus">-X</span>
-        <span class="gallery-placement-map-axis is-x-plus">+X</span>
-        ${markers}
+      <div class="gallery-placement-map-layout">
+        <div class="gallery-placement-map-main">
+          ${renderGalleryMapControls()}
+          <div class="gallery-placement-map-room" data-gallery-placement-map>
+            ${markers}
+            <span class="gallery-placement-drop-preview" data-gallery-placement-drop-preview hidden aria-hidden="true"></span>
+          </div>
+        </div>
+        ${renderGalleryPlacementSidebar(records, state)}
       </div>
     </div>
   `;
@@ -1828,14 +1938,15 @@ function renderGalleryCurationSummary(state, records) {
         <p class="eyebrow">Curation Status</p>
         <h3>Wall assignments at a glance</h3>
         <p>
-          Wall slots now use a 0.5m floor grid. Wall block type controls each wall footprint, and collision checks prevent two physical wall blocks from occupying the same floor space.
+          Wall slots now use a voxel-style floor grid. Wall blocks occupy whole squares, map controls handle rotation/facing, and collision checks prevent two placed walls from using the same cell.
         </p>
+
       </div>
 
       <div class="gallery-curation-stat-grid">
-        ${renderGalleryStatCard("Total wall slots", stats.total)}
-        ${renderGalleryStatCard("Active walls", stats.active)}
-        ${renderGalleryStatCard("Hidden walls", stats.hidden)}
+        ${renderGalleryStatCard("Total wall cards", stats.total)}
+        ${renderGalleryStatCard("On map", stats.placed)}
+        ${renderGalleryStatCard("Not on map", stats.unplaced)}
         ${renderGalleryStatCard("Assigned artwork", stats.assigned, activeUnassigned ? `${activeUnassigned} active wall(s) still need artwork.` : "")}
       </div>
 
@@ -1843,7 +1954,7 @@ function renderGalleryCurationSummary(state, records) {
         ${renderGalleryWallTypePills(stats)}
       </div>
 
-      ${renderGalleryPlacementMap(records)}
+      ${renderGalleryPlacementMap(state, records)}
     </section>
   `;
 }
@@ -1877,6 +1988,15 @@ function renderGalleryCurationFilters(state) {
           <option value="active">Active / visible</option>
           <option value="hidden">Hidden / inactive</option>
           <option value="needs-artwork">Needs artwork</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Map placement</span>
+        <select data-gallery-curation-filter="placement">
+          <option value="all">All placement states</option>
+          <option value="placed">On map</option>
+          <option value="unplaced">Not on map</option>
         </select>
       </label>
 
@@ -2002,7 +2122,9 @@ function renderGalleryCurationCard(state, record, index) {
   const thumbSrc = image?.thumbSrc ?? image?.src ?? "";
   const thumbnailPosition = image?.thumbnailPosition ?? "50% 50%";
   const showInGallery = record.showInGallery !== false;
+  const placedInGallery = isGalleryWallPlaced(record);
   const displayStatus = showInGallery ? "active" : "hidden";
+  const placementStatus = placedInGallery ? "placed" : "unplaced";
   const artworkState = image ? "assigned" : "unassigned";
   const plaqueEnabled = record.plaqueEnabled !== false;
   const wallType = getGalleryWallType(record);
@@ -2019,10 +2141,14 @@ function renderGalleryCurationCard(state, record, index) {
     image?.title,
     image?.id,
     image ? getCategoryLabel(state, image.category) : "",
-    displayStatus
+    displayStatus,
+    placementStatus
   ].filter(Boolean).join(" ").toLowerCase();
   const collisions = findGalleryPlacementCollisions(state.galleryCuration ?? []);
-  const collisionText = getGalleryPlacementCollisionText(record.wallId, collisions);
+  const boundaryIds = getGalleryPlacementBoundaryIds(state.galleryCuration ?? []);
+  const collisionText = boundaryIds.has(record.wallId)
+    ? "This wall extends beyond the floor-map border."
+    : getGalleryPlacementCollisionText(record.wallId, collisions);
   const footprintLabel = getGalleryWallFootprintLabel({
     ...record,
     wallType,
@@ -2037,6 +2163,7 @@ function renderGalleryCurationCard(state, record, index) {
       data-gallery-curation-card
       data-wall-id="${escapeHtml(record.wallId)}"
       data-gallery-curation-status="${escapeHtml(displayStatus)}"
+      data-gallery-curation-placement-status="${escapeHtml(placementStatus)}"
       data-gallery-curation-wall-type="${escapeHtml(wallType)}"
       data-gallery-curation-artwork-state="${escapeHtml(artworkState)}"
       data-gallery-curation-category="${escapeHtml(image?.category ?? "")}" 
@@ -2073,6 +2200,7 @@ function renderGalleryCurationCard(state, record, index) {
             </div>
             <div class="gallery-curation-badge-row" aria-label="Wall status">
               <span class="gallery-curation-badge" data-gallery-status-badge="${escapeHtml(displayStatus)}">${showInGallery ? "Active" : "Hidden"}</span>
+              <span class="gallery-curation-badge" data-gallery-placement-badge="${escapeHtml(placementStatus)}">${placedInGallery ? "On map" : "Not on map"}</span>
               <span class="gallery-curation-badge" data-gallery-artwork-badge="${escapeHtml(artworkState)}">${image ? "Assigned" : "Needs artwork"}</span>
               <span class="gallery-curation-badge" data-gallery-wall-type-badge>${escapeHtml(wallTypeMeta.label)}</span>
             </div>
@@ -2108,48 +2236,19 @@ function renderGalleryCurationCard(state, record, index) {
           <p data-gallery-wall-type-description>${escapeHtml(wallTypeMeta.description)}</p>
         </div>
 
-        <fieldset class="gallery-placement-controls wide" data-gallery-placement-controls>
-          <legend>Floor-grid placement</legend>
-          <p>
-            Move this wall by 0.5m floor cells. The editor calculates the wall footprint from the selected wall block type and blocks saves when two wall footprints overlap.
-          </p>
-          <div class="gallery-placement-grid">
-            <label>
-              <span>Grid X</span>
-              <input
-                data-gallery-grid-field="gridX"
-                type="number"
-                min="${escapeHtml(String(GALLERY_GRID_MIN_CELLS))}"
-                max="${escapeHtml(String(GALLERY_GRID_MAX_CELLS))}"
-                step="1"
-                value="${escapeHtml(String(placement.gridX))}"
-              />
-              <small data-gallery-meter-readout="positionX">${escapeHtml(placement.positionX.toFixed(2))}m</small>
-              <input data-gallery-curation-field="positionX" type="hidden" value="${escapeHtml(placement.positionX.toFixed(2))}" />
-            </label>
-            <label>
-              <span>Grid Z</span>
-              <input
-                data-gallery-grid-field="gridZ"
-                type="number"
-                min="${escapeHtml(String(GALLERY_GRID_MIN_CELLS))}"
-                max="${escapeHtml(String(GALLERY_GRID_MAX_CELLS))}"
-                step="1"
-                value="${escapeHtml(String(placement.gridZ))}"
-              />
-              <small data-gallery-meter-readout="positionZ">${escapeHtml(placement.positionZ.toFixed(2))}m</small>
-              <input data-gallery-curation-field="positionZ" type="hidden" value="${escapeHtml(placement.positionZ.toFixed(2))}" />
-            </label>
-            <label>
-              <span>Facing</span>
-              <select data-gallery-curation-field="rotationYDegrees">
-                ${renderGalleryRotationOptions(placement.rotationYDegrees)}
-              </select>
-            </label>
-          </div>
+        <div class="gallery-placement-readout wide" data-gallery-placement-controls>
+          <p class="eyebrow">Map placement</p>
+          <strong data-gallery-placement-state-label>${placedInGallery ? "On map" : "Not on map"}</strong>
+          <p>Drag this wall on the floor map to place it. Use the map controls to rotate, flip, or remove it from the map.</p>
           <p class="gallery-placement-footprint" data-gallery-placement-footprint>${escapeHtml(footprintLabel)}</p>
           <p class="gallery-placement-warning" data-gallery-placement-warning ${collisionText ? "" : "hidden"}>${escapeHtml(collisionText)}</p>
-        </fieldset>
+          <input data-gallery-curation-field="placedInGallery" type="hidden" value="${placedInGallery ? "placed" : "unplaced"}" />
+          <input data-gallery-grid-field="gridX" type="hidden" value="${escapeHtml(String(placement.gridX))}" />
+          <input data-gallery-grid-field="gridZ" type="hidden" value="${escapeHtml(String(placement.gridZ))}" />
+          <input data-gallery-curation-field="positionX" type="hidden" value="${escapeHtml(placement.positionX.toFixed(2))}" />
+          <input data-gallery-curation-field="positionZ" type="hidden" value="${escapeHtml(placement.positionZ.toFixed(2))}" />
+          <input data-gallery-curation-field="rotationYDegrees" type="hidden" value="${escapeHtml(String(placement.rotationYDegrees))}" />
+        </div>
 
         <label>
           <span>Plaque side</span>
@@ -2172,12 +2271,71 @@ function renderGalleryCurationCard(state, record, index) {
 
         <div class="image-overview-actions wide">
           <button class="button primary" type="button" data-save-gallery-curation-wall>Save Wall</button>
+          <button class="button danger" type="button" data-remove-gallery-wall-card>Remove Wall</button>
           <button class="button" type="button" data-move-gallery-curation="top">Top</button>
           <button class="button" type="button" data-move-gallery-curation="up">Up</button>
           <button class="button" type="button" data-move-gallery-curation="down">Down</button>
         </div>
       </div>
     </article>
+  `;
+}
+
+function renderGalleryAddWallOverlay(state) {
+  return `
+    <div class="gallery-add-wall-overlay" data-gallery-add-wall-overlay hidden>
+      <div class="gallery-add-wall-backdrop" data-gallery-add-wall-close></div>
+      <section class="gallery-add-wall-panel" role="dialog" aria-modal="true" aria-labelledby="gallery-add-wall-title">
+        <div class="gallery-add-wall-heading">
+          <div>
+            <p class="eyebrow">New wall entity</p>
+            <h3 id="gallery-add-wall-title">Add wall card</h3>
+            <p>Configure the wall before adding it to the curation list. New walls start off-map until you drag them onto the floor grid.</p>
+          </div>
+          <button class="button" type="button" data-gallery-add-wall-close>Close</button>
+        </div>
+
+        <div class="gallery-add-wall-grid">
+          <label>
+            <span>Wall block type</span>
+            <select data-gallery-add-wall-field="wallType">
+              ${renderGalleryCurationWallTypeOptions("standard-display-wall")}
+            </select>
+          </label>
+
+          <label>
+            <span>Assigned artwork</span>
+            <select data-gallery-add-wall-field="artworkId">
+              ${renderGalleryCurationImageOptions(state, "")}
+            </select>
+          </label>
+
+          <label>
+            <span>Display status</span>
+            <select data-gallery-add-wall-field="showInGallery">
+              ${renderGalleryCurationDisplayStatusOptions(false)}
+            </select>
+          </label>
+
+          <label>
+            <span>Plaque side</span>
+            <select data-gallery-add-wall-field="plaqueSide">
+              ${renderGalleryCurationPlaqueSideOptions("auto")}
+            </select>
+          </label>
+
+          <label class="check-row">
+            <input data-gallery-add-wall-field="plaqueEnabled" type="checkbox" checked />
+            <span>Show plaque</span>
+          </label>
+        </div>
+
+        <div class="gallery-add-wall-actions">
+          <button class="button" type="button" data-gallery-add-wall-close>Cancel</button>
+          <button class="button primary" type="button" data-create-gallery-wall-card>Add Wall Card</button>
+        </div>
+      </section>
+    </div>
   `;
 }
 
@@ -2205,15 +2363,14 @@ function renderGalleryCurationPage(state, elements) {
   elements.galleryCurationList.innerHTML = `
     ${renderGalleryCurationSummary(state, records)}
 
-    <div class="category-page-actions gallery-curation-actions">
-      <button class="button primary" type="button" data-save-gallery-curation>Save All Gallery Curation</button>
-    </div>
-
     ${renderGalleryCurationFilters(state)}
 
-    <p class="gallery-curation-filter-result" data-gallery-curation-filter-result>
-      Showing ${escapeHtml(String(records.length))} wall slots.
-    </p>
+    <div class="gallery-curation-list-header">
+      <p class="gallery-curation-filter-result" data-gallery-curation-filter-result>
+        Showing ${escapeHtml(String(records.length))} wall cards.
+      </p>
+      <button class="button primary" type="button" data-add-gallery-wall-card>Add Wall Card</button>
+    </div>
 
     <div class="gallery-curation-list" data-gallery-curation-list>
       ${records.map((record, index) => renderGalleryCurationCard(state, record, index)).join("")}
@@ -2221,6 +2378,7 @@ function renderGalleryCurationPage(state, elements) {
 
     ${renderGalleryArtworkPickerOverlay(state)}
     ${renderGalleryPreviewLightboxOverlay()}
+    ${renderGalleryAddWallOverlay(state)}
   `;
 }
 

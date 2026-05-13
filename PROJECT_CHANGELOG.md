@@ -859,3 +859,138 @@ Date: 2026-05-12
 - Updated the Gallery card preview when assigned artwork, wall block type, plaque side, plaque enabled state, or display status changes.
 - Added documentation for the Gallery wall preview editor behavior.
 
+
+---
+
+## Appended changelog fragments - 20260513-130436
+
+
+## 2026-05-12 - Gallery drag/drop wall entity editor
+
+- Replaced the rejected select-on-map concept with a drag/drop wall placement model.
+- Added a wall-entity sidebar beside the floor-grid map.
+- Added drag support from the sidebar onto the map and from placed wall footprints to new grid cells.
+- Dragging a placed wall off the map now marks it as not placed instead of deleting the wall entity.
+- Added `placedInGallery` to gallery curation data so wall-card existence is separate from physical room placement.
+- Added Add Wall Card and Remove Wall controls in the gallery editor.
+- Updated the runtime gallery blueprint so `galleryCuration.json` can be the wall-entity source of truth, including custom wall entities and removed base wall entities.
+- Updated gallery validation/collision logic so unplaced wall entities do not participate in footprint collision checks.
+
+
+## 2026-05-12 - Gallery interactive floor-grid map editor
+
+- Made the Gallery tab's wall footprint map interactive.
+- Added selectable wall markers to the placement map.
+- Added a **Select on map** button to each gallery wall card.
+- Added click-to-place behavior: after selecting a wall, clicking the map moves that wall to the clicked 0.5m grid cell.
+- Updated map markers, card selection state, meter readouts, collision warnings, and save-button state from unsaved editor changes.
+- Kept the existing `galleryCuration.json` placement schema unchanged.
+- Did not change public gallery room layout, lighting, fog, movement, plaque runtime behavior, or image data.
+
+
+## 2026-05-13 — Gallery Map Controls Height Fix
+
+- Fixed the gallery floor-map controls panel stretching into a large empty box above the grid.
+- Updated the map column layout so controls remain compact while the grid fills the available space.
+- Bumped the Flask editor CSS/JS cache version to `v=40`.
+
+
+## 2026-05-13 — Gallery Map Drag Direction and Rectangle Wall Refinement
+
+- Fixed the editor map drag/drop preview so its X-axis mapping matches the resting wall marker orientation.
+- Made wall blocks render as simple continuous square-ended rectangles in both resting and drag-preview states.
+- Tightened the map controls bar and removed excess helper text from the compact control container.
+- Bumped local editor cache version to `v=39`.
+
+
+# Changelog Append — Gallery Map Drag Preview Cleanup
+
+Date: 2026-05-13
+
+## Changed
+
+- Hid the native browser drag ghost while dragging gallery wall entities or placed wall footprints.
+- Kept the map footprint preview as the primary drag feedback while placing or moving walls.
+- Added drag-state styling so the source sidebar item or map marker is visually muted while dragging.
+- Bumped the local editor asset cache version to `v=34`.
+
+## Fixed
+
+- Removed a duplicate `placedInGallery: false` key in the new wall-card default record.
+
+## Not changed
+
+- No gallery runtime files were changed.
+- No wall placement data was changed.
+- No backend routes or data schema were changed.
+- No image data, image files, lighting, fog, plaques, camera, or movement behavior was changed.
+
+
+# Changelog Append — Gallery Map Orientation, Boundary, and Runtime Visibility Fix
+
+## Added
+
+- Added editor-side boundary validation for placed gallery wall footprints that extend outside the floor-map border.
+- Added backend validation for out-of-bounds gallery wall footprints.
+- Added image-data validator checks for out-of-bounds gallery wall footprints.
+
+## Changed
+
+- Changed the public 3D gallery wall list to filter hidden walls out of the runtime wall meshes.
+- Mirrored the editor floor map horizontally so placement reads more naturally.
+- Moved Save Gallery Curation into the map-control bar.
+- Simplified the map grid to a uniform cell grid to remove irregular center-line spacing.
+- Restyled map walls as darker continuous wall lines with squared ends.
+- Corrected facing-arrow placement and rotation so arrows sit on the facing side of each wall, including 45-degree walls.
+
+## Fixed
+
+- Fixed hidden walls still appearing in the virtual gallery.
+- Fixed wall placement being allowed when a wall footprint extended past the map border.
+- Fixed facing arrows pointing into walls or drifting away from the correct side after rotation.
+- Fixed visual grid clutter and the close-line artifact near the map center.
+
+
+## 2026-05-13 - Gallery map sidebar and drop highlight
+
+- Flipped the gallery placement editor layout so the floor map sits left and the wall entity sidebar sits right.
+- Strengthened sidebar card framing so each draggable wall entity reads as a discrete object.
+- Changed sidebar wall labels to show wall number first and assigned artwork title second.
+- Added a live grid-footprint landing preview while dragging a wall over the floor map.
+- Added collision-state styling to the landing preview when the hovered drop position would overlap an existing wall footprint.
+- Preserved the existing behavior where dragging a wall off the map marks it as not placed without deleting the wall card.
+
+
+## 2026-05-13 — Gallery Map Visible Voxel Walls and Icon Controls
+
+- Improved the gallery floor-grid editor so wall footprints remain visible while resting on the map instead of reading primarily as wall numbers and facing arrows.
+- Reinforced the voxel/tile visual model by making occupied wall cells fill their full grid squares.
+- Added clearer selected-wall, hidden-wall, collision, and drop-preview wall-cell treatments.
+- Replaced text-heavy map rotation controls with icon-style controls for rotate-left, rotate-right, and flip-facing actions while retaining accessible labels and tooltips.
+- Bumped the local editor cache version to `v=36`.
+
+
+## 2026-05-13 - Gallery map visual refinement and add-wall modal
+
+- Refined the Gallery tab floor-grid map so wall footprints render as continuous wall lines instead of segmented cell blocks.
+- Removed the map axis labels and reduced visual clutter on the grid surface.
+- Updated 45-degree wall rendering so resting walls visually match dragged walls.
+- Centered facing arrows on the outward-facing side of each wall.
+- Moved Save Gallery Curation into the map column below the grid.
+- Stretched the wall-entity sidebar so the wall list reaches the bottom of the sidebar container.
+- Widened the editor page/map layout to give the grid more usable room.
+- Moved Add Wall Card to the wall-card section header.
+- Added an Add Wall Card modal so new wall entities can be configured before being added to the list.
+
+
+## 2026-05-13 - Gallery voxel map and rotation controls
+
+- Changed the gallery placement editor from coordinate-style placement to voxel-style full-cell wall footprints.
+- Updated wall type footprints to use discrete cell lengths so walls visually occupy full grid squares.
+- Added support for 45-degree wall rotation values in editor helpers, Flask normalization, and image data validation.
+- Moved rotation/facing controls from individual wall cards to the floor map controls.
+- Added map controls for rotating selected walls, flipping facing direction, and removing a selected wall from the map without deleting the wall entity.
+- Added a facing indicator on each placed wall footprint.
+- Updated placement collision checks to compare occupied grid cells instead of rectangle overlap bounds.
+- Kept the existing `galleryCuration.json` schema based on meter positions and `rotationYDegrees` so the runtime gallery remains compatible.
+

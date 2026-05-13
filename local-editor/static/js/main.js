@@ -31,13 +31,24 @@ import {
 } from "./importValidation.js";
 import { resolveGalleryFrameDimensions } from "./galleryFraming.js";
 import {
+  GALLERY_GRID_MAX_CELLS,
+  GALLERY_GRID_MIN_CELLS,
+  GALLERY_GRID_TOTAL_CELLS,
+  clampGridIndex,
+  findGalleryPlacementBoundaryViolations,
   findGalleryPlacementCollisions,
+  flipGalleryWallDegrees,
+  galleryGridSizeToPercent,
+  getGalleryPlacementBoundaryIds,
   getGalleryPlacementCollisionIds,
   getGalleryPlacementCollisionText,
   getGalleryWallFootprintLabel,
   getGalleryWallGridInfo,
   gridToMeters,
-  metersToGrid
+  isGalleryWallPlaced,
+  metersToGrid,
+  normalizeRotationDegrees,
+  rotateGalleryWallDegrees
 } from "./galleryGrid.js";
 
 const VALID_PAGE_ROUTES = new Set(["images", "import", "gallery", "categories", "backups"]);
@@ -53,6 +64,61 @@ let state = {
 
 let pendingImportItems = [];
 let hasUnsavedChanges = false;
+let activeGalleryWallDrag = null;
+let activeGallerySelectedWallId = null;
+let galleryTransparentDragImage = null;
+
+function getGalleryTransparentDragImage() {
+  if (galleryTransparentDragImage) {
+    return galleryTransparentDragImage;
+  }
+
+  galleryTransparentDragImage = document.createElement("span");
+  galleryTransparentDragImage.setAttribute("aria-hidden", "true");
+  galleryTransparentDragImage.className = "gallery-transparent-drag-image";
+  document.body.appendChild(galleryTransparentDragImage);
+
+  return galleryTransparentDragImage;
+}
+
+function escapeGallerySelectorValue(value) {
+  if (window.CSS?.escape) {
+    return window.CSS.escape(value);
+  }
+
+  return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+}
+
+function setGalleryDragVisualState(wallId, isDragging) {
+  document.body.dataset.galleryWallDragging = isDragging ? "true" : "false";
+
+  const safeWallId = escapeGallerySelectorValue(wallId);
+  const selector = `[data-wall-id="${safeWallId}"], [data-placement-marker-wall-id="${safeWallId}"]`;
+  const nodes = Array.from(elements.galleryCurationList?.querySelectorAll(selector) ?? []);
+
+  nodes.forEach((node) => {
+    node.dataset.galleryDragging = isDragging ? "true" : "false";
+  });
+}
+
+function clearGalleryDragVisualState() {
+  document.body.dataset.galleryWallDragging = "false";
+  const nodes = Array.from(elements.galleryCurationList?.querySelectorAll('[data-gallery-dragging="true"]') ?? []);
+
+  nodes.forEach((node) => {
+    node.dataset.galleryDragging = "false";
+  });
+}
+
+function suppressNativeGalleryDragPreview(event) {
+  if (!event.dataTransfer) {
+    return;
+  }
+
+  // Hide the browser's default dragged card/label ghost. The map already renders
+  // the real landing footprint, which is the useful visual feedback while placing walls.
+  event.dataTransfer.setDragImage(getGalleryTransparentDragImage(), 0, 0);
+}
 
 // Updates the short status message shown near the top of the editor.
 // The optional state value controls the small status indicator color in CSS.
@@ -1051,6 +1117,7 @@ function getGalleryCardPlacementRecord(card) {
   return {
     wallId: card.dataset.wallId ?? "",
     wallType: card.querySelector('[data-gallery-curation-field="wallType"]')?.value ?? "standard-display-wall",
+    placedInGallery: card.querySelector('[data-gallery-curation-field="placedInGallery"]')?.value !== "unplaced",
     positionX: Number(card.querySelector('[data-gallery-curation-field="positionX"]')?.value ?? 0),
     positionZ: Number(card.querySelector('[data-gallery-curation-field="positionZ"]')?.value ?? 0),
     rotationYDegrees: Number(card.querySelector('[data-gallery-curation-field="rotationYDegrees"]')?.value ?? 0)
@@ -1100,6 +1167,411 @@ function syncGalleryGridPlacementFromField(field) {
   syncGalleryPlacementCollisionState();
 }
 
+function getGalleryWallCardById(wallId) {
+  return Array.from(elements.galleryCurationList?.querySelectorAll("[data-gallery-curation-card]") ?? [])
+    .find((card) => card.dataset.wallId === wallId);
+}
+
+function setGalleryWallPlacementStatus(card, placedInGallery) {
+  const field = card?.querySelector('[data-gallery-curation-field="placedInGallery"]');
+
+  if (!field) {
+    return;
+  }
+
+  field.value = placedInGallery ? "placed" : "unplaced";
+  const stateLabel = card.querySelector("[data-gallery-placement-state-label]");
+
+  if (stateLabel) {
+    stateLabel.textContent = placedInGallery ? "On map" : "Not on map";
+  }
+
+  syncGalleryCurationCardState(card);
+  syncGalleryPlacementCollisionState();
+}
+
+function setGalleryWallGridPosition(card, gridX, gridZ) {
+  if (!card) {
+    return;
+  }
+
+  const gridXInput = card.querySelector('[data-gallery-grid-field="gridX"]');
+  const gridZInput = card.querySelector('[data-gallery-grid-field="gridZ"]');
+
+  if (gridXInput) {
+    gridXInput.value = String(clampGridIndex(gridX));
+  }
+
+  if (gridZInput) {
+    gridZInput.value = String(clampGridIndex(gridZ));
+  }
+
+  setGalleryWallPlacementStatus(card, true);
+  syncGalleryGridPlacementFromField(gridXInput ?? gridZInput);
+}
+
+function getGalleryGridDropPosition(event, mapElement) {
+  const rect = mapElement.getBoundingClientRect();
+  const rawX = (event.clientX - rect.left) / rect.width;
+  const rawZ = (event.clientY - rect.top) / rect.height;
+  const clampedX = Math.max(0, Math.min(0.999999, rawX));
+  const clampedZ = Math.max(0, Math.min(0.999999, rawZ));
+  const gridX = clampGridIndex(GALLERY_GRID_MAX_CELLS - Math.floor(clampedX * (GALLERY_GRID_MAX_CELLS - GALLERY_GRID_MIN_CELLS + 1)));
+  const gridZ = clampGridIndex(GALLERY_GRID_MAX_CELLS - Math.floor(clampedZ * (GALLERY_GRID_MAX_CELLS - GALLERY_GRID_MIN_CELLS + 1)));
+
+  return { gridX, gridZ };
+}
+
+function galleryGridCellCenterToPercent(value, invert = false) {
+  const safeValue = clampGridIndex(value);
+  const offset = invert
+    ? GALLERY_GRID_MAX_CELLS - safeValue
+    : safeValue - GALLERY_GRID_MIN_CELLS;
+  const percent = Math.max(0, Math.min(100, ((offset + 0.5) / GALLERY_GRID_TOTAL_CELLS) * 100));
+
+  return `${percent.toFixed(3)}%`;
+}
+
+function getGalleryPlacementPreviewStyle(record) {
+  const info = getGalleryWallGridInfo(record);
+  // The editor map is visually mirrored on the X axis to match the desired room orientation.
+  // Drop previews must use the same X mapping as resting wall markers or dragging feels inverted.
+  const centerX = galleryGridCellCenterToPercent(info.gridX, true);
+  const centerZ = galleryGridCellCenterToPercent(info.gridZ, true);
+  const length = galleryGridSizeToPercent(info.lengthCells);
+  const thickness = galleryGridSizeToPercent(info.thicknessCells);
+  const wallRotation = -Number(info.rotationYDegrees || 0);
+
+  return [
+    `--preview-x: ${centerX}`,
+    `--preview-z: ${centerZ}`,
+    `--preview-width: ${length}`,
+    `--preview-depth: ${thickness}`,
+    `--preview-rotation: ${wallRotation}deg`
+  ].join('; ');
+}
+
+
+function getGalleryPlacementPreviewCellsMarkup() {
+  return `<span class="gallery-placement-wall-line" aria-hidden="true"></span>`;
+}
+
+function getGalleryWallDisplayLabel(card) {
+  const sidebarItem = elements.galleryCurationList?.querySelector(`[data-gallery-wall-drag-source][data-wall-id="${escapeGallerySelectorValue(card?.dataset.wallId ?? "")}"]`);
+  const wallNumber = sidebarItem?.querySelector(".gallery-placement-sidebar-number")?.textContent?.trim();
+  const artworkTitle = sidebarItem?.querySelector(".gallery-placement-sidebar-artwork")?.textContent?.trim();
+
+  return [wallNumber, artworkTitle].filter(Boolean).join(" / ") || card?.dataset.wallId || "Selected wall";
+}
+
+function applyGalleryMapSelectionState() {
+  let selectedId = activeGallerySelectedWallId;
+  let selectedCard = getGalleryWallCardById(selectedId);
+  const controls = elements.galleryCurationList?.querySelector("[data-gallery-map-controls]");
+  const label = controls?.querySelector("[data-gallery-map-selected-label]");
+  const controlButtons = Array.from(controls?.querySelectorAll("button") ?? []);
+  if (selectedId && !selectedCard) {
+    activeGallerySelectedWallId = null;
+    selectedId = null;
+    selectedCard = null;
+  }
+
+  Array.from(elements.galleryCurationList?.querySelectorAll("[data-gallery-curation-card], [data-gallery-wall-drag-source], [data-placement-marker]") ?? []).forEach((node) => {
+    const nodeWallId = node.dataset.wallId ?? node.dataset.placementMarkerWallId;
+    node.dataset.gallerySelected = nodeWallId && selectedId && nodeWallId === selectedId ? "true" : "false";
+  });
+
+  if (label) {
+    label.textContent = selectedCard ? getGalleryWallDisplayLabel(selectedCard) : "No wall selected";
+  }
+
+  controlButtons.forEach((button) => {
+    button.disabled = !selectedCard;
+  });
+}
+
+function selectGalleryWall(wallId) {
+  activeGallerySelectedWallId = wallId || null;
+  applyGalleryMapSelectionState();
+}
+
+function setGalleryWallRotation(card, rotationYDegrees) {
+  const field = card?.querySelector('[data-gallery-curation-field="rotationYDegrees"]');
+
+  if (!field) {
+    return;
+  }
+
+  field.value = String(normalizeRotationDegrees(rotationYDegrees));
+  syncGalleryCurationCardState(card);
+  syncGalleryPlacementCollisionState();
+}
+
+function rotateSelectedGalleryWall(delta) {
+  const card = getGalleryWallCardById(activeGallerySelectedWallId);
+
+  if (!card) {
+    return;
+  }
+
+  const field = card.querySelector('[data-gallery-curation-field="rotationYDegrees"]');
+  const nextRotation = rotateGalleryWallDegrees(field?.value, delta);
+
+  setGalleryWallRotation(card, nextRotation);
+  setDirtyState(true, `Rotated ${card.dataset.wallId} to ${nextRotation} degrees. Click Save Wall or Save All Gallery Curation to preserve it.`);
+  refreshGalleryPlacementMapFromCards();
+}
+
+function flipSelectedGalleryWall() {
+  const card = getGalleryWallCardById(activeGallerySelectedWallId);
+
+  if (!card) {
+    return;
+  }
+
+  const field = card.querySelector('[data-gallery-curation-field="rotationYDegrees"]');
+  const nextRotation = flipGalleryWallDegrees(field?.value);
+
+  setGalleryWallRotation(card, nextRotation);
+  setDirtyState(true, `Flipped ${card.dataset.wallId}. Click Save Wall or Save All Gallery Curation to preserve it.`);
+  refreshGalleryPlacementMapFromCards();
+}
+
+function unplaceSelectedGalleryWall() {
+  const card = getGalleryWallCardById(activeGallerySelectedWallId);
+
+  if (!card) {
+    return;
+  }
+
+  setGalleryWallPlacementStatus(card, false);
+  setDirtyState(true, `Moved ${card.dataset.wallId} off the map. The wall card still exists and can be dragged back later.`);
+  refreshGalleryPlacementMapFromCards();
+}
+
+function hideGalleryPlacementDropPreview(mapElement = null) {
+  const root = mapElement ?? elements.galleryCurationList;
+  const previews = Array.from(root?.querySelectorAll?.('[data-gallery-placement-drop-preview]') ?? []);
+
+  previews.forEach((preview) => {
+    preview.hidden = true;
+    preview.removeAttribute('style');
+    preview.dataset.dropCollision = 'false';
+    preview.innerHTML = '';
+  });
+
+  const maps = mapElement ? [mapElement] : Array.from(elements.galleryCurationList?.querySelectorAll('[data-gallery-placement-map]') ?? []);
+
+  maps.forEach((map) => {
+    map.dataset.galleryDragOver = 'false';
+    map.dataset.galleryDropCollision = 'false';
+  });
+}
+
+function updateGalleryPlacementDropPreview(event, mapElement) {
+  const wallId = activeGalleryWallDrag?.wallId;
+  const card = getGalleryWallCardById(wallId);
+  const preview = mapElement?.querySelector('[data-gallery-placement-drop-preview]');
+
+  if (!wallId || !card || !preview) {
+    return;
+  }
+
+  const position = getGalleryGridDropPosition(event, mapElement);
+  const previewRecord = {
+    ...getGalleryCardPlacementRecord(card),
+    gridX: position.gridX,
+    gridZ: position.gridZ,
+    placedInGallery: true
+  };
+  const previewRecords = [...getGalleryCardPlacementRecords().filter((record) => record.wallId !== wallId), previewRecord];
+  const hasCollision = findGalleryPlacementCollisions(previewRecords).length > 0
+    || findGalleryPlacementBoundaryViolations(previewRecords).length > 0;
+
+  preview.hidden = false;
+  preview.setAttribute('style', getGalleryPlacementPreviewStyle(previewRecord));
+  preview.innerHTML = getGalleryPlacementPreviewCellsMarkup(previewRecord);
+  preview.dataset.dropCollision = hasCollision ? 'true' : 'false';
+  mapElement.dataset.galleryDragOver = 'true';
+  mapElement.dataset.galleryDropCollision = hasCollision ? 'true' : 'false';
+}
+
+function refreshGalleryPlacementMapFromCards() {
+  const route = getCurrentRoute();
+
+  if (route.name !== "gallery") {
+    return;
+  }
+
+  state = {
+    ...state,
+    galleryCuration: collectGalleryCuration(state)
+  };
+
+  renderAll(state, elements, route);
+  setEditorRoute(route);
+  syncGalleryPlacementCollisionState();
+  applyGalleryCurationFilters();
+  applyGalleryMapSelectionState();
+}
+
+function beginGalleryWallDrag(wallId, source) {
+  selectGalleryWall(wallId);
+  activeGalleryWallDrag = {
+    wallId,
+    source,
+    droppedOnMap: false
+  };
+
+  setGalleryDragVisualState(wallId, true);
+}
+
+function placeDraggedGalleryWallOnMap(event, mapElement) {
+  const wallId = activeGalleryWallDrag?.wallId;
+  const card = getGalleryWallCardById(wallId);
+
+  if (!wallId || !card) {
+    return;
+  }
+
+  const position = getGalleryGridDropPosition(event, mapElement);
+
+  activeGalleryWallDrag.droppedOnMap = true;
+  selectGalleryWall(wallId);
+  setGalleryWallGridPosition(card, position.gridX, position.gridZ);
+  setDirtyState(true, `Placed ${wallId} on the gallery map. Click Save Wall or Save All Gallery Curation to preserve it.`);
+  refreshGalleryPlacementMapFromCards();
+}
+
+function endGalleryWallDrag() {
+  if (!activeGalleryWallDrag) {
+    clearGalleryDragVisualState();
+    return;
+  }
+
+  const { wallId, source, droppedOnMap } = activeGalleryWallDrag;
+  const card = getGalleryWallCardById(wallId);
+
+  if (source === "map" && !droppedOnMap && card) {
+    setGalleryWallPlacementStatus(card, false);
+    setDirtyState(true, `Moved ${wallId} off the map. The wall card still exists and can be dragged back later.`);
+    refreshGalleryPlacementMapFromCards();
+  }
+
+  activeGalleryWallDrag = null;
+  clearGalleryDragVisualState();
+  applyGalleryMapSelectionState();
+}
+
+function makeUniqueGalleryWallId() {
+  const cards = Array.from(elements.galleryCurationList?.querySelectorAll("[data-gallery-curation-card]") ?? []);
+  const usedIds = new Set(cards.map((card) => card.dataset.wallId).filter(Boolean));
+  let index = usedIds.size + 1;
+  let candidate = `custom-wall-${String(index).padStart(2, "0")}`;
+
+  while (usedIds.has(candidate)) {
+    index += 1;
+    candidate = `custom-wall-${String(index).padStart(2, "0")}`;
+  }
+
+  return candidate;
+}
+
+function getGalleryAddWallOverlay() {
+  return elements.galleryCurationList?.querySelector("[data-gallery-add-wall-overlay]");
+}
+
+function openGalleryAddWallOverlay() {
+  const overlay = getGalleryAddWallOverlay();
+
+  if (!overlay) {
+    return;
+  }
+
+  overlay.hidden = false;
+  document.body.dataset.galleryAddWallOpen = "true";
+  overlay.querySelector('[data-gallery-add-wall-field="wallType"]')?.focus();
+}
+
+function closeGalleryAddWallOverlay() {
+  const overlay = getGalleryAddWallOverlay();
+
+  if (!overlay) {
+    return;
+  }
+
+  overlay.hidden = true;
+  delete document.body.dataset.galleryAddWallOpen;
+}
+
+function getGalleryAddWallFieldValue(name, fallback = "") {
+  const overlay = getGalleryAddWallOverlay();
+  const field = overlay?.querySelector(`[data-gallery-add-wall-field="${name}"]`);
+
+  if (!field) {
+    return fallback;
+  }
+
+  if (field.type === "checkbox") {
+    return field.checked;
+  }
+
+  return field.value ?? fallback;
+}
+
+function addGalleryWallCardFromOverlay() {
+  const wallId = makeUniqueGalleryWallId();
+  const nextRecord = {
+    wallId,
+    artworkId: getGalleryAddWallFieldValue("artworkId", ""),
+    showInGallery: getGalleryAddWallFieldValue("showInGallery", "hidden") === "active",
+    placedInGallery: false,
+    displayOrder: (state.galleryCuration ?? []).length + 1,
+    wallType: getGalleryAddWallFieldValue("wallType", "standard-display-wall"),
+    plaqueEnabled: getGalleryAddWallFieldValue("plaqueEnabled", true),
+    plaqueSide: getGalleryAddWallFieldValue("plaqueSide", "auto"),
+    positionX: 0,
+    positionZ: 0,
+    rotationYDegrees: 0
+  };
+
+  state = {
+    ...state,
+    galleryCuration: [...(collectGalleryCuration(state) ?? []), nextRecord]
+  };
+
+  closeGalleryAddWallOverlay();
+  renderAll(state, elements, { name: "gallery", page: "gallery" });
+  setEditorRoute({ name: "gallery", page: "gallery" });
+  syncGalleryPlacementCollisionState();
+  applyGalleryCurationFilters();
+  selectGalleryWall(wallId);
+  setDirtyState(true, `Added ${wallId}. Drag it from the sidebar onto the map when you are ready to place it.`);
+}
+
+function removeGalleryWallCard(card) {
+  const wallId = card?.dataset.wallId ?? "";
+
+  if (!card || !wallId) {
+    return;
+  }
+
+  const confirmed = confirm(`Remove wall card "${wallId}"?\n\nThis removes the wall entity from gallery curation after you save. This is different from dragging it off the map, which keeps the card available for later.`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  card.remove();
+  state = {
+    ...state,
+    galleryCuration: collectGalleryCuration(state)
+  };
+
+  refreshGalleryPlacementMapFromCards();
+  setDirtyState(true, `Removed ${wallId}. Click Save All Gallery Curation to preserve the removal.`);
+}
+
 function syncGalleryPlacementFootprintLabel(card) {
   const label = card?.querySelector("[data-gallery-placement-footprint]");
 
@@ -1114,7 +1586,9 @@ function syncGalleryPlacementCollisionState() {
   const cards = Array.from(elements.galleryCurationList?.querySelectorAll("[data-gallery-curation-card]") ?? []);
   const records = cards.map(getGalleryCardPlacementRecord).filter(Boolean);
   const collisions = findGalleryPlacementCollisions(records);
+  const boundaryViolations = findGalleryPlacementBoundaryViolations(records);
   const collisionIds = getGalleryPlacementCollisionIds(records);
+  const boundaryIds = getGalleryPlacementBoundaryIds(records);
   const saveAllButton = elements.galleryCurationList?.querySelector("[data-save-gallery-curation]");
 
   cards.forEach((card) => {
@@ -1123,39 +1597,46 @@ function syncGalleryPlacementCollisionState() {
     const saveButton = card.querySelector("[data-save-gallery-curation-wall]");
     const collisionText = getGalleryPlacementCollisionText(wallId, collisions);
     const hasCollision = collisionIds.has(wallId);
+    const hasBoundaryViolation = boundaryIds.has(wallId);
+    const hasPlacementIssue = hasCollision || hasBoundaryViolation;
 
-    card.dataset.galleryPlacementCollision = hasCollision ? "true" : "false";
+    card.dataset.galleryPlacementCollision = hasPlacementIssue ? "true" : "false";
     syncGalleryPlacementFootprintLabel(card);
 
     if (warning) {
-      warning.hidden = !hasCollision;
-      warning.textContent = collisionText;
+      warning.hidden = !hasPlacementIssue;
+      warning.textContent = hasBoundaryViolation
+        ? "This wall extends beyond the floor-map border. Move or rotate it fully inside the grid before saving."
+        : collisionText;
     }
 
     if (saveButton) {
-      saveButton.disabled = hasCollision;
+      saveButton.disabled = hasPlacementIssue;
     }
   });
 
   if (saveAllButton) {
-    saveAllButton.disabled = collisions.length > 0;
+    saveAllButton.disabled = collisions.length > 0 || boundaryViolations.length > 0;
   }
 
-  return collisions;
+  return [...collisions, ...boundaryViolations];
 }
 
 function assertGalleryPlacementIsCollisionFree(records = getGalleryCardPlacementRecords()) {
   const collisions = findGalleryPlacementCollisions(records);
+  const boundaryViolations = findGalleryPlacementBoundaryViolations(records);
 
-  if (!collisions.length) {
+  if (!collisions.length && !boundaryViolations.length) {
     return;
   }
 
-  const summary = collisions
-    .map((collision) => `${collision.firstWallId} overlaps ${collision.secondWallId}`)
-    .join("; ");
+  const collisionSummary = collisions
+    .map((collision) => `${collision.firstWallId} overlaps ${collision.secondWallId}`);
+  const boundarySummary = boundaryViolations
+    .map((violation) => `${violation.wallId} extends beyond the floor-map border`);
+  const summary = [...collisionSummary, ...boundarySummary].join("; ");
 
-  throw new Error(`Gallery wall placement has ${collisions.length} collision${collisions.length === 1 ? "" : "s"}. ${summary}`);
+  throw new Error(`Gallery wall placement has ${collisions.length + boundaryViolations.length} issue${collisions.length + boundaryViolations.length === 1 ? "" : "s"}. ${summary}`);
 }
 
 function syncGalleryWallTypeDisplay(card) {
@@ -1283,9 +1764,11 @@ function syncGalleryCurationCardState(card) {
   const artworkSelect = card.querySelector('[data-gallery-curation-field="artworkId"]');
   const wallTypeSelect = card.querySelector('[data-gallery-curation-field="wallType"]');
   const statusSelect = card.querySelector('[data-gallery-curation-field="showInGallery"]');
+  const placementSelect = card.querySelector('[data-gallery-curation-field="placedInGallery"]');
   const image = getEditorImageById(artworkSelect?.value ?? "");
   const selectedWallTypeLabel = wallTypeSelect?.selectedOptions?.[0]?.textContent?.trim() || "Wall block type";
   const displayStatus = statusSelect?.value === "hidden" ? "hidden" : "active";
+  const placementStatus = placementSelect?.value === "unplaced" ? "unplaced" : "placed";
   const artworkState = image ? "assigned" : "unassigned";
   const placementText = [
     card.querySelector('[data-gallery-curation-field="positionX"]')?.value,
@@ -1294,6 +1777,7 @@ function syncGalleryCurationCardState(card) {
   ].filter(Boolean).join(" ");
 
   card.dataset.galleryCurationStatus = displayStatus;
+  card.dataset.galleryCurationPlacementStatus = placementStatus;
   card.dataset.galleryCurationWallType = wallTypeSelect?.value ?? "standard-display-wall";
   card.dataset.galleryCurationArtworkState = artworkState;
   card.dataset.galleryCurationCategory = image?.category ?? "";
@@ -1304,16 +1788,23 @@ function syncGalleryCurationCardState(card) {
     image?.title,
     image?.id,
     image ? getEditorCategoryLabel(image.category) : "",
-    displayStatus
+    displayStatus,
+    placementStatus
   ].filter(Boolean).join(" "));
 
   const statusBadge = card.querySelector("[data-gallery-status-badge]");
+  const placementBadge = card.querySelector("[data-gallery-placement-badge]");
   const artworkBadge = card.querySelector("[data-gallery-artwork-badge]");
   const wallTypeBadge = card.querySelector("[data-gallery-wall-type-badge]");
 
   if (statusBadge) {
     statusBadge.dataset.galleryStatusBadge = displayStatus;
     statusBadge.textContent = displayStatus === "hidden" ? "Hidden" : "Active";
+  }
+
+  if (placementBadge) {
+    placementBadge.dataset.galleryPlacementBadge = placementStatus;
+    placementBadge.textContent = placementStatus === "unplaced" ? "Not on map" : "On map";
   }
 
   if (artworkBadge) {
@@ -1330,6 +1821,7 @@ function applyGalleryCurationFilters() {
   const cards = Array.from(elements.galleryCurationList?.querySelectorAll("[data-gallery-curation-card]") ?? []);
   const search = normalizeFilterValue(getGalleryFilterValue("search", ""));
   const status = getGalleryFilterValue("status");
+  const placement = getGalleryFilterValue("placement");
   const wallType = getGalleryFilterValue("wallType");
   const category = getGalleryFilterValue("category");
   let visibleCount = 0;
@@ -1339,15 +1831,17 @@ function applyGalleryCurationFilters() {
 
     const cardStatus = card.dataset.galleryCurationStatus ?? "active";
     const cardWallType = card.dataset.galleryCurationWallType ?? "standard-display-wall";
+    const cardPlacementStatus = card.dataset.galleryCurationPlacementStatus ?? "placed";
     const cardArtworkState = card.dataset.galleryCurationArtworkState ?? "unassigned";
     const cardCategory = card.dataset.galleryCurationCategory ?? "";
     const matchesSearch = !search || getGalleryCurationCardSearchText(card).includes(search);
     const matchesStatus = status === "all"
       || status === cardStatus
       || (status === "needs-artwork" && cardArtworkState === "unassigned");
+    const matchesPlacement = placement === "all" || placement === cardPlacementStatus;
     const matchesWallType = wallType === "all" || wallType === cardWallType;
     const matchesCategory = category === "all" || category === cardCategory;
-    const isVisible = matchesSearch && matchesStatus && matchesWallType && matchesCategory;
+    const isVisible = matchesSearch && matchesStatus && matchesPlacement && matchesWallType && matchesCategory;
 
     card.hidden = !isVisible;
 
@@ -1999,10 +2493,23 @@ elements.galleryCurationList?.addEventListener("change", (event) => {
 
   if (field?.dataset.galleryCurationField === "wallType") {
     syncGalleryWallTypeDisplay(card);
+    syncGalleryPlacementCollisionState();
+    refreshGalleryPlacementMapFromCards();
+    setDirtyState(true, "Wall block footprint changed. Click Save Wall or Save All Gallery Curation to preserve it.");
+    return;
   }
 
   if (field?.dataset.galleryCurationField === "rotationYDegrees") {
     syncGalleryPlacementCollisionState();
+  }
+
+  if (field?.dataset.galleryCurationField === "placedInGallery") {
+    syncGalleryPlacementCollisionState();
+    syncGalleryCurationCardState(card);
+    applyGalleryCurationFilters();
+    refreshGalleryPlacementMapFromCards();
+    setDirtyState(true, "Gallery map placement changed. Click Save Wall or Save All Gallery Curation to preserve it.");
+    return;
   }
 
   if (field?.dataset.galleryCurationField === "showInGallery" || field?.dataset.galleryCurationField === "plaqueSide" || field?.dataset.galleryCurationField === "plaqueEnabled") {
@@ -2023,6 +2530,60 @@ elements.galleryCurationList?.addEventListener("click", (event) => {
   const artworkPickerOption = event.target.closest("[data-artwork-picker-option]");
   const openPreviewButton = event.target.closest("[data-open-gallery-preview]");
   const closePreviewButton = event.target.closest("[data-gallery-preview-close]");
+  const addWallButton = event.target.closest("[data-add-gallery-wall-card]");
+  const closeAddWallButton = event.target.closest("[data-gallery-add-wall-close]");
+  const createAddWallButton = event.target.closest("[data-create-gallery-wall-card]");
+  const removeWallButton = event.target.closest("[data-remove-gallery-wall-card]");
+  const mapMarker = event.target.closest("[data-placement-marker]");
+  const sidebarWall = event.target.closest("[data-gallery-wall-drag-source]");
+  const rotateMapButton = event.target.closest("[data-gallery-map-rotate]");
+  const flipMapButton = event.target.closest("[data-gallery-map-flip]");
+  const unplaceMapButton = event.target.closest("[data-gallery-map-unplace]");
+
+  if (rotateMapButton) {
+    rotateSelectedGalleryWall(Number(rotateMapButton.dataset.galleryMapRotate));
+    return;
+  }
+
+  if (flipMapButton) {
+    flipSelectedGalleryWall();
+    return;
+  }
+
+  if (unplaceMapButton) {
+    unplaceSelectedGalleryWall();
+    return;
+  }
+
+  if (mapMarker) {
+    selectGalleryWall(mapMarker.dataset.placementMarkerWallId);
+    return;
+  }
+
+  if (sidebarWall) {
+    selectGalleryWall(sidebarWall.dataset.wallId);
+    return;
+  }
+
+  if (addWallButton) {
+    openGalleryAddWallOverlay();
+    return;
+  }
+
+  if (closeAddWallButton) {
+    closeGalleryAddWallOverlay();
+    return;
+  }
+
+  if (createAddWallButton) {
+    addGalleryWallCardFromOverlay();
+    return;
+  }
+
+  if (removeWallButton) {
+    removeGalleryWallCard(removeWallButton.closest("[data-gallery-curation-card]"));
+    return;
+  }
 
   if (openPreviewButton) {
     openGalleryPreviewLightbox(openPreviewButton);
@@ -2071,6 +2632,71 @@ elements.galleryCurationList?.addEventListener("click", (event) => {
 
     moveGridCard(card, direction, "Moved gallery wall assignment. Click Save Wall or Save All Gallery Curation to preserve it.");
   }
+});
+
+elements.galleryCurationList?.addEventListener("dragstart", (event) => {
+  const source = event.target.closest("[data-gallery-wall-drag-source], [data-placement-marker]");
+
+  if (!source) {
+    return;
+  }
+
+  const wallId = source.dataset.wallId ?? source.dataset.placementMarkerWallId;
+  const sourceType = source.matches("[data-placement-marker]") ? "map" : "sidebar";
+
+  if (!wallId) {
+    return;
+  }
+
+  beginGalleryWallDrag(wallId, sourceType);
+  event.dataTransfer?.setData("text/plain", wallId);
+  event.dataTransfer?.setData("application/x-gallery-wall-id", wallId);
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+  }
+  suppressNativeGalleryDragPreview(event);
+});
+
+elements.galleryCurationList?.addEventListener("dragover", (event) => {
+  const map = event.target.closest("[data-gallery-placement-map]");
+
+  if (!map || !activeGalleryWallDrag) {
+    return;
+  }
+
+  event.preventDefault();
+  updateGalleryPlacementDropPreview(event, map);
+
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = "move";
+  }
+});
+
+elements.galleryCurationList?.addEventListener("dragleave", (event) => {
+  const map = event.target.closest("[data-gallery-placement-map]");
+
+  if (!map || map.contains(event.relatedTarget)) {
+    return;
+  }
+
+  hideGalleryPlacementDropPreview(map);
+});
+
+elements.galleryCurationList?.addEventListener("drop", (event) => {
+  const map = event.target.closest("[data-gallery-placement-map]");
+
+  if (!map || !activeGalleryWallDrag) {
+    return;
+  }
+
+  event.preventDefault();
+  hideGalleryPlacementDropPreview(map);
+  placeDraggedGalleryWallOnMap(event, map);
+});
+
+elements.galleryCurationList?.addEventListener("dragend", () => {
+  hideGalleryPlacementDropPreview();
+  endGalleryWallDrag();
 });
 
 elements.galleryCurationList?.addEventListener("keydown", (event) => {
@@ -2281,6 +2907,7 @@ window.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeGalleryArtworkPicker();
     closeGalleryPreviewLightbox();
+    closeGalleryAddWallOverlay();
   }
 });
 
