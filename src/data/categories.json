@@ -10,5 +10,9 @@
   {
     "id": "personal",
     "label": "Personal"
+  },
+  {
+    "id": "test",
+    "label": "Test"
   }
 ]

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "main-gallery-room",
+  "label": "Main gallery room",
+  "shape": "rectangle",
+  "grid": {
+    "cellMeters": 0.5,
+    "minX": -16,
+    "maxX": 16,
+    "minZ": -16,
+    "maxZ": 16
+  },
+  "floor": {
+    "width": 34,
+    "depth": 34,
+    "color": "#d8d0c3"
+  },
+  "shell": {
+    "height": 3.9,
+    "wallThickness": 0.34,
+    "ceilingThickness": 0.12
+  },
+  "movementBounds": {
+    "minX": -16.3,
+    "maxX": 16.3,
+    "minZ": -16.3,
+    "maxZ": 16.3
+  },
+  "start": {
+    "position": [0, 1.65, 13.4],
+    "yaw": 0
+  },
+  "futureModelNotes": [
+    "This file is the first data-backed room footprint baseline. The current room remains the same square/rectangular gallery used before this pack.",
+    "The editor map and runtime gallery should eventually read the same room footprint so larger, L-shaped, alcove, corridor, or archive-room layouts do not drift apart.",
+    "Future non-rectangular rooms should add an explicit boundary model instead of moving display walls outside the current square shell casually."
+  ]
+}

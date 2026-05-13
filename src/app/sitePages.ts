@@ -138,6 +138,7 @@ function renderHeroImageLayer(image: GalleryImage, extraClassName = ''): string 
           data-hero-layer-image
           src="${escapeHtml(image.src)}"
           alt="${escapeHtml(image.alt)}"
+          decoding="async"
           style="${getHeroImageInlineStyle(image)}"
         />
       </div>
@@ -304,11 +305,17 @@ function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): 
     .map((image, index) => {
       const imageNumber = formatTwoDigitNumber(index);
       const imageSource = image.thumbSrc ?? image.src;
-      const yearLabel = image.year || 'Selected Work';
       const categoryLabel = getCategoryLabel(image.category);
+      const orientationClass = image.imageOrientation
+        ? ` portfolio-grid-card--${escapeHtml(image.imageOrientation)}`
+        : '';
+      const detailParts = [image.location, image.year].filter((value) => Boolean(value?.trim()));
+      const detailMarkup = detailParts.length
+        ? `<p class="portfolio-grid-card-detail">${detailParts.map(escapeHtml).join(' / ')}</p>`
+        : '';
 
       return `
-        <article class="portfolio-grid-card">
+        <article class="portfolio-grid-card${orientationClass}">
           <button
             class="portfolio-grid-image-button"
             type="button"
@@ -328,8 +335,9 @@ function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): 
           </button>
 
           <div class="portfolio-grid-card-meta">
-            <p class="eyebrow">${escapeHtml(categoryLabel)} / ${escapeHtml(yearLabel)}</p>
+            <p class="eyebrow portfolio-grid-card-category">${escapeHtml(categoryLabel)}</p>
             <h2>${escapeHtml(image.title)}</h2>
+            ${detailMarkup}
           </div>
         </article>
       `;
@@ -356,6 +364,9 @@ function renderCategoryButtons(initialCategory: PortfolioCategoryFilter): string
     .map((category, index) => {
       const isActive = initialCategory === category.id;
       const href = category.id === 'all' ? '#/portfolio' : `#/portfolio/${category.id}`;
+      const categoryCount = category.id === 'all'
+        ? galleryImages.length
+        : getImagesForCategory(category.id).length;
 
       return `
         <button
@@ -367,11 +378,14 @@ function renderCategoryButtons(initialCategory: PortfolioCategoryFilter): string
         >
           <span class="portfolio-index-number">${String(index).padStart(2, '0')}</span>
           <span class="portfolio-index-label">${escapeHtml(category.label)}</span>
+          <span class="portfolio-index-count" aria-label="${String(categoryCount).padStart(2, '0')} images">${String(categoryCount).padStart(2, '0')}</span>
         </button>
       `;
     })
     .join('');
 }
+
+
 
 // Builds the first landing screen that lets visitors choose website or virtual gallery.
 export function renderEntryPage(): string {
@@ -410,26 +424,6 @@ export function renderHomePage(): string {
         <section class="modern-home-hero">
           ${renderHomeHeroSlideshow()}
         </section>
-
-        <section class="modern-home-copy" aria-label="Portfolio introduction">
-          <div class="modern-home-copy-kicker">
-            <p class="eyebrow">Taylor Pike / Creative Archive</p>
-          </div>
-
-          <div class="modern-home-copy-main">
-            <h1>Photography-first work shaped by climbing, landscape, people, and experimental web spaces.</h1>
-            <p>
-              The work is built around outdoor spaces, human presence, and the small details that make a place feel specific. The site is also a creative web object: part portfolio, part visual archive, and part spatial gallery.
-            </p>
-
-            <div class="home-copy-actions">
-              <a class="button primary" href="#/portfolio">View Portfolio</a>
-              <button class="button secondary" type="button" data-open-virtual-gallery>
-                Enter Virtual Gallery
-              </button>
-            </div>
-          </div>
-        </section>
       </main>
     </div>
   `;
@@ -438,6 +432,9 @@ export function renderHomePage(): string {
 // Builds the portfolio page with sidebar filters and image grid.
 export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = 'all'): string {
   const activeCategoryLabel = initialCategory === 'all' ? 'Selected Work' : getCategoryLabel(initialCategory);
+  const activeImages = getImagesForCategory(initialCategory);
+  const visibleImageCount = activeImages.length;
+  const totalImageCount = galleryImages.length;
 
   return `
     <div class="modern-site" data-page="portfolio">
@@ -453,6 +450,15 @@ export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = '
           <header class="portfolio-page-heading">
             <p class="eyebrow">${activeCategoryLabel}</p>
             <h1>A visual index of climbing, landscape, personal work, and experimental image studies.</h1>
+            <div class="portfolio-page-meta-strip" aria-label="Portfolio archive details">
+              <span>${String(visibleImageCount).padStart(2, '0')} shown</span>
+              <span>${String(totalImageCount).padStart(2, '0')} total</span>
+              <span>${String(portfolioCategories.length).padStart(2, '0')} categories</span>
+              <button class="portfolio-gallery-room-button" type="button" data-open-virtual-gallery>
+                <span>Open gallery room</span>
+                <span aria-hidden="true">↗</span>
+              </button>
+            </div>
           </header>
 
           ${renderPortfolioGrid(initialCategory)}

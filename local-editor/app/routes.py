@@ -13,6 +13,7 @@ from .data_store import (
     PUBLIC_DIR,
     get_current_data,
     get_current_gallery_curation,
+    get_current_gallery_room,
     list_data_backups,
     restore_data_backup,
     save_full_data,
@@ -41,6 +42,7 @@ def get_data():
     try:
         categories, images, hero_slides = get_current_data()
         gallery_curation = get_current_gallery_curation(images)
+        gallery_room = get_current_gallery_room()
     except DataValidationError as error:
         return jsonify({"error": str(error)}), 400
 
@@ -50,6 +52,7 @@ def get_data():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": gallery_curation,
+            "galleryRoom": gallery_room,
         }
     )
 
@@ -97,6 +100,7 @@ def save_data():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": get_current_gallery_curation(images),
+            "galleryRoom": get_current_gallery_room(),
             "backup": backup,
             "categoryCount": len(categories),
             "imageCount": len(images),
@@ -131,6 +135,7 @@ def save_gallery_curation_data():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": gallery_curation,
+            "galleryRoom": get_current_gallery_room(),
             "backup": backup,
             "galleryCurationCount": len(gallery_curation),
         }
@@ -163,6 +168,7 @@ def save_single_gallery_curation_wall():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": gallery_curation,
+            "galleryRoom": get_current_gallery_room(),
             "backup": backup,
             "galleryCurationCount": len(gallery_curation),
             "updatedWallId": raw_wall_record.get("wallId"),
@@ -202,6 +208,7 @@ def update_image_record():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": get_current_gallery_curation(images),
+            "galleryRoom": get_current_gallery_room(),
             "updatedImage": updated_image,
             "backup": backup,
             "categoryCount": len(categories),
@@ -246,6 +253,7 @@ def rename_image_record_id():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": get_current_gallery_curation(images),
+            "galleryRoom": get_current_gallery_room(),
             "updatedImage": updated_image,
             "backup": backup,
             "fileMoves": file_moves,
@@ -297,6 +305,7 @@ def restore_backup():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": get_current_gallery_curation(images),
+            "galleryRoom": get_current_gallery_room(),
             "backups": list_data_backups(),
             "restoredBackup": restored_backup,
             "backup": safety_backup,

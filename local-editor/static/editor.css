@@ -3576,3 +3576,139 @@ body[data-gallery-wall-dragging="true"] .gallery-placement-map-room {
     width: min(100%, 560px) !important;
   }
 }
+
+/* Gallery editor cleanup after the map editor stabilized. The map controls now
+   own placement, so individual wall cards keep placement values as hidden state
+   only. This avoids duplicate placement UI and keeps the gallery tab tighter. */
+.gallery-placement-hidden-fields[hidden] {
+  display: none !important;
+}
+
+.editor-page-section[data-editor-page="gallery"] .editor-list {
+  gap: 16px;
+}
+
+.gallery-curation-summary {
+  align-content: start;
+  gap: 12px;
+}
+
+.gallery-placement-map {
+  align-content: start;
+  margin-top: 12px;
+  padding: 12px;
+}
+
+.gallery-placement-map-layout {
+  margin-top: 4px;
+}
+
+.gallery-placement-map-main {
+  align-self: start !important;
+}
+
+.gallery-placement-sidebar {
+  align-self: start;
+}
+
+.gallery-curation-card .gallery-curation-heading > span {
+  color: var(--muted);
+}
+
+/* Phase 0 gallery map whitespace closure.
+   The map board was usable, but the surrounding Gallery tab shell still carried
+   older two-column/height rules from previous map iterations. These final
+   overrides make the intro, map board, and wall-entity sidebar wrap to their
+   actual content height while preserving the square board and existing drag,
+   drop, rotation, facing, collision, and save behavior. */
+.gallery-placement-map {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  align-content: start !important;
+  gap: 12px !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.gallery-placement-map-intro {
+  display: grid;
+  gap: 6px;
+  max-width: 920px;
+}
+
+.gallery-placement-map-intro h4,
+.gallery-placement-map-intro p {
+  margin-top: 0 !important;
+}
+
+.gallery-placement-map-intro .gallery-placement-map-warning,
+.gallery-placement-map-intro .gallery-placement-map-success {
+  margin-top: 4px !important;
+}
+
+.gallery-placement-map-layout {
+  display: grid !important;
+  grid-template-columns: minmax(620px, 1fr) minmax(280px, 330px) !important;
+  align-items: start !important;
+  align-content: start !important;
+  gap: 14px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin-top: 0 !important;
+}
+
+.gallery-placement-map-main {
+  align-self: start !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.gallery-map-controls {
+  box-sizing: border-box;
+  width: min(100%, clamp(610px, calc(100vh - 150px), 860px));
+}
+
+.gallery-placement-map-room[data-gallery-placement-map] {
+  flex: 0 0 auto !important;
+}
+
+.gallery-placement-sidebar {
+  align-self: start !important;
+  height: auto !important;
+  max-height: clamp(610px, calc(100vh - 150px), 860px);
+  overflow: hidden;
+}
+
+.gallery-placement-sidebar-list {
+  max-height: min(520px, calc(100vh - 330px));
+  overflow: auto;
+}
+
+@media (max-width: 1180px) {
+  .gallery-placement-map-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .gallery-map-controls {
+    width: min(100%, 680px);
+  }
+
+  .gallery-placement-sidebar {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .gallery-placement-sidebar-list {
+    max-height: 320px;
+  }
+}
+
+@media (max-width: 760px) {
+  .gallery-map-controls {
+    width: min(100%, 560px);
+  }
+}
+

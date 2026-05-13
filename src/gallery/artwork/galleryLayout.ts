@@ -184,8 +184,12 @@ function inferPlaqueSide(wall: WallBlock): Exclude<PlaqueSide, 'none'> {
 }
 
 
+function isWallPlacedInGallery(wall: WallBlock): boolean {
+  return Boolean(wall.placedInGallery ?? true);
+}
+
 function isWallVisibleInGallery(wall: WallBlock): boolean {
-  return Boolean(wall.showInGallery ?? true);
+  return Boolean((wall.showInGallery ?? true) && isWallPlacedInGallery(wall));
 }
 
 function isWallPlaqueEnabled(wall: WallBlock): boolean {
@@ -224,7 +228,7 @@ function normalizeGallerySize(value: unknown) {
   return Math.min(1.35, Math.max(0.55, size));
 }
 
-export const galleryWalls: GalleryWall[] = wallBlocks.map((wall) => {
+export const galleryWalls: GalleryWall[] = wallBlocks.filter(isWallVisibleInGallery).map((wall) => {
   const preset = getWallPreset(wall);
 
   return {

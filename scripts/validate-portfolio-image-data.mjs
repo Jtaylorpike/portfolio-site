@@ -27,6 +27,7 @@ const galleryJsonPath = path.join(projectRoot, 'src', 'data', 'galleryImages.jso
 const categoriesJsonPath = path.join(projectRoot, 'src', 'data', 'categories.json');
 const heroSlidesJsonPath = path.join(projectRoot, 'src', 'data', 'heroSlides.json');
 const galleryCurationJsonPath = path.join(projectRoot, 'src', 'data', 'galleryCuration.json');
+const galleryRoomJsonPath = path.join(projectRoot, 'src', 'data', 'galleryRoom.json');
 
 const expectedRenditionPrefixes = {
   src: '/images/portfolio/display/',
@@ -55,16 +56,18 @@ const validWallTypes = new Set([
 ]);
 
 const validPlaqueSides = new Set(['auto', 'left', 'right', 'none']);
-const validWallRotationDegrees = new Set([-180, -90, 0, 90, 180]);
-const galleryPlacementMin = -16;
-const galleryPlacementMax = 16;
-const galleryGridCellMeters = 0.5;
+const validWallRotationDegrees = new Set([-180, -135, -90, -45, 0, 45, 90, 135, 180]);
+let galleryPlacementMin = -16;
+let galleryPlacementMax = 16;
+let galleryPlacementMinZ = -16;
+let galleryPlacementMaxZ = 16;
+let galleryGridCellMeters = 0.5;
 const galleryWallFootprints = {
-  'feature-wall': { width: 6.25, thickness: 0.26 },
-  'wide-display-wall': { width: 4.9, thickness: 0.22 },
-  'standard-display-wall': { width: 3.55, thickness: 0.22 },
-  'compact-display-wall': { width: 2.7, thickness: 0.22 },
-  'narrow-transition-wall': { width: 2.15, thickness: 0.2 }
+  'feature-wall': { lengthCells: 13, thicknessCells: 1 },
+  'wide-display-wall': { lengthCells: 11, thicknessCells: 1 },
+  'standard-display-wall': { lengthCells: 7, thicknessCells: 1 },
+  'compact-display-wall': { lengthCells: 5, thicknessCells: 1 },
+  'narrow-transition-wall': { lengthCells: 3, thicknessCells: 1 }
 };
 
 function csvEscape(value) {
@@ -134,10 +137,16 @@ function isPositiveInteger(value) {
   return Number.isInteger(Number(value)) && Number(value) > 0;
 }
 
-function isGalleryPlacementNumber(value) {
+function isGalleryPlacementXNumber(value) {
   const numberValue = Number(value);
 
   return Number.isFinite(numberValue) && numberValue >= galleryPlacementMin && numberValue <= galleryPlacementMax;
+}
+
+function isGalleryPlacementZNumber(value) {
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue) && numberValue >= galleryPlacementMinZ && numberValue <= galleryPlacementMaxZ;
 }
 
 function isSnappedToGalleryGrid(value) {
@@ -151,37 +160,219 @@ function isSnappedToGalleryGrid(value) {
   return Math.abs(snapped - numberValue) < 0.0001;
 }
 
+function normalizeGalleryRotationDegrees(value) {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return 0;
+  }
+
+  const normalized = ((numberValue % 360) + 360) % 360;
+  const signed = normalized > 180 ? normalized - 360 : normalized;
+  const supported = Array.from(validWallRotationDegrees);
+  const closest = supported.reduce((current, candidate) => {
+    return Math.abs(candidate - signed) < Math.abs(current - signed) ? candidate : current;
+  }, 0);
+
+  return closest === -180 ? 180 : closest;
+}
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function cleanNumber(value, fallback, min, max) {
+  const numberValue = Number(value);
+  let resolved = Number.isFinite(numberValue) ? numberValue : fallback;
+
+  if (Number.isFinite(min)) {
+    resolved = Math.max(min, resolved);
+  }
+
+  if (Number.isFinite(max)) {
+    resolved = Math.min(max, resolved);
+  }
+
+  return Number(resolved.toFixed(4));
+}
+
+function normalizeOrderedBounds(rawMin, rawMax, fallbackMin, fallbackMax) {
+  const min = cleanNumber(rawMin, fallbackMin);
+  const max = cleanNumber(rawMax, fallbackMax);
+
+  if (min >= max) {
+    return { min: fallbackMin, max: fallbackMax };
+  }
+
+  return { min, max };
+}
+
+function validateGalleryRoom(galleryRoom, issues) {
+  if (!isRecord(galleryRoom)) {
+    pushIssue(issues, 'error', 'gallery-room-not-object', 'gallery-room', 'galleryRoom', 'src/data/galleryRoom.json must be an object.');
+    return null;
+  }
+
+  const grid = isRecord(galleryRoom.grid) ? galleryRoom.grid : {};
+  const floor = isRecord(galleryRoom.floor) ? galleryRoom.floor : {};
+  const shell = isRecord(galleryRoom.shell) ? galleryRoom.shell : {};
+  const movementBounds = isRecord(galleryRoom.movementBounds) ? galleryRoom.movementBounds : {};
+  const start = isRecord(galleryRoom.start) ? galleryRoom.start : {};
+  const validShapes = new Set(['rectangle', 'l-shaped', 'custom-footprint']);
+  const shape = String(galleryRoom.shape ?? '').trim() || 'rectangle';
+
+  if (!validShapes.has(shape)) {
+    pushIssue(issues, 'error', 'invalid-gallery-room-shape', 'gallery-room', 'galleryRoom.shape', 'Gallery room shape must be rectangle, l-shaped, or custom-footprint.', shape);
+  }
+
+  const gridX = normalizeOrderedBounds(grid.minX, grid.maxX, -16, 16);
+  const gridZ = normalizeOrderedBounds(grid.minZ, grid.maxZ, -16, 16);
+  const cellMeters = cleanNumber(grid.cellMeters, 0.5, 0.25, 2);
+
+  if (Number(grid.cellMeters) !== cellMeters) {
+    pushIssue(issues, 'warning', 'gallery-room-grid-cell-normalized', 'gallery-room', 'galleryRoom.grid.cellMeters', 'Gallery room grid cell size will be normalized for runtime use.', grid.cellMeters ?? '');
+  }
+
+  if (gridX.min !== Number(grid.minX) || gridX.max !== Number(grid.maxX)) {
+    pushIssue(issues, 'warning', 'gallery-room-grid-x-normalized', 'gallery-room', 'galleryRoom.grid', 'Gallery room X grid bounds will be normalized for runtime use.', `${grid.minX ?? ''} / ${grid.maxX ?? ''}`);
+  }
+
+  if (gridZ.min !== Number(grid.minZ) || gridZ.max !== Number(grid.maxZ)) {
+    pushIssue(issues, 'warning', 'gallery-room-grid-z-normalized', 'gallery-room', 'galleryRoom.grid', 'Gallery room Z grid bounds will be normalized for runtime use.', `${grid.minZ ?? ''} / ${grid.maxZ ?? ''}`);
+  }
+
+  const floorWidth = cleanNumber(floor.width, 34, 4);
+  const floorDepth = cleanNumber(floor.depth, 34, 4);
+  const shellHeight = cleanNumber(shell.height, 3.9, 2.4, 8);
+  const wallThickness = cleanNumber(shell.wallThickness, 0.34, 0.05, 1);
+  const ceilingThickness = cleanNumber(shell.ceilingThickness, 0.12, 0.02, 1);
+  const movementX = normalizeOrderedBounds(movementBounds.minX, movementBounds.maxX, -16.3, 16.3);
+  const movementZ = normalizeOrderedBounds(movementBounds.minZ, movementBounds.maxZ, -16.3, 16.3);
+
+  if (!Array.isArray(start.position) || start.position.length < 3) {
+    pushIssue(issues, 'error', 'invalid-gallery-room-start-position', 'gallery-room', 'galleryRoom.start.position', 'Gallery room start.position must be an [x, y, z] array.');
+  }
+
+  return {
+    grid: {
+      cellMeters,
+      minX: gridX.min,
+      maxX: gridX.max,
+      minZ: gridZ.min,
+      maxZ: gridZ.max
+    },
+    floor: {
+      width: floorWidth,
+      depth: floorDepth
+    },
+    shell: {
+      height: shellHeight,
+      wallThickness,
+      ceilingThickness
+    },
+    movementBounds: {
+      minX: movementX.min,
+      maxX: movementX.max,
+      minZ: movementZ.min,
+      maxZ: movementZ.max
+    }
+  };
+}
+
+function makeCenteredOffsets(length) {
+  const safeLength = Math.max(1, Math.round(Number(length) || 1));
+  const half = Math.floor(safeLength / 2);
+  const offsets = [];
+
+  for (let offset = -half; offset <= half; offset += 1) {
+    offsets.push(offset);
+  }
+
+  return offsets.slice(0, safeLength);
+}
+
+function getGalleryWallAxisStep(rotationYDegrees) {
+  const rotation = normalizeGalleryRotationDegrees(rotationYDegrees);
+  const axis = ((rotation % 180) + 180) % 180;
+
+  if (axis === 45) {
+    return { dx: 1, dz: 1 };
+  }
+
+  if (axis === 90) {
+    return { dx: 0, dz: 1 };
+  }
+
+  if (axis === 135) {
+    return { dx: -1, dz: 1 };
+  }
+
+  return { dx: 1, dz: 0 };
+}
+
 function getGalleryWallFootprint(record) {
   const wallType = String(record.wallType ?? 'standard-display-wall');
   const footprint = galleryWallFootprints[wallType] ?? galleryWallFootprints['standard-display-wall'];
   const positionX = Number(record.positionX ?? 0);
   const positionZ = Number(record.positionZ ?? 0);
   const rotationYDegrees = Number(record.rotationYDegrees ?? 0);
-  const lengthCells = Math.max(1, Math.ceil(footprint.width / galleryGridCellMeters));
-  const thicknessCells = Math.max(1, Math.ceil(footprint.thickness / galleryGridCellMeters));
-  const isSideFacing = Math.abs(rotationYDegrees) === 90;
-  const occupiedWidthCells = isSideFacing ? thicknessCells : lengthCells;
-  const occupiedDepthCells = isSideFacing ? lengthCells : thicknessCells;
   const gridX = Math.round(positionX / galleryGridCellMeters);
   const gridZ = Math.round(positionZ / galleryGridCellMeters);
+  const axis = getGalleryWallAxisStep(rotationYDegrees);
+  const perpendicular = { dx: -axis.dz, dz: axis.dx };
+  const cells = new Set();
 
-  return {
-    minX: gridX - occupiedWidthCells / 2,
-    maxX: gridX + occupiedWidthCells / 2,
-    minZ: gridZ - occupiedDepthCells / 2,
-    maxZ: gridZ + occupiedDepthCells / 2
-  };
+  makeCenteredOffsets(footprint.lengthCells).forEach((lengthOffset) => {
+    makeCenteredOffsets(footprint.thicknessCells).forEach((thicknessOffset) => {
+      cells.add(`${gridX + axis.dx * lengthOffset + perpendicular.dx * thicknessOffset}:${gridZ + axis.dz * lengthOffset + perpendicular.dz * thicknessOffset}`);
+    });
+  });
+
+  return cells;
+}
+
+function isGalleryFootprintInsideBounds(footprint) {
+  const minCellX = Math.round(galleryPlacementMin / galleryGridCellMeters);
+  const maxCellX = Math.round(galleryPlacementMax / galleryGridCellMeters);
+  const minCellZ = Math.round(galleryPlacementMinZ / galleryGridCellMeters);
+  const maxCellZ = Math.round(galleryPlacementMaxZ / galleryGridCellMeters);
+
+  for (const cell of footprint) {
+    const [x, z] = cell.split(':').map(Number);
+
+    if (x < minCellX || x > maxCellX || z < minCellZ || z > maxCellZ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function findGalleryPlacementBoundaryViolations(records) {
+  return records
+    .filter((record) => record?.placedInGallery !== false)
+    .map((record) => ({
+      wallId: String(record.wallId ?? '').trim(),
+      footprint: getGalleryWallFootprint(record)
+    }))
+    .filter((item) => item.wallId)
+    .filter((item) => !isGalleryFootprintInsideBounds(item.footprint))
+    .map((item) => ({ wallId: item.wallId }));
 }
 
 function galleryWallFootprintsOverlap(first, second) {
-  return first.minX < second.maxX
-    && first.maxX > second.minX
-    && first.minZ < second.maxZ
-    && first.maxZ > second.minZ;
+  for (const cell of first) {
+    if (second.has(cell)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function findGalleryPlacementCollisions(records) {
   const footprints = records
+    .filter((record) => record?.placedInGallery !== false)
     .map((record) => ({
       wallId: String(record.wallId ?? '').trim(),
       footprint: getGalleryWallFootprint(record)
@@ -215,6 +406,16 @@ async function main() {
   const categories = await readJson(categoriesJsonPath, []);
   const heroSlides = await readJson(heroSlidesJsonPath, []);
   const galleryCuration = await readJson(galleryCurationJsonPath, []);
+  const galleryRoom = await readJson(galleryRoomJsonPath, null);
+  const normalizedGalleryRoom = validateGalleryRoom(galleryRoom, issues);
+
+  if (normalizedGalleryRoom) {
+    galleryPlacementMin = normalizedGalleryRoom.grid.minX;
+    galleryPlacementMax = normalizedGalleryRoom.grid.maxX;
+    galleryPlacementMinZ = normalizedGalleryRoom.grid.minZ;
+    galleryPlacementMaxZ = normalizedGalleryRoom.grid.maxZ;
+    galleryGridCellMeters = normalizedGalleryRoom.grid.cellMeters;
+  }
 
   if (!Array.isArray(galleryImages)) {
     pushIssue(issues, 'error', 'gallery-json-not-array', '', '', 'src/data/galleryImages.json must be an array.');
@@ -462,6 +663,7 @@ async function main() {
       const wallType = String(record.wallType ?? '').trim();
       const plaqueSide = String(record.plaqueSide ?? '').trim();
       const showInGallery = record.showInGallery !== false;
+      const placedInGallery = record.placedInGallery !== false;
       const image = artworkId ? images.find((candidate) => candidate.id === artworkId) : null;
       const displayOrder = record.displayOrder;
       const positionX = record.positionX;
@@ -474,6 +676,7 @@ async function main() {
         artworkId,
         artworkExists: artworkId ? Boolean(image) : '',
         showInGallery,
+        placedInGallery,
         displayOrder,
         wallType,
         plaqueEnabled: record.plaqueEnabled !== false,
@@ -495,8 +698,8 @@ async function main() {
         pushIssue(issues, 'error', 'unknown-gallery-artwork-id', artworkId, `galleryCuration[${index}].artworkId`, `Gallery wall references an unknown image ID: ${artworkId}`, artworkId);
       }
 
-      if (showInGallery && !artworkId) {
-        pushIssue(issues, 'warning', 'active-gallery-wall-no-artwork', wallId, `galleryCuration[${index}].artworkId`, 'Active gallery wall has no assigned artwork.', wallId);
+      if (showInGallery && placedInGallery && !artworkId) {
+        pushIssue(issues, 'warning', 'active-gallery-wall-no-artwork', wallId, `galleryCuration[${index}].artworkId`, 'Active placed gallery wall has no assigned artwork.', wallId);
       }
 
       if (!validWallTypes.has(wallType)) {
@@ -520,30 +723,44 @@ async function main() {
         displayOrders.set(orderKey, wallId);
       }
 
-      if (!isGalleryPlacementNumber(positionX)) {
-        pushIssue(issues, 'error', 'invalid-gallery-position-x', wallId, `galleryCuration[${index}].positionX`, 'Gallery wall positionX must be a number between -16 and 16.', positionX);
+      if (!isGalleryPlacementXNumber(positionX)) {
+        pushIssue(issues, 'error', 'invalid-gallery-position-x', wallId, `galleryCuration[${index}].positionX`, 'Gallery wall positionX must be a number within the galleryRoom.json X grid bounds.', positionX);
       }
 
-      if (!isGalleryPlacementNumber(positionZ)) {
-        pushIssue(issues, 'error', 'invalid-gallery-position-z', wallId, `galleryCuration[${index}].positionZ`, 'Gallery wall positionZ must be a number between -16 and 16.', positionZ);
+      if (!isGalleryPlacementZNumber(positionZ)) {
+        pushIssue(issues, 'error', 'invalid-gallery-position-z', wallId, `galleryCuration[${index}].positionZ`, 'Gallery wall positionZ must be a number within the galleryRoom.json Z grid bounds.', positionZ);
       }
 
-      if (isGalleryPlacementNumber(positionX) && !isSnappedToGalleryGrid(positionX)) {
+      if (isGalleryPlacementXNumber(positionX) && !isSnappedToGalleryGrid(positionX)) {
         pushIssue(issues, 'warning', 'gallery-position-x-not-grid-snapped', wallId, `galleryCuration[${index}].positionX`, 'Gallery wall positionX is valid but not snapped to the 0.5m floor grid.', positionX);
       }
 
-      if (isGalleryPlacementNumber(positionZ) && !isSnappedToGalleryGrid(positionZ)) {
+      if (isGalleryPlacementZNumber(positionZ) && !isSnappedToGalleryGrid(positionZ)) {
         pushIssue(issues, 'warning', 'gallery-position-z-not-grid-snapped', wallId, `galleryCuration[${index}].positionZ`, 'Gallery wall positionZ is valid but not snapped to the 0.5m floor grid.', positionZ);
       }
 
       if (!validWallRotationDegrees.has(Number(rotationYDegrees))) {
-        pushIssue(issues, 'error', 'invalid-gallery-rotation', wallId, `galleryCuration[${index}].rotationYDegrees`, 'Gallery wall rotationYDegrees must be one of -180, -90, 0, 90, or 180.', rotationYDegrees);
+        pushIssue(issues, 'error', 'invalid-gallery-rotation', wallId, `galleryCuration[${index}].rotationYDegrees`, 'Gallery wall rotationYDegrees must be one of -180, -135, -90, -45, 0, 45, 90, 135, or 180.', rotationYDegrees);
       }
 
       if (record.plaqueEnabled === false && plaqueSide !== 'none') {
         pushIssue(issues, 'warning', 'disabled-plaque-side-not-none', wallId, `galleryCuration[${index}].plaqueSide`, 'Plaque is disabled but plaqueSide is not none.', plaqueSide);
       }
     }
+
+    const placementBoundaryViolations = findGalleryPlacementBoundaryViolations(galleryCuration);
+
+    placementBoundaryViolations.forEach((violation) => {
+      pushIssue(
+        issues,
+        'error',
+        'gallery-wall-placement-out-of-bounds',
+        violation.wallId,
+        'galleryCuration.position',
+        `Gallery wall footprint extends beyond the floor-map border: ${violation.wallId}.`,
+        violation.wallId
+      );
+    });
 
     const placementCollisions = findGalleryPlacementCollisions(galleryCuration);
 
@@ -585,7 +802,7 @@ async function main() {
   await writeCsv(
     path.join(reportDir, 'portfolio-gallery-curation-audit.csv'),
     galleryCurationRows,
-    ['index', 'wallId', 'artworkId', 'artworkExists', 'showInGallery', 'displayOrder', 'wallType', 'plaqueEnabled', 'plaqueSide', 'positionX', 'positionZ', 'rotationYDegrees']
+    ['index', 'wallId', 'artworkId', 'artworkExists', 'showInGallery', 'placedInGallery', 'displayOrder', 'wallType', 'plaqueEnabled', 'plaqueSide', 'positionX', 'positionZ', 'rotationYDegrees']
   );
 
   const issueLines = [
@@ -609,6 +826,7 @@ async function main() {
     `Categories:           ${Array.isArray(categories) ? categories.length : 0}`,
     `Hero slides:          ${Array.isArray(heroSlides) ? heroSlides.length : 0}`,
     `Gallery wall slots:   ${Array.isArray(galleryCuration) ? galleryCuration.length : 0}`,
+    `Gallery room:         ${isRecord(galleryRoom) ? String(galleryRoom.label ?? galleryRoom.id ?? 'present') : 'missing/invalid'}`,
     `Path rows:            ${pathRows.length}`,
     `Errors:               ${errors.length}`,
     `Warnings:             ${warnings.length}`,
@@ -631,6 +849,7 @@ async function main() {
   console.log(`Categories:           ${Array.isArray(categories) ? categories.length : 0}`);
   console.log(`Hero slides:          ${Array.isArray(heroSlides) ? heroSlides.length : 0}`);
   console.log(`Gallery wall slots:   ${Array.isArray(galleryCuration) ? galleryCuration.length : 0}`);
+  console.log(`Gallery room:         ${isRecord(galleryRoom) ? String(galleryRoom.label ?? galleryRoom.id ?? 'present') : 'missing/invalid'}`);
   console.log(`Errors:               ${errors.length}`);
   console.log(`Warnings:             ${warnings.length}`);
   console.log(`Warnings as errors:   ${warningsAsErrors}`);

@@ -13,6 +13,7 @@
 // room without rewriting TypeScript.
 
 import galleryCurationJson from '../../data/galleryCuration.json';
+import { galleryRoomSettings } from '../../data/galleryRoom';
 
 export type WallPresetName = 'narrow' | 'short' | 'medium' | 'long' | 'hero';
 
@@ -85,6 +86,7 @@ export type WallBlock = {
   // control gallery visibility, ordering, wall grouping, and artwork label behavior
   // without rewriting the Three.js scene code.
   showInGallery?: boolean;
+  placedInGallery?: boolean;
   displayOrder?: number;
   wallType?: WallTypeName;
   plaqueEnabled?: boolean;
@@ -102,6 +104,7 @@ export type GalleryCurationRecord = {
   wallId: string;
   artworkId?: string;
   showInGallery?: boolean;
+  placedInGallery?: boolean;
   displayOrder?: number;
   wallType?: WallTypeName;
   plaqueEnabled?: boolean;
@@ -145,7 +148,7 @@ function getWallTypeLayout(wallType: WallTypeName | undefined) {
 }
 
 const validPlaqueSides: PlaqueSide[] = ['auto', 'left', 'right', 'none'];
-const galleryGridCellMeters = 0.5;
+const galleryGridCellMeters = galleryRoomSettings.grid.cellMeters;
 
 function legacyWallSectionToType(value: unknown): WallTypeName | undefined {
   switch (String(value ?? '').trim()) {
@@ -237,21 +240,23 @@ function normalizeGalleryCurationRecord(value: unknown): GalleryCurationRecord |
     wallId,
     artworkId: artworkId || undefined,
     showInGallery: record.showInGallery === false ? false : true,
+    placedInGallery: record.placedInGallery === false ? false : true,
     displayOrder: normalizeDisplayOrder(record.displayOrder),
     wallType: normalizeWallType(record.wallType, record.wallSection),
     plaqueEnabled: record.plaqueEnabled === false ? false : true,
     plaqueSide: normalizePlaqueSide(record.plaqueSide),
-    positionX: normalizePlacementNumber(record.positionX, -16, 16),
-    positionZ: normalizePlacementNumber(record.positionZ, -16, 16),
+    positionX: normalizePlacementNumber(record.positionX, galleryRoomSettings.grid.minX, galleryRoomSettings.grid.maxX),
+    positionZ: normalizePlacementNumber(record.positionZ, galleryRoomSettings.grid.minZ, galleryRoomSettings.grid.maxZ),
     rotationYDegrees: normalizeRotationDegrees(record.rotationYDegrees)
   };
 }
 
+const normalizedGalleryCuration = (galleryCurationJson as unknown[])
+  .map(normalizeGalleryCurationRecord)
+  .filter((record): record is GalleryCurationRecord => Boolean(record));
+
 const galleryCurationByWallId = new Map(
-  (galleryCurationJson as unknown[])
-    .map(normalizeGalleryCurationRecord)
-    .filter((record): record is GalleryCurationRecord => Boolean(record))
-    .map((record) => [record.wallId, record])
+  normalizedGalleryCuration.map((record) => [record.wallId, record])
 );
 
 function applyGalleryCuration(wall: WallBlock, index: number): WallBlock {
@@ -275,6 +280,7 @@ function applyGalleryCuration(wall: WallBlock, index: number): WallBlock {
     rotationY: hasRotationOverride ? degreesToRadians(curation.rotationYDegrees as number) : wall.rotationY,
     artworkId: curation.artworkId || undefined,
     showInGallery: curation.showInGallery,
+    placedInGallery: curation.placedInGallery,
     displayOrder: curation.displayOrder ?? wall.displayOrder ?? index + 1,
     wallType,
     plaqueEnabled: curation.plaqueEnabled,
@@ -282,18 +288,38 @@ function applyGalleryCuration(wall: WallBlock, index: number): WallBlock {
   };
 }
 
+function createWallFromGalleryCuration(curation: GalleryCurationRecord, index: number): WallBlock {
+  const wallType = curation.wallType ?? 'standard-display-wall';
+  const layout = getWallTypeLayout(wallType);
+
+  return {
+    id: curation.wallId,
+    preset: layout.preset,
+    artworkSize: layout.artworkSize,
+    position: [curation.positionX ?? 0, curation.positionZ ?? 0],
+    rotationY: degreesToRadians(curation.rotationYDegrees ?? 0),
+    artworkId: curation.artworkId || undefined,
+    showInGallery: curation.showInGallery,
+    placedInGallery: curation.placedInGallery,
+    displayOrder: curation.displayOrder ?? index + 1,
+    wallType,
+    plaqueEnabled: curation.plaqueEnabled,
+    plaqueSide: curation.plaqueSide
+  };
+}
+
 export const galleryFloor = {
-  width: 34,
-  depth: 34,
-  color: 0xd8d0c3
+  width: galleryRoomSettings.floor.width,
+  depth: galleryRoomSettings.floor.depth,
+  color: galleryRoomSettings.floor.color
 };
 
 export const galleryRoom: GalleryRoom = {
   width: galleryFloor.width,
   depth: galleryFloor.depth,
-  height: 3.9,
-  wallThickness: 0.34,
-  ceilingThickness: 0.12
+  height: galleryRoomSettings.shell.height,
+  wallThickness: galleryRoomSettings.shell.wallThickness,
+  ceilingThickness: galleryRoomSettings.shell.ceilingThickness
 };
 
 // Visual ceiling fixtures. These are intentionally data-driven so the local
@@ -357,8 +383,8 @@ export const ceilingLightPanels: CeilingLightPanel[] = [
 ];
 
 export const galleryStart = {
-  position: [0, 1.65, 13.4] as [number, number, number],
-  yaw: 0
+  position: galleryRoomSettings.start.position,
+  yaw: galleryRoomSettings.start.yaw
 };
 
 export const movementBounds = {
@@ -366,16 +392,13 @@ export const movementBounds = {
   // Interior gallery wall-block collision is handled separately in
   // movementController.ts with its own wallCollisionRadius.
   //
-  // The room shell is centered on +/-17 with 0.34m wall thickness, so the
-  // visible inner wall face is roughly +/-16.83. These bounds leave about
-  // 0.53m between the camera center and the perimeter wall face. This keeps
-  // the viewer close to the exterior walls without allowing the camera near-plane
-  // to feel like it is clipping into trim/corner geometry. Interior wall-block
-  // collision remains controlled separately in movementController.ts.
-  minX: -16.3,
-  maxX: 16.3,
-  minZ: -16.3,
-  maxZ: 16.3
+  // These values now come from src/data/galleryRoom.json so the editor map,
+  // room footprint, and runtime movement model can eventually share one
+  // architectural source of truth.
+  minX: galleryRoomSettings.movementBounds.minX,
+  maxX: galleryRoomSettings.movementBounds.maxX,
+  minZ: galleryRoomSettings.movementBounds.minZ,
+  maxZ: galleryRoomSettings.movementBounds.maxZ
 };
 
 // Reusable wall dimensions.
@@ -595,4 +618,27 @@ const baseWallBlocks: WallBlock[] = [
   }
 ];
 
-export const wallBlocks: WallBlock[] = baseWallBlocks.map(applyGalleryCuration);
+const baseWallIds = new Set(baseWallBlocks.map((wall) => wall.id));
+
+function buildWallBlocks(): WallBlock[] {
+  // Once galleryCuration.json exists, it becomes the wall-entity source of truth.
+  // This lets the editor add/remove custom wall cards without resurrecting static
+  // fallback wall slots from the original TypeScript layout. If the curation file
+  // is empty or missing, keep the original authored room as a safety fallback.
+  if (!normalizedGalleryCuration.length) {
+    return baseWallBlocks;
+  }
+
+  const curatedBaseWalls = baseWallBlocks
+    .filter((wall) => galleryCurationByWallId.has(wall.id))
+    .map(applyGalleryCuration);
+  const customWalls = normalizedGalleryCuration
+    .filter((record) => !baseWallIds.has(record.wallId))
+    .map(createWallFromGalleryCuration);
+
+  return [...curatedBaseWalls, ...customWalls].sort((first, second) => {
+    return (first.displayOrder ?? 9999) - (second.displayOrder ?? 9999);
+  });
+}
+
+export const wallBlocks: WallBlock[] = buildWallBlocks();

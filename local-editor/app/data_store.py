@@ -28,6 +28,7 @@ CATEGORIES_PATH = DATA_DIR / "categories.json"
 GALLERY_IMAGES_PATH = DATA_DIR / "galleryImages.json"
 HERO_SLIDES_PATH = DATA_DIR / "heroSlides.json"
 GALLERY_CURATION_PATH = DATA_DIR / "galleryCuration.json"
+GALLERY_ROOM_PATH = DATA_DIR / "galleryRoom.json"
 
 DEFAULT_CATEGORIES = [
     {"id": "climbing", "label": "Climbing"},
@@ -87,6 +88,148 @@ GALLERY_WALL_FOOTPRINTS = {
     "compact-display-wall": {"length_cells": 5, "thickness_cells": 1},
     "narrow-transition-wall": {"length_cells": 3, "thickness_cells": 1},
 }
+
+DEFAULT_GALLERY_ROOM = {
+    "schemaVersion": 1,
+    "id": "main-gallery-room",
+    "label": "Main gallery room",
+    "shape": "rectangle",
+    "grid": {
+        "cellMeters": GALLERY_GRID_CELL_METERS,
+        "minX": GALLERY_POSITION_MIN,
+        "maxX": GALLERY_POSITION_MAX,
+        "minZ": GALLERY_POSITION_MIN,
+        "maxZ": GALLERY_POSITION_MAX,
+    },
+    "floor": {"width": 34.0, "depth": 34.0, "color": "#d8d0c3"},
+    "shell": {"height": 3.9, "wallThickness": 0.34, "ceilingThickness": 0.12},
+    "movementBounds": {"minX": -16.3, "maxX": 16.3, "minZ": -16.3, "maxZ": 16.3},
+    "start": {"position": [0.0, 1.65, 13.4], "yaw": 0.0},
+}
+
+SUPPORTED_GALLERY_ROOM_SHAPES = {"rectangle", "l-shaped", "custom-footprint"}
+
+
+def clean_number(value: Any, fallback: float, minimum: float | None = None, maximum: float | None = None) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = fallback
+
+    if minimum is not None:
+        number = max(minimum, number)
+
+    if maximum is not None:
+        number = min(maximum, number)
+
+    return round(number, 4)
+
+
+def normalize_ordered_bounds(
+    raw_min: Any,
+    raw_max: Any,
+    fallback_min: float,
+    fallback_max: float,
+) -> tuple[float, float]:
+    minimum = clean_number(raw_min, fallback_min)
+    maximum = clean_number(raw_max, fallback_max)
+
+    if minimum >= maximum:
+        return fallback_min, fallback_max
+
+    return minimum, maximum
+
+
+def normalize_gallery_room(raw_room: Any) -> dict[str, Any]:
+    """Normalize the data-backed virtual gallery room footprint settings."""
+
+    if not isinstance(raw_room, dict):
+        raw_room = {}
+
+    grid = raw_room.get("grid") if isinstance(raw_room.get("grid"), dict) else {}
+    floor = raw_room.get("floor") if isinstance(raw_room.get("floor"), dict) else {}
+    shell = raw_room.get("shell") if isinstance(raw_room.get("shell"), dict) else {}
+    movement = raw_room.get("movementBounds") if isinstance(raw_room.get("movementBounds"), dict) else {}
+    start = raw_room.get("start") if isinstance(raw_room.get("start"), dict) else {}
+
+    grid_min_x, grid_max_x = normalize_ordered_bounds(
+        grid.get("minX"),
+        grid.get("maxX"),
+        DEFAULT_GALLERY_ROOM["grid"]["minX"],
+        DEFAULT_GALLERY_ROOM["grid"]["maxX"],
+    )
+    grid_min_z, grid_max_z = normalize_ordered_bounds(
+        grid.get("minZ"),
+        grid.get("maxZ"),
+        DEFAULT_GALLERY_ROOM["grid"]["minZ"],
+        DEFAULT_GALLERY_ROOM["grid"]["maxZ"],
+    )
+    movement_min_x, movement_max_x = normalize_ordered_bounds(
+        movement.get("minX"),
+        movement.get("maxX"),
+        DEFAULT_GALLERY_ROOM["movementBounds"]["minX"],
+        DEFAULT_GALLERY_ROOM["movementBounds"]["maxX"],
+    )
+    movement_min_z, movement_max_z = normalize_ordered_bounds(
+        movement.get("minZ"),
+        movement.get("maxZ"),
+        DEFAULT_GALLERY_ROOM["movementBounds"]["minZ"],
+        DEFAULT_GALLERY_ROOM["movementBounds"]["maxZ"],
+    )
+
+    shape = clean_string(raw_room.get("shape")) or DEFAULT_GALLERY_ROOM["shape"]
+
+    if shape not in SUPPORTED_GALLERY_ROOM_SHAPES:
+        shape = DEFAULT_GALLERY_ROOM["shape"]
+
+    start_position = start.get("position")
+
+    if not isinstance(start_position, list) or len(start_position) < 3:
+        start_position = DEFAULT_GALLERY_ROOM["start"]["position"]
+
+    return {
+        "schemaVersion": int(clean_number(raw_room.get("schemaVersion"), DEFAULT_GALLERY_ROOM["schemaVersion"], 1)),
+        "id": slugify(clean_string(raw_room.get("id")) or DEFAULT_GALLERY_ROOM["id"]),
+        "label": clean_string(raw_room.get("label")) or DEFAULT_GALLERY_ROOM["label"],
+        "shape": shape,
+        "grid": {
+            "cellMeters": clean_number(grid.get("cellMeters"), DEFAULT_GALLERY_ROOM["grid"]["cellMeters"], 0.25, 2.0),
+            "minX": grid_min_x,
+            "maxX": grid_max_x,
+            "minZ": grid_min_z,
+            "maxZ": grid_max_z,
+        },
+        "floor": {
+            "width": clean_number(floor.get("width"), DEFAULT_GALLERY_ROOM["floor"]["width"], 4.0),
+            "depth": clean_number(floor.get("depth"), DEFAULT_GALLERY_ROOM["floor"]["depth"], 4.0),
+            "color": clean_string(floor.get("color")) or DEFAULT_GALLERY_ROOM["floor"]["color"],
+        },
+        "shell": {
+            "height": clean_number(shell.get("height"), DEFAULT_GALLERY_ROOM["shell"]["height"], 2.4, 8.0),
+            "wallThickness": clean_number(shell.get("wallThickness"), DEFAULT_GALLERY_ROOM["shell"]["wallThickness"], 0.05, 1.0),
+            "ceilingThickness": clean_number(shell.get("ceilingThickness"), DEFAULT_GALLERY_ROOM["shell"]["ceilingThickness"], 0.02, 1.0),
+        },
+        "movementBounds": {
+            "minX": movement_min_x,
+            "maxX": movement_max_x,
+            "minZ": movement_min_z,
+            "maxZ": movement_max_z,
+        },
+        "start": {
+            "position": [
+                clean_number(start_position[0], DEFAULT_GALLERY_ROOM["start"]["position"][0]),
+                clean_number(start_position[1], DEFAULT_GALLERY_ROOM["start"]["position"][1], 0.2, 3.2),
+                clean_number(start_position[2], DEFAULT_GALLERY_ROOM["start"]["position"][2]),
+            ],
+            "yaw": clean_number(start.get("yaw"), DEFAULT_GALLERY_ROOM["start"]["yaw"]),
+        },
+    }
+
+
+def get_current_gallery_room() -> dict[str, Any]:
+    """Read the current room footprint settings, falling back to the default room."""
+
+    return normalize_gallery_room(read_json(GALLERY_ROOM_PATH))
 
 
 # Maps earlier semantic/gallery-zone wall labels into the current physical
@@ -276,7 +419,7 @@ def create_data_backup(reason: str) -> dict[str, Any]:
 
     backed_up_files: list[str] = []
 
-    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH, GALLERY_CURATION_PATH]:
+    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH, GALLERY_CURATION_PATH, GALLERY_ROOM_PATH]:
         if not source_path.exists():
             continue
 
@@ -352,7 +495,7 @@ def summarize_backup_folder(backup_path: Path) -> dict[str, Any]:
     manifest = read_backup_manifest(backup_path)
     files = [
         file_name
-        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json"]
+        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json"]
         if (backup_path / file_name).exists()
     ]
 
@@ -369,7 +512,7 @@ def summarize_backup_folder(backup_path: Path) -> dict[str, Any]:
         "reason": clean_string(manifest.get("reason")) or "backup",
         "createdAtUtc": created_at_utc,
         "files": files,
-        "canRestore": all(file_name in files for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json"]),
+        "canRestore": all(file_name in files for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json"]),
     }
 
 
@@ -477,6 +620,11 @@ def restore_data_backup(backup_name: str) -> tuple[list[dict[str, str]], list[di
         gallery_curation = get_current_gallery_curation(images)
 
     write_json(GALLERY_CURATION_PATH, gallery_curation)
+
+    backup_gallery_room_path = backup_path / "galleryRoom.json"
+
+    if backup_gallery_room_path.exists():
+        write_json(GALLERY_ROOM_PATH, normalize_gallery_room(read_json(backup_gallery_room_path)))
 
     restored_backup = summarize_backup_folder(backup_path)
 

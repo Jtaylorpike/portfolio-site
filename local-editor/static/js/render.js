@@ -1906,10 +1906,10 @@ function renderGalleryPlacementMap(state, records) {
 
   return `
     <div class="gallery-placement-map" aria-label="Gallery placement map">
-      <div>
+      <div class="gallery-placement-map-intro">
         <p class="eyebrow">Floor Grid</p>
         <h4>Wall footprint map</h4>
-        <p>Drag wall cards from the right sidebar or drag placed footprints directly. Dragging a wall off the map marks it as not placed; it does not delete the wall card.</p>
+        <p>Drag wall cards from the right sidebar, move placed footprints directly, and use the map controls for rotation, facing, and save behavior.</p>
         ${collisionMessage}
       </div>
       <div class="gallery-placement-map-layout">
@@ -1938,7 +1938,7 @@ function renderGalleryCurationSummary(state, records) {
         <p class="eyebrow">Curation Status</p>
         <h3>Wall assignments at a glance</h3>
         <p>
-          Wall slots now use a voxel-style floor grid. Wall blocks occupy whole squares, map controls handle rotation/facing, and collision checks prevent two placed walls from using the same cell.
+          Use the floor map as the source of truth for wall placement, rotation, facing, and map status. Individual wall cards now focus on artwork, type, status, and plaque behavior.
         </p>
 
       </div>
@@ -2236,12 +2236,10 @@ function renderGalleryCurationCard(state, record, index) {
           <p data-gallery-wall-type-description>${escapeHtml(wallTypeMeta.description)}</p>
         </div>
 
-        <div class="gallery-placement-readout wide" data-gallery-placement-controls>
-          <p class="eyebrow">Map placement</p>
+        <div class="gallery-placement-hidden-fields" data-gallery-placement-controls hidden aria-hidden="true">
           <strong data-gallery-placement-state-label>${placedInGallery ? "On map" : "Not on map"}</strong>
-          <p>Drag this wall on the floor map to place it. Use the map controls to rotate, flip, or remove it from the map.</p>
-          <p class="gallery-placement-footprint" data-gallery-placement-footprint>${escapeHtml(footprintLabel)}</p>
-          <p class="gallery-placement-warning" data-gallery-placement-warning ${collisionText ? "" : "hidden"}>${escapeHtml(collisionText)}</p>
+          <p data-gallery-placement-footprint>${escapeHtml(footprintLabel)}</p>
+          <p data-gallery-placement-warning ${collisionText ? "" : "hidden"}>${escapeHtml(collisionText)}</p>
           <input data-gallery-curation-field="placedInGallery" type="hidden" value="${placedInGallery ? "placed" : "unplaced"}" />
           <input data-gallery-grid-field="gridX" type="hidden" value="${escapeHtml(String(placement.gridX))}" />
           <input data-gallery-grid-field="gridZ" type="hidden" value="${escapeHtml(String(placement.gridZ))}" />

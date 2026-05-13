@@ -1018,3 +1018,365 @@ Date: 2026-05-13
 - Kept hidden editor map walls subdued but visible.
 - Bumped the local editor cache version to `v=41`.
 
+
+---
+
+## Appended changelog fragments - 20260513-173046
+
+
+# Changelog Append — 2026-05-13 — Phase 0 Gallery Map Whitespace Closure
+
+## Changed
+
+- Added an explicit Gallery map intro wrapper in `local-editor/static/js/render.js`.
+- Added final layout overrides in `local-editor/static/editor.css` to make the Gallery map section wrap to actual content height.
+- Kept the map board square and preserved the right-side wall entity sidebar.
+- Updated local editor cache query strings from `v=43` to `v=44`.
+- Added documentation for the whitespace closure and current project roadmap under `docs/`.
+
+## Not changed
+
+- No public site files changed.
+- No gallery curation data changed.
+- No image records changed.
+- No drag/drop, rotation, facing, collision, or save behavior changed intentionally.
+
+
+# Changelog Append — Phase 1 Public Site Audit
+
+Date: 2026-05-13
+
+## Added
+
+- Added `docs/PUBLIC_SITE_POLISH_AUDIT.md`.
+- Added `docs/COPY_AUTHORSHIP_AND_PLACEHOLDER_POLICY.md`.
+- Updated `docs/PROJECT_ROADMAP_CURRENT.md` to mark Phase 0 as complete and Phase 1 as current.
+
+## Notes
+
+- No public site code was changed in this pack.
+- No editor code was changed in this pack.
+- No image data was changed in this pack.
+- The audit identifies the pixel/interface font restoration as a likely first Phase 2 implementation target.
+- The audit records that final public-facing copy should be user-authored, especially for the About page.
+
+
+# Changelog Append — 2026-05-13 — Phase 2A Public Interface Font Restoration
+
+## Summary
+
+Started Phase 2 public polish with a narrow CSS-only pass focused on restoring the pixel/VCR interface font throughout the public UI while preserving body copy readability.
+
+## Changed
+
+- Updated the main public interface typography selector to use `var(--font-interface)` instead of `Inter, Arial, Helvetica, sans-serif`.
+- Added the public text brand selectors to the interface typography system.
+- Adjusted text-brand weight/spacing so the VCR/pixel face reads as intentional rather than fake-bolded.
+- Removed the late `.gallery-close` override that forced Arial back onto the gallery close button.
+- Added a small accent-colored text selection style.
+- Added Phase 2 documentation and refreshed the current roadmap.
+
+## Not changed
+
+- No public copy was changed.
+- No editor behavior was changed.
+- No image data was changed.
+- No gallery room, curation, collision, plaque, or placement behavior was changed.
+
+## Validation
+
+- `npm ci` passed.
+- `npm run build` passed.
+
+
+# Changelog Append — 2026-05-13 — Phase 2A Typography Scope Correction
+
+## Summary
+
+Corrected the Phase 2A public typography direction so the VCR/pixel-style font is used only as a secondary/tertiary accent instead of becoming the main public interface font.
+
+## Changed files
+
+```text
+src/styles/global.css
+docs/PHASE2A_TYPOGRAPHY_SCOPE_CORRECTION.md
+```
+
+## Details
+
+- Restored the main public interface stack to the normal sans-serif typeface.
+- Added a separate `--font-accent` variable for the VCR/pixel face.
+- Scoped the pixel font to minor numeric accents:
+  - `.pixel-number`
+  - `.hero-index-number`
+  - `.portfolio-index-number`
+  - `.portfolio-grid-card-index`
+  - `.image-lightbox-counter`
+- Prevented the `Taylor Pike` header/wordmark from being changed to the pixel font.
+- Kept site copy and page content untouched.
+
+## Validation
+
+```text
+npm run build
+```
+
+Result: passed.
+
+
+# Changelog Append — 2026-05-13 — Phase 2B Homepage Polish
+
+## Summary
+
+Implemented a CSS-only homepage polish pass after Phase 0 and the Phase 2A typography scope correction.
+
+## Changed
+
+- Refined public header depth and navigation hover behavior.
+- Added a contained Phase 2B homepage polish block to `src/styles/global.css`.
+- Tightened hero index rhythm and active state treatment.
+- Preserved narrow VCR/pixel font scope while allowing hero thumbnail numbers to use the accent font.
+- Added editorial guide-line treatment around the hero stage.
+- Added a subtle hero copy-panel readability overlay.
+- Improved homepage CTA hover response.
+- Refined hero metadata separator treatment.
+- Refined thumbnail/contact-sheet density, border treatment, and active states.
+- Added homepage intro top accent rule and archive-card hover treatment.
+- Added responsive overrides for tablet and mobile widths.
+- Updated documentation for Phase 2B, roadmap continuity, public polish, and copy ownership.
+
+## Not changed
+
+- No public website copy changed.
+- No About page copy changed.
+- No editor files changed.
+- No image data changed.
+- No gallery data changed.
+- No 3D gallery behavior changed.
+- No route or markup changes.
+
+## Validation
+
+- `npm run build` passed.
+- `node scripts/validate-portfolio-image-data.mjs --project-root .` returned 0 errors and 1 known warning about an active placed wall slot without assigned artwork.
+
+
+# Changelog Append — 2026-05-13 — Phase 2C Portfolio Index Polish
+
+## Summary
+
+Implemented a narrow public portfolio/index polish pass.
+
+## Files changed
+
+- `src/app/sitePages.ts`
+- `src/styles/global.css`
+- `docs/PHASE2C_PORTFOLIO_INDEX_POLISH.md`
+- `docs/PUBLIC_SITE_POLISH_AUDIT.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+
+## Details
+
+- Added generated image counts to portfolio category buttons.
+- Added orientation-aware portfolio card class names for future styling hooks.
+- Split portfolio card metadata into category, title, and optional location/year details.
+- Removed placeholder-like fallback metadata from portfolio cards when location/year are absent.
+- Refined category sidebar spacing, active state, count placement, and mobile horizontal behavior.
+- Refined portfolio page heading separation and archive-rule treatment.
+- Refined portfolio card hover/focus treatment, image borders, grid background detail, and card metadata spacing.
+- Refined lightbox frame/caption hierarchy.
+- Preserved route behavior, image data, editor behavior, gallery behavior, and public copy ownership.
+
+## Validation
+
+- `npm run build` passed.
+- `node scripts/validate-portfolio-image-data.mjs --project-root .` returned 0 errors and 1 known warning.
+
+## Known remaining warning
+
+The validator still reports one active placed gallery wall slot with no assigned artwork. This warning predates Phase 2C and is unrelated to this pack.
+
+
+# Changelog append — 2026-05-13 — Phase 2D Gallery Entry CTA Polish
+
+## Changed
+
+- Updated the homepage archive/status strip so the existing `02 / Spatial` card acts as a clearer virtual-gallery entry point.
+- Added a small `Enter` button to the homepage gallery card using the existing `data-open-virtual-gallery` controller hook.
+- Added functional gallery-control chips for `WASD / arrows`, `Mouse look`, and `Desktop`.
+- Added subtle spatial/grid styling to the homepage gallery card.
+- Added a dedicated class and arrow affordance to the portfolio page's `Open gallery room` button.
+- Added a small accent marker to the top-nav Gallery button.
+- Updated Phase 2 documentation and the current roadmap.
+
+## Not changed
+
+- No final public copy was rewritten.
+- No About page copy was changed.
+- No editor files were changed.
+- No image data was changed.
+- No gallery curation data was changed.
+- No gallery room data was changed.
+- No virtual-gallery movement, collision, loading, plaque, or camera behavior was changed.
+
+## Validation
+
+- `npm run build` passed.
+- `node scripts/validate-portfolio-image-data.mjs --project-root .` returned 0 errors and 1 known warning.
+
+The known warning is the pre-existing active placed gallery wall slot with no assigned artwork.
+
+
+# Changelog Append — 2026-05-13 — Phase 2D Gallery Entry Scope Correction
+
+## Summary
+
+Narrowed the Phase 2D gallery-entry polish after visual review. The homepage archive/status section should remain a clean three-card section, and the top-nav Gallery item should not have a red/accent dot marker.
+
+## Files changed
+
+- `src/app/sitePages.ts`
+- `src/styles/global.css`
+- `docs/PHASE2D_GALLERY_ENTRY_SCOPE_CORRECTION.md`
+- `docs/PHASE2D_GALLERY_ENTRY_CTA_POLISH.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PUBLIC_SITE_POLISH_AUDIT.md`
+
+## Changes
+
+- Removed the internal `Enter` button from the homepage `02 / Spatial` archive card.
+- Removed gallery control chips from the homepage `02 / Spatial` archive card.
+- Removed the special gallery-entry card class from the homepage archive/status strip.
+- Removed the red/accent dot beside the top-nav Gallery button.
+- Kept the portfolio page `Open gallery room` arrow affordance.
+- Updated project documentation to record the corrected direction.
+
+## Validation
+
+- `npm run build`: passed.
+- `node scripts/validate-portfolio-image-data.mjs --project-root .`: 0 errors, 1 known warning.
+
+The warning is the pre-existing active/placed gallery wall slot with no assigned artwork.
+
+
+# Changelog Append — 2026-05-13 — Phase 2D Homepage Below-Hero Simplification
+
+## Summary
+
+Simplified the homepage below-hero structure after visual review.
+
+The homepage previously showed both a large intro/CTA block and the three archive/status boxes below the hero slideshow. The chosen direction is to keep only the three boxes so the page flow is simpler and less redundant.
+
+## Files changed
+
+- `src/app/sitePages.ts`
+- `src/styles/global.css`
+- `docs/PHASE2D_HOME_BELOW_HERO_SIMPLIFICATION.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PUBLIC_SITE_POLISH_AUDIT.md`
+
+## Details
+
+- Removed the `modern-home-copy` section from the homepage render output.
+- Removed the duplicated below-hero CTA row that lived inside that section.
+- Removed now-unused `.modern-home-copy` CSS.
+- Removed now-unused `.home-copy-actions` CSS.
+- Preserved the homepage hero slideshow and hero CTAs.
+- Preserved the three balanced archive/status boxes.
+- Preserved gallery open behavior.
+
+## Validation
+
+Run from the project root:
+
+```powershell
+npm run build
+node scripts/validate-portfolio-image-data.mjs --project-root .
+```
+
+Expected result:
+
+- Build passes.
+- Image-data validation has 0 errors.
+- The existing active/placed/unassigned gallery wall warning may remain until gallery curation is completed.
+
+
+# Changelog Append — 2026-05-13 — Phase 2E Home Hero-Only Simplification
+
+## Summary
+
+Removed the remaining homepage UI section below the hero slideshow so the homepage temporarily resolves as a clean hero-only landing surface.
+
+## Changed
+
+- Removed the `renderHomeArchiveNotes()` helper from `src/app/sitePages.ts`.
+- Removed the below-hero archive/status section from `renderHomePage()`.
+- Removed `.home-archive-notes` layout, hover, and responsive CSS from `src/styles/global.css`.
+- Updated current roadmap and public-site audit docs.
+
+## Preserved
+
+- Homepage hero slideshow and hero CTAs.
+- Top navigation.
+- Entry page.
+- Portfolio route and portfolio page metadata strip.
+- About route.
+- Image lightbox.
+- Editor code.
+- Image data.
+- Gallery curation data.
+- Gallery room data.
+- Virtual gallery behavior.
+
+## Validation
+
+- `npm run build` passed.
+
+
+# Changelog Append - Public Site Review Polish and Editor Cleanup
+
+## Added
+
+- Added a homepage archive-notes strip that frames the site as a photography archive, virtual gallery room, and evolving creative system.
+- Added a portfolio metadata strip with visible image count, total image count, category count, and a direct virtual-gallery action.
+- Added baseline SEO metadata updates and a JSON-LD `Person` schema.
+- Added documentation for public-site review/polish and SEO planning.
+- Added documentation for the gallery editor map/card separation.
+
+## Changed
+
+- Removed the visible map-placement section from individual gallery wall cards while preserving hidden placement fields for save/runtime behavior.
+- Tightened gallery editor map spacing so the map section does not create unnecessary blank space below itself.
+- Updated gallery editor copy so map placement is clearly controlled from the floor map rather than the cards.
+- Added async decoding to hero images.
+
+## Notes
+
+- This update does not change the 3D gallery runtime room geometry, movement, collision, lighting, fog, plaques, or image data.
+- SEO is only a baseline pass. A full SEO strategy should wait until the final public URL and content hierarchy are settled.
+
+
+# Changelog append — 2026-05-13 — Room model baseline and site roadmap
+
+## Added
+
+- Added `src/data/galleryRoom.json` as the first data-backed virtual gallery room footprint/settings file.
+- Added `src/data/galleryRoom.ts` to normalize room data for the public Three.js gallery runtime.
+- Added `docs/GALLERY_ROOM_AND_EDITOR_MODEL_BASELINE.md` to capture the current wall/entity/map/room mental model.
+- Added `docs/GALLERY_ROOM_FOOTPRINT_SETTINGS.md` to document the new room footprint settings file and future room-shape path.
+- Added `docs/SITE_OVERALL_REVIEW_AND_NEXT_STEPS.md` to summarize the public site, editor, 3D gallery, weak spots, and recommended next work.
+
+## Changed
+
+- Updated `src/gallery/environment/galleryBlueprint.ts` so the current square room defaults now come from `galleryRoom.json` instead of being fully hardcoded in the blueprint.
+- Updated the local editor backend so `/api/data` returns normalized `galleryRoom` settings.
+- Updated editor backups so `galleryRoom.json` is included when present.
+- Updated backup restore handling so backed-up `galleryRoom.json` is restored when available.
+- Updated `scripts/validate-portfolio-image-data.mjs` to read and validate `galleryRoom.json`, report the active room, and use the room grid settings for gallery curation placement bounds.
+
+## Notes
+
+- This pack does not redesign the 3D room.
+- The current rectangular/square gallery remains the default.
+- `l-shaped` and `custom-footprint` are reserved shape labels for future room model work; they do not yet create non-rectangular geometry by themselves.
+
