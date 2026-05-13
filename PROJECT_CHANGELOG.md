@@ -994,3 +994,27 @@ Date: 2026-05-13
 - Updated placement collision checks to compare occupied grid cells instead of rectangle overlap bounds.
 - Kept the existing `galleryCuration.json` schema based on meter positions and `rotationYDegrees` so the runtime gallery remains compatible.
 
+
+---
+
+## Appended changelog fragments - 20260513-132803
+
+
+## 2026-05-13 — Gallery Map Final Viewport and Grid Fix
+
+- Restored the gallery placement map to a true square board so X/Z cells render with equal visual scale.
+- Replaced the vertically condensed map sizing with a viewport-aware square clamp.
+- Disabled the legacy center-axis pseudo-elements that caused doubled/uneven-looking grid lines.
+- Removed fixed-pixel wall thickness from map markers so every wall block renders at a consistent one-cell thickness.
+- Kept wall block types visually differentiated by length rather than thickness/volume.
+- Bumped the local editor cache version to `v=42`.
+
+
+## 2026-05-13 — Gallery map height, grid, and wall thickness fix
+
+- Constrained the local editor gallery floor map height so the full map is easier to see without excessive page scrolling.
+- Replaced the layered/repeating grid background with a uniform cell grid to remove visually uneven center-line spacing.
+- Standardized editor map wall-block thickness so wall types differ by length, not visual volume.
+- Kept hidden editor map walls subdued but visible.
+- Bumped the local editor cache version to `v=41`.
+

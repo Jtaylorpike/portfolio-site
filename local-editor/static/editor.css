@@ -3414,3 +3414,165 @@ body[data-gallery-wall-dragging="true"] .gallery-placement-map-room {
   }
 }
 
+
+/* Gallery map viewport, grid rhythm, and uniform wall-block thickness fix.
+   Keep the editor map readable without making the page scroll from the top of
+   the map to the bottom, use one uniform grid rhythm, and draw every wall with
+   the same visual thickness regardless of wall length or type. */
+.gallery-placement-map-layout {
+  min-height: 0 !important;
+}
+
+.gallery-placement-map-main {
+  align-self: start;
+}
+
+.gallery-placement-map-room[data-gallery-placement-map] {
+  --gallery-map-cell-size: calc(100% / 65);
+  --gallery-map-wall-thickness: 13px;
+  flex: 0 0 auto !important;
+  height: min(540px, 52vw, calc(100vh - 260px));
+  min-height: 420px !important;
+  max-height: 540px;
+  background-image:
+    linear-gradient(to right, rgba(28, 27, 24, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(28, 27, 24, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(255, 253, 248, 0.98), rgba(240, 236, 223, 0.94));
+  background-size:
+    var(--gallery-map-cell-size) var(--gallery-map-cell-size),
+    var(--gallery-map-cell-size) var(--gallery-map-cell-size),
+    auto;
+  background-position: 0 0, 0 0, center;
+}
+
+.gallery-placement-map-marker,
+.gallery-placement-drop-preview {
+  height: var(--gallery-map-wall-thickness, 13px) !important;
+  min-height: var(--gallery-map-wall-thickness, 13px) !important;
+}
+
+.gallery-placement-wall-line {
+  height: 100% !important;
+}
+
+.gallery-placement-map-marker[data-placement-marker-status="hidden"] .gallery-placement-wall-line {
+  background: rgba(10, 10, 9, 0.34) !important;
+}
+
+@media (max-width: 1100px) {
+  .gallery-placement-map-room[data-gallery-placement-map] {
+    height: min(480px, 72vw, calc(100vh - 250px));
+    min-height: 360px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .gallery-placement-map-room[data-gallery-placement-map] {
+    height: 380px;
+    min-height: 320px !important;
+  }
+}
+
+/* Gallery map final viewport/grid correction.
+   The map represents a square floor grid, so the board itself must remain
+   square. This prevents the voxel walls from compressing vertically, removes
+   the old center-axis pseudo lines that created uneven grid artifacts, and
+   lets every wall read as the same thickness with length as the only visible
+   difference between wall block types. */
+.gallery-placement-map-layout {
+  grid-template-columns: minmax(680px, 1fr) minmax(280px, 330px) !important;
+  align-items: start !important;
+  min-height: 0 !important;
+}
+
+.gallery-placement-map-main {
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.gallery-placement-map-room[data-gallery-placement-map] {
+  --gallery-map-cell-size: calc(100% / 65);
+  width: min(100%, clamp(610px, calc(100vh - 150px), 860px)) !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  flex: 0 0 auto !important;
+  align-self: center !important;
+  background-color: rgba(248, 245, 236, 0.96) !important;
+  background-image:
+    linear-gradient(to right, rgba(28, 27, 24, 0.075) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(28, 27, 24, 0.075) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(239, 235, 222, 0.94)) !important;
+  background-size:
+    var(--gallery-map-cell-size) var(--gallery-map-cell-size),
+    var(--gallery-map-cell-size) var(--gallery-map-cell-size),
+    100% 100% !important;
+  background-position: 0 0, 0 0, center !important;
+}
+
+.gallery-placement-map-room[data-gallery-placement-map]::before,
+.gallery-placement-map-room[data-gallery-placement-map]::after {
+  display: none !important;
+  content: none !important;
+}
+
+.gallery-placement-map-marker,
+.gallery-placement-drop-preview {
+  height: var(--marker-depth, var(--preview-depth, var(--gallery-map-cell-size))) !important;
+  min-height: 0 !important;
+}
+
+.gallery-placement-wall-line {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: rgba(8, 8, 7, 0.96) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22) !important;
+}
+
+.gallery-placement-drop-preview .gallery-placement-wall-line {
+  background: rgba(8, 8, 7, 0.28) !important;
+  box-shadow: 0 0 0 1px rgba(8, 8, 7, 0.44), 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.gallery-placement-map-marker[data-placement-marker-status="hidden"] .gallery-placement-wall-line {
+  background: rgba(8, 8, 7, 0.34) !important;
+}
+
+.gallery-placement-map-marker[data-gallery-selected="true"] .gallery-placement-wall-line {
+  background: rgba(8, 8, 7, 0.98) !important;
+  box-shadow: 0 0 0 2px rgba(255, 253, 248, 0.95), 0 0 0 4px rgba(8, 8, 7, 0.24), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.gallery-placement-map-marker[data-placement-marker-collision="true"] .gallery-placement-wall-line,
+.gallery-placement-drop-preview[data-drop-collision="true"] .gallery-placement-wall-line,
+.gallery-placement-map-marker[data-placement-marker-boundary="true"] .gallery-placement-wall-line {
+  background: rgba(118, 42, 28, 0.92) !important;
+}
+
+.gallery-placement-sidebar {
+  height: min(100%, clamp(610px, calc(100vh - 150px), 860px)) !important;
+}
+
+@media (max-width: 1180px) {
+  .gallery-placement-map-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .gallery-placement-map-room[data-gallery-placement-map] {
+    width: min(100%, 680px) !important;
+  }
+
+  .gallery-placement-sidebar {
+    height: auto !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .gallery-placement-map-room[data-gallery-placement-map] {
+    width: min(100%, 560px) !important;
+  }
+}
