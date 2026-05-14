@@ -1504,3 +1504,28 @@ origin/main -> cf7886c Polish public portfolio experience
 
 This is a documentation-only closeout pack. It does not change runtime code, editor code, image data, gallery room data, curation data, or public copy.
 
+
+---
+
+## Appended changelog fragments - 20260514-123223
+
+
+# Changelog append — 2026-05-14 — Phase 3A content curation start
+
+## Added
+
+- Added `docs/PHASE3_CONTENT_METADATA_CURATION_START.md` to define the purpose, scope, workflow, and completion criteria for Phase 3.
+- Added `docs/PORTFOLIO_IMAGE_METADATA_CHECKLIST.md` for image-by-image metadata review.
+- Added `docs/EDITOR_CURATION_WORKFLOW.md` for practical local-editor curation sessions, validation, and commit guidance.
+- Added `docs/CURRENT_PROJECT_HANDOFF_PHASE3_START.md` to help future chats or human reviewers understand the current project state.
+- Updated `docs/PROJECT_ROADMAP_CURRENT.md` to mark Phase 3 as active after Phase 2 public polish.
+
+## Notes
+
+- This is a documentation-only pack.
+- No public copy was generated or changed.
+- No source code changed.
+- No editor code changed.
+- No image data changed.
+- No gallery data changed.
+
