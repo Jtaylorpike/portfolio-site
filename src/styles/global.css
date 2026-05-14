@@ -2734,3 +2734,651 @@ button:focus-visible {
 .portfolio-gallery-room-button:focus-visible span:last-child {
   transform: translate(2px, -3px);
 }
+
+/* Phase 2F global public shell polish: refine navigation and shared UI affordances
+   without changing site copy, image data, editor behavior, or gallery mechanics. */
+.modern-header {
+  gap: clamp(18px, 3vw, 36px);
+}
+
+.modern-nav {
+  align-items: stretch;
+  gap: clamp(12px, 2.2vw, 34px);
+}
+
+.modern-nav a,
+.modern-nav button {
+  min-height: 34px;
+  padding: 0 0 7px;
+  color: rgba(238, 231, 216, 0.64);
+  letter-spacing: var(--interface-track-tight);
+}
+
+.modern-nav a::after,
+.modern-nav button::after {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  height: 1px;
+  border-radius: 0;
+  background: currentColor;
+  opacity: 0;
+  transform: scaleX(0.18);
+  transform-origin: center;
+  transition:
+    opacity 170ms ease,
+    transform 170ms ease;
+}
+
+.modern-nav a.is-active,
+.modern-nav a:hover,
+.modern-nav button:hover,
+.modern-nav a:focus-visible,
+.modern-nav button:focus-visible {
+  color: var(--text);
+}
+
+.modern-nav a.is-active::after,
+.modern-nav a:hover::after,
+.modern-nav button:hover::after,
+.modern-nav a:focus-visible::after,
+.modern-nav button:focus-visible::after {
+  opacity: 0.42;
+  transform: scaleX(1);
+}
+
+.modern-nav-gallery-button {
+  isolation: isolate;
+}
+
+.modern-brand {
+  transition: opacity 170ms ease;
+}
+
+.modern-brand:hover,
+.modern-brand:focus-visible {
+  opacity: 0.78;
+}
+
+.modern-brand-name {
+  letter-spacing: clamp(0.28em, 0.9vw, 0.42em);
+}
+
+.modern-brand-field {
+  letter-spacing: var(--interface-track-tight);
+}
+
+@media (max-width: 900px) {
+  .modern-header {
+    gap: 16px;
+    padding-bottom: 8px;
+  }
+
+  .modern-brand {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .modern-brand-field::before {
+    display: none;
+  }
+
+  .modern-nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    border-top: 1px solid var(--line-faint);
+    border-bottom: 1px solid var(--line-faint);
+  }
+
+  .modern-nav a,
+  .modern-nav button {
+    min-width: 0;
+    width: 100%;
+    min-height: 42px;
+    padding: 0;
+    border-right: 1px solid var(--line-faint);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .modern-nav a:last-child {
+    border-right: 0;
+  }
+
+  .modern-nav a::after,
+  .modern-nav button::after {
+    bottom: -1px;
+  }
+}
+
+@media (max-width: 430px) {
+  .modern-nav a,
+  .modern-nav button {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+}
+
+/* Phase 2G homepage viewport fit + portfolio header cleanup.
+   Keep the hero-only home route from creating unnecessary desktop scroll,
+   and remove the extra portfolio gallery CTA/red accent underline that competed
+   with the global navigation. */
+.modern-home-page {
+  padding-bottom: 0;
+}
+
+.portfolio-page-heading::after {
+  display: none;
+}
+
+.portfolio-page-meta-strip span {
+  min-height: 32px;
+  background: rgba(238, 231, 216, 0.028);
+}
+
+@media (min-width: 901px) {
+  .modern-site[data-page='home'] .modern-home-page {
+    min-height: calc(100svh - 86px);
+  }
+
+  .modern-site[data-page='home'] .modern-home-hero {
+    min-height: calc(100svh - 86px);
+    align-items: stretch;
+  }
+
+  .modern-site[data-page='home'] .home-hero-slideshow {
+    --hero-stage-height: clamp(340px, 58vh, 620px);
+    min-height: auto;
+    height: calc(100svh - 86px);
+    align-content: center;
+    padding-top: clamp(14px, 2.1vh, 32px);
+    padding-bottom: clamp(10px, 1.4vh, 16px);
+  }
+
+  .modern-site[data-page='home'] .home-hero-index-rail {
+    padding-top: clamp(40px, 6.2vh, 72px);
+  }
+
+  .modern-site[data-page='home'] .home-hero-thumbnail-strip {
+    align-self: end;
+  }
+
+  .modern-site[data-page='home'] .hero-thumbnail-button,
+  .modern-site[data-page='home'] .hero-thumbnail-button img {
+    min-height: clamp(78px, 10vh, 108px);
+    height: clamp(78px, 10vh, 108px);
+  }
+}
+
+/* Phase 2H public responsive baseline.
+   This pass tightens existing public pages on tablet and phone without changing
+   final copy, editor behavior, image data, or virtual-gallery mechanics. The
+   future touch-control gallery remains a separate mobile-controls phase. */
+@media (max-width: 900px) {
+  .modern-header,
+  .modern-main {
+    width: min(var(--max-width), calc(100% - 24px));
+  }
+
+  .modern-site[data-page='home'] .modern-home-page {
+    padding-top: 0;
+  }
+
+  .modern-site[data-page='home'] .home-hero-slideshow {
+    gap: 18px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-stage,
+  .modern-site[data-page='home'] .home-hero-image-shell {
+    width: 100%;
+  }
+
+  .home-hero-index-list,
+  .portfolio-category-sidebar {
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hero-index-button,
+  .portfolio-index-button {
+    scroll-snap-align: start;
+  }
+
+  .portfolio-page-heading {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 700px) {
+  .modern-entry-card {
+    gap: 28px;
+  }
+
+  .entry-actions,
+  .home-hero-actions {
+    align-items: stretch;
+  }
+
+  .entry-actions .button,
+  .home-hero-gallery-cta,
+  .home-hero-portfolio-link {
+    min-height: 44px;
+  }
+
+  .portfolio-page-meta-strip {
+    width: 100%;
+  }
+
+  .portfolio-page-meta-strip span {
+    min-width: 0;
+  }
+
+  .about-contact-card a,
+  .modern-about-copy > a {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 560px) {
+  .modern-header,
+  .modern-main {
+    width: calc(100% - 20px);
+  }
+
+  .modern-header {
+    padding-top: 18px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-slideshow {
+    --hero-stage-height: min(48svh, 420px);
+  }
+
+  .modern-site[data-page='home'] .home-hero-copy-panel {
+    width: min(94%, 360px);
+    padding-bottom: 22px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-statement {
+    max-width: 260px;
+    line-height: 1.55;
+  }
+
+  .home-hero-gallery-cta,
+  .home-hero-portfolio-link {
+    gap: 12px;
+    letter-spacing: 0.12em;
+  }
+
+  .home-hero-portfolio-link::after {
+    width: 34px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-meta {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .home-hero-thumbnail-strip {
+    display: flex;
+    grid-template-columns: none;
+    gap: 2px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hero-thumbnail-button,
+  .hero-thumbnail-button img {
+    flex: 0 0 44%;
+    min-height: 76px;
+    height: 76px;
+    scroll-snap-align: start;
+  }
+
+  .portfolio-category-sidebar {
+    margin-right: -10px;
+    margin-left: -10px;
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .portfolio-page-meta-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .portfolio-page-meta-strip span {
+    min-height: 36px;
+    padding-inline: 8px;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+
+  .image-lightbox-inner {
+    max-height: calc(100svh - 32px);
+  }
+
+  .image-lightbox-close {
+    min-height: 40px;
+  }
+
+  .image-lightbox-nav {
+    min-height: 42px;
+    background: rgba(2, 3, 3, 0.82);
+  }
+
+  .image-lightbox-nav-prev {
+    left: 8px;
+    transform: translateY(-50%);
+  }
+
+  .image-lightbox-nav-next {
+    right: 8px;
+    transform: translateY(-50%);
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .portfolio-grid-card:hover .portfolio-grid-image-button,
+  .portfolio-grid-image-button:focus-visible {
+    transform: none;
+  }
+
+  .portfolio-grid-card:hover .portfolio-grid-image-button img,
+  .portfolio-grid-image-button:focus-visible img {
+    transform: none;
+  }
+
+  .button:hover,
+  .button:focus-visible,
+  .home-hero-portfolio-link:hover,
+  .home-hero-portfolio-link:focus-visible {
+    transform: none;
+  }
+}
+
+/* Phase 2I mobile public-page refinement.
+   This closes the issues found after the first responsive baseline: keep the
+   home hero faster to scroll on touch devices, reduce mobile vertical dead
+   space, remove the mobile-only gallery CTA from the hero, and preserve the
+   portfolio category rail's horizontal position across category route changes. */
+@media (max-width: 900px) {
+  .modern-header {
+    gap: 12px;
+    padding-top: 14px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-slideshow {
+    gap: 12px;
+    padding-top: 10px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-index-rail {
+    padding: 0;
+  }
+
+  .home-hero-rail-label {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .home-hero-index-list {
+    gap: 20px;
+    padding: 0 0 8px;
+    scroll-snap-type: none;
+  }
+
+  .hero-index-button {
+    min-width: 30px;
+    min-height: auto;
+  }
+
+  .hero-index-button::before,
+  .hero-index-button::after {
+    display: none;
+  }
+
+  .hero-index-button.is-active,
+  .hero-index-button:hover,
+  .hero-index-button:focus-visible {
+    transform: none;
+  }
+
+  .hero-index-number {
+    font-size: 21px;
+    letter-spacing: 0.04em;
+  }
+
+  .home-hero-thumbnail-strip,
+  .portfolio-category-sidebar {
+    scroll-snap-type: none;
+    overscroll-behavior-x: contain;
+  }
+
+  .hero-index-button,
+  .hero-thumbnail-button,
+  .portfolio-index-button {
+    scroll-snap-align: none;
+  }
+
+  .hero-thumbnail-button {
+    transition:
+      border-color 100ms ease,
+      opacity 100ms ease;
+  }
+
+  .hero-thumbnail-button:hover,
+  .hero-thumbnail-button:focus-visible,
+  .hero-thumbnail-button.is-active {
+    transform: none;
+  }
+
+  .hero-thumbnail-button img {
+    filter: none;
+  }
+
+  .modern-portfolio-page {
+    padding-top: clamp(38px, 6vw, 54px);
+  }
+
+  .modern-about-page {
+    padding-top: clamp(48px, 7vw, 62px);
+  }
+}
+
+@media (max-width: 700px) {
+  .modern-site[data-page='home'] .home-hero-gallery-cta,
+  .modern-site[data-page='home'] .home-hero-statement {
+    display: none;
+  }
+
+  .modern-site[data-page='home'] .home-hero-actions {
+    gap: 0;
+  }
+
+  .modern-site[data-page='home'] .home-hero-portfolio-link {
+    align-self: start;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .modern-header,
+  .modern-main {
+    width: calc(100% - 20px);
+  }
+
+  .modern-header {
+    gap: 10px;
+    padding-top: 12px;
+  }
+
+  .modern-nav a,
+  .modern-nav button {
+    min-height: 36px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-slideshow {
+    --hero-stage-height: min(43svh, 380px);
+    gap: 10px;
+    padding-top: 6px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-index-list {
+    gap: 18px;
+  }
+
+  .modern-site[data-page='home'] .hero-index-number {
+    font-size: 20px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-copy-panel {
+    width: min(90%, 320px);
+    padding-top: 14px;
+    padding-bottom: 18px;
+    padding-left: 14px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-welcome {
+    padding-bottom: 6px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 14px;
+    padding-top: 10px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-meta dt {
+    margin-bottom: 5px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-meta dd {
+    line-height: 1.25;
+  }
+
+  .home-hero-thumbnail-strip {
+    gap: 3px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .hero-thumbnail-button,
+  .hero-thumbnail-button img {
+    flex-basis: 36%;
+    min-height: 68px;
+    height: 68px;
+  }
+
+  .modern-portfolio-page {
+    padding-top: 32px;
+  }
+
+  .modern-about-page {
+    padding-top: 42px;
+  }
+}
+
+@media (max-width: 360px) {
+  .modern-site[data-page='home'] .home-hero-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-thumbnail-button,
+  .hero-thumbnail-button img {
+    flex-basis: 44%;
+  }
+}
+
+/* Phase 2J mobile hero performance.
+   Keep the public layout intact, but make the mobile LCP candidate lighter and
+   reduce nonessential paint work around the homepage hero on touch screens. */
+.home-hero-picture {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+@media (max-width: 900px) {
+  .home-hero-slideshow::before,
+  .home-hero-stage::before,
+  .home-hero-stage::after {
+    display: none;
+  }
+
+  .home-hero-image-shell {
+    outline: 0;
+    box-shadow: 0 18px 54px rgba(0, 0, 0, 0.34);
+  }
+
+  .home-hero-image-layer .home-hero-image {
+    filter: none;
+  }
+}
+
+/* Phase 2K public accessibility and interaction polish.
+   This pass improves keyboard flow, skip-link behavior, and mobile lightbox
+   touch affordances without changing final copy, image data, editor behavior,
+   or virtual-gallery mechanics. */
+.skip-to-content {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 500;
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  border: 1px solid var(--line-soft);
+  padding: 0 14px;
+  background: var(--text);
+  color: var(--text-dark);
+  font-family: var(--font-interface);
+  font-size: var(--interface-size-min);
+  font-weight: 700;
+  letter-spacing: var(--interface-track);
+  line-height: 1;
+  text-transform: uppercase;
+  transform: translateY(calc(-100% - 24px));
+  transition: transform 160ms ease;
+}
+
+.skip-to-content:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+  transform: translateY(0);
+}
+
+#main-content:focus {
+  outline: 0;
+}
+
+.image-lightbox {
+  overscroll-behavior: contain;
+}
+
+.image-lightbox-inner {
+  touch-action: pan-y;
+}
+
+.image-lightbox-frame,
+.image-lightbox img {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@media (max-width: 700px) {
+  .image-lightbox-frame {
+    min-height: min(68svh, 620px);
+  }
+
+  .image-lightbox img {
+    max-height: calc(100svh - 156px);
+  }
+}

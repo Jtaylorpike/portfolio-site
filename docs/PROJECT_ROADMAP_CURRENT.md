@@ -70,9 +70,57 @@ The homepage now stops after the hero slideshow. The large below-hero intro/CTA 
 
 ### Phase 2F — Public navigation and global UI polish
 
-Recommended next.
+Status: implemented in the Phase 2F pack.
 
-Review shared header/nav behavior, global button/link consistency, focus states, route-level spacing, footer/contact access if needed, and small UI details that appear across pages. Keep the phase copy-safe and avoid changing final site language unless the user provides the text.
+This pass tightened the shared public header/nav without changing final copy. It added active-route `aria-current` attributes, gave the Gallery overlay trigger clearer button semantics, replaced the dot-like nav indicator with a quiet line treatment, and improved mobile header/nav spacing.
+
+The `Taylor Pike` header/wordmark remains on the normal site typography. The VCR/pixel font remains scoped to minor numeric accents only.
+
+### Phase 2G — Home viewport fit and portfolio header cleanup
+
+Status: implemented in the Phase 2G pack.
+
+This pass kept the current hero-only homepage but removed the unnecessary desktop scroll created by leftover vertical spacing. It also removed the portfolio heading's red accent underline and removed the extra `Open gallery room` button from the portfolio meta strip, leaving global navigation and the homepage hero CTA as the cleaner gallery entry points.
+
+No public website copy, About page copy, editor files, image data, gallery data, or 3D gallery behavior was changed.
+
+### Phase 2H — Public responsive baseline
+
+Status: implemented in the Phase 2H pack.
+
+This pass tightened the current public pages across tablet and phone without changing copy, editor files, image data, gallery room data, curation data, or 3D gallery mechanics. It adjusted shell widths, mobile hero sizing, phone thumbnail scrolling, portfolio rail behavior, contact-link wrapping, lightbox control placement, and touch-device hover behavior.
+
+This is not the future mobile 3D gallery-controls phase. The Minecraft-like touch movement and drag-to-look camera controls remain a later mobile/gallery task.
+
+### Phase 2I — Mobile public refinement
+
+Status: implemented in the Phase 2I pack.
+
+This pass corrected issues found after the first responsive baseline. It reduces the top spacing between mobile nav and page content, removes mobile-only clutter from the homepage hero, hides the mobile homepage virtual-gallery CTA, keeps the hero copy minimal on phones, compacts hero metadata into two columns where screen width allows, removes the mobile visual-index pseudo markers that looked like misplaced periods, reduces scroll-snap friction on mobile rails, and preserves the portfolio category rail horizontal scroll position across category changes.
+
+No final copy, editor files, image data, gallery data, or 3D gallery controls were changed.
+
+### Phase 2J — Mobile hero performance
+
+Status: implemented in the Phase 2J pack.
+
+This pass addressed poor local mobile performance readings on the homepage hero. It added mobile hero image source selection through a `picture` element, marked the first hero image as high-priority/eager, emitted image dimensions when metadata is available, reduced startup hero preloading, preloads the active/adjacent hero neighborhood first, and removes nonessential mobile hero paint work.
+
+If mobile LCP remains poor after this, the next step should be a dedicated mobile/hero-mobile rendition in the image pipeline rather than more CSS-only tuning.
+
+### Phase 2K — Public accessibility and interaction polish
+
+Status: implemented in the Phase 2K pack.
+
+This pass added a keyboard-visible skip link, main-content focus targets, better lightbox focus restoration, a lightbox focus trap, and mobile horizontal swipe support for the portfolio lightbox.
+
+No final copy, About page copy, editor files, image data, gallery room data, curation data, or virtual-gallery mechanics were changed.
+
+### Phase 2L — Entry/About/contact structure polish
+
+Recommended next if public polish continues before the user adds more final portfolio images.
+
+Review the entry route, About/contact route structure, and any cross-page contact affordances. Keep this phase mostly structural. Do not generate final About copy unless the user explicitly asks for it or supplies text to place into the layout.
 
 ## Phase 3 — Portfolio/image curation and metadata
 

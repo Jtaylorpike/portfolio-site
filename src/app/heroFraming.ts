@@ -110,6 +110,22 @@ export function getHeroImageInlineStyle(image: GalleryImage): string {
   ].join('; ');
 }
 
+// Uses the lighter thumb rendition for small mobile hero frames while preserving
+// the display rendition for tablet/desktop. This keeps the phone LCP candidate
+// from loading the full desktop display rendition when the hero is only a few
+// hundred CSS pixels wide.
+export function getHeroMobileSource(image: GalleryImage): string | null {
+  return image.thumbSrc && image.thumbSrc !== image.src ? image.thumbSrc : null;
+}
+
+export function getHeroImageWidth(image: GalleryImage): number | null {
+  return toPositiveNumber(image.imageWidth);
+}
+
+export function getHeroImageHeight(image: GalleryImage): number | null {
+  return toPositiveNumber(image.imageHeight);
+}
+
 // The outer hero shell is fixed so carousel changes never resize the stage.
 export function getHeroShellAspectRatio(_image: GalleryImage): number {
   return HERO_STAGE_ASPECT_RATIO;
@@ -134,7 +150,11 @@ export function applyHeroShellSizingToSlideshow(slideshow: HTMLElement, image: G
 // Updates an existing hero slide layer after a slide change.
 export function applyHeroFramingToLayer(layerElement: HTMLElement, image: GalleryImage): void {
   const frameElement = layerElement.querySelector<HTMLElement>('[data-hero-image-frame]');
+  const mobileSourceElement = layerElement.querySelector<HTMLSourceElement>('[data-hero-mobile-source]');
   const imageElement = layerElement.querySelector<HTMLImageElement>('[data-hero-layer-image]');
+  const mobileSource = getHeroMobileSource(image);
+  const imageWidth = getHeroImageWidth(image);
+  const imageHeight = getHeroImageHeight(image);
 
   layerElement.className = getHeroLayerClassName(image);
   layerElement.dataset.heroFrameStyle = getResolvedHeroFrameStyle(image);
@@ -144,9 +164,29 @@ export function applyHeroFramingToLayer(layerElement: HTMLElement, image: Galler
     frameElement.setAttribute('style', getHeroFrameInlineStyle(image));
   }
 
+  if (mobileSourceElement) {
+    if (mobileSource) {
+      mobileSourceElement.srcset = mobileSource;
+    } else {
+      mobileSourceElement.removeAttribute('srcset');
+    }
+  }
+
   if (imageElement) {
     imageElement.src = image.src;
     imageElement.alt = image.alt;
     imageElement.setAttribute('style', getHeroImageInlineStyle(image));
+
+    if (imageWidth) {
+      imageElement.width = imageWidth;
+    } else {
+      imageElement.removeAttribute('width');
+    }
+
+    if (imageHeight) {
+      imageElement.height = imageHeight;
+    } else {
+      imageElement.removeAttribute('height');
+    }
   }
 }

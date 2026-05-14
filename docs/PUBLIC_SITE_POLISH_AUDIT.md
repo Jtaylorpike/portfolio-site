@@ -176,18 +176,36 @@ The CTA should make clear that the gallery is a navigable room/archive experienc
 
 ### 3. Header/nav refinement
 
-The header is functional and visually close, but should continue to be reviewed for:
+Phase 2F tightened the shared header/nav. The active route indicator should now read as a thin line rather than a dot, and the Gallery control should remain a button because it opens the virtual gallery overlay instead of navigating to a route.
+
+Continue to review:
 
 - brand spacing
-- brand field text
-- active nav indication
 - mobile wrapping
 - sticky behavior
-- whether “Gallery” should be a button, nav item, or more editorial CTA depending on page context
+- whether the brand field text should remain as-is once the user finalizes copy/microcopy
+- whether any additional contact affordance is needed globally later
 
 ### 4. Route-specific metadata later
 
 The current app has a single static `index.html` metadata set. That is acceptable for now, but the SEO phase should consider route-aware titles/descriptions or at least stronger global metadata.
+
+
+
+## Phase 2I implementation note
+
+Phase 2I refined the public mobile baseline after visual review on a phone-width viewport. The pass focused on reducing vertical dead space, removing unnecessary mobile hero clutter, improving visual-index spacing, making hero metadata more compact, and preserving horizontal category-rail position when switching portfolio categories.
+
+Specific mobile direction now recorded:
+
+- the homepage hero should not show the `Enter Virtual Gallery` CTA on mobile
+- the homepage hero statement/body copy should be hidden on mobile so only `Selected Work` and `View Portfolio` remain
+- visual-index active markers should not render as misplaced dots/periods beside neighboring numbers
+- mobile image/thumb/category rails should avoid heavy scroll-snap behavior that makes fast scrolling feel sluggish
+- the portfolio category rail should remember its horizontal position after a category route change
+- mobile page-top spacing should be tighter on home and portfolio, with About reduced more moderately
+
+This is still separate from the future mobile 3D gallery-control phase.
 
 ## Optional creative enhancements
 
@@ -241,3 +259,29 @@ The homepage no longer renders a secondary UI section below the hero slideshow. 
 
 Do not reintroduce both a large below-hero intro block and a three-card archive/status strip at the same time.
 
+## Phase 2G implementation note
+
+Phase 2G tightened the current hero-only homepage so it should no longer create unnecessary desktop scroll on common 1920x1080-style viewports. It also simplified the portfolio/index heading by removing the red accent underline and removing the extra `Open gallery room` button from the meta strip.
+
+The gallery remains reachable from the global navigation and from the homepage hero CTA. No final public copy, About page copy, editor code, image data, gallery data, or 3D gallery behavior was changed.
+
+## Phase 2H implementation note
+
+Phase 2H made a public responsive baseline pass after the homepage moved to the current hero-only state. It adjusted tablet/phone shell widths, mobile hero sizing, small-phone hero thumbnail behavior, horizontal rail touch scrolling, contact-link wrapping, mobile portfolio counter density, and mobile lightbox control placement.
+
+This did not change public copy, About copy, editor files, image data, gallery curation, gallery room data, or virtual-gallery mechanics. It also did not attempt the future mobile 3D gallery control schema; that remains a later mobile/gallery phase.
+
+
+## Phase 2J implementation note
+
+Phase 2J responds to poor local mobile homepage metrics and slower-feeling mobile hero image changes. The current homepage remains hero-only, but the hero now uses the existing thumbnail rendition for small mobile screens through a `picture` source, while tablet/desktop continue to use the display rendition.
+
+The first hero image is marked eager/high-priority, image dimensions are emitted from metadata when available, and runtime preloading now focuses on the active/adjacent hero slides before deferring the rest. Mobile-only guide-line overlays, heavier shadows, and hero image filters were reduced to lower paint cost.
+
+If LCP remains poor after applying this pack, treat that as evidence for adding a dedicated mobile/hero-mobile rendition to the image pipeline rather than continuing to make broad layout changes.
+
+## Phase 2K implementation note
+
+Phase 2K added a narrow public accessibility and interaction polish pass. It introduced a keyboard-visible skip link, main-content focus targets, lightbox focus restoration, lightbox focus trapping, and horizontal touch-swipe navigation in the portfolio lightbox.
+
+This pass did not change final public copy, About page copy, editor behavior, image data, gallery room data, curation data, or virtual-gallery mechanics.

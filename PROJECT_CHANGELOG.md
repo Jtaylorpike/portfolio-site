@@ -1380,3 +1380,95 @@ Removed the remaining homepage UI section below the hero slideshow so the homepa
 - The current rectangular/square gallery remains the default.
 - `l-shaped` and `custom-footprint` are reserved shape labels for future room model work; they do not yet create non-rectangular geometry by themselves.
 
+
+---
+
+## Appended changelog fragments - 20260514-114814
+
+
+## 2026-05-13 — Phase 2F global public UI polish
+
+- Tightened the shared public header and navigation treatment.
+- Added `aria-current="page"` to active Home, Portfolio, and About route links.
+- Added a dedicated class and accessible label to the Gallery overlay trigger in the top navigation.
+- Replaced the prior dot-like nav marker with a thin line treatment.
+- Improved mobile header stacking and nav tap-target consistency.
+- Preserved the normal typography for the `Taylor Pike` wordmark and kept the VCR/pixel font scoped to minor numeric accents.
+- Updated Phase 2 roadmap and audit documentation.
+
+Validation:
+
+- `npm run build` passed.
+
+
+## 2026-05-13 — Phase 2G Home Viewport and Portfolio Header Cleanup
+
+- Removed remaining bottom padding from the current hero-only homepage route.
+- Added desktop viewport-fit overrides so the homepage should not require scrolling on common 1920x1080 desktop screens while it contains only the hero system.
+- Slightly tightened desktop hero stage and thumbnail-strip sizing to keep the hero system inside the available viewport.
+- Removed the portfolio/index `Open gallery room` button from the page meta strip.
+- Removed the portfolio/index red accent underline below the heading.
+- Left the global Gallery navigation button and homepage hero CTA as the primary gallery entry points.
+- Preserved public copy, About copy, editor files, image data, gallery data, and 3D gallery behavior.
+- Ran `npm run build` successfully.
+
+
+## 2026-05-13 — Phase 2H public responsive baseline
+
+- Tightened the shared public header/main shell width on tablet and phone.
+- Improved mobile home hero sizing for the current hero-only homepage.
+- Changed the phone hero thumbnail strip to a horizontal scroller so it does not consume unnecessary vertical space.
+- Added touch-scroll refinements for hero and portfolio horizontal rails.
+- Kept the portfolio meta strip as the three simple counter boxes.
+- Added contact-link wrapping safeguards for narrow screens.
+- Brought mobile lightbox previous/next controls inside the viewport.
+- Reduced hover/lift behavior on coarse pointer devices.
+
+Validation:
+
+- `npm run build` passed.
+
+
+
+## 2026-05-13 — Phase 2I mobile public refinement
+
+### Changed
+
+- Tightened mobile spacing between the shared nav and public page content, especially on home and portfolio.
+- Hid the homepage `Enter Virtual Gallery` CTA on mobile.
+- Hid the homepage hero statement/body copy on mobile so the phone hero keeps only `Selected Work` and `View Portfolio`.
+- Corrected mobile visual-index spacing and removed pseudo markers that could read as misplaced periods beside neighboring numbers.
+- Compacted mobile hero metadata into two columns where screen width allows, with a one-column fallback for very narrow screens.
+- Reduced scroll-snap/transition friction on mobile hero and category rails so horizontal movement feels less sticky.
+- Added session-storage-backed scroll-position memory for the mobile portfolio category rail across category route changes.
+
+### Unchanged
+
+- No final website copy changed.
+- No About page copy changed.
+- No editor files changed.
+- No image data changed.
+- No gallery curation or room data changed.
+- No 3D gallery mechanics or mobile gallery controls changed.
+
+
+
+## 2026-05-14 — Phase 2J mobile hero performance
+
+- Added mobile-specific homepage hero image delivery through a `picture` element using the existing thumb rendition at small viewport widths.
+- Marked the first hero image eager/high-priority and emitted width/height attributes from image metadata when available.
+- Changed runtime hero preloading so startup no longer eagerly queues every hero image immediately; active/adjacent slides are prioritized and the rest are deferred.
+- Reduced mobile hero paint work by disabling nonessential guide overlays, lowering the mobile hero shadow cost, and removing the mobile hero image filter.
+- Preserved homepage layout, public copy, editor files, image data, gallery room data, curation data, and virtual-gallery mechanics.
+
+
+## 2026-05-14 — Phase 2K public accessibility and interaction polish
+
+- Added a keyboard-visible skip link before the shared public header.
+- Added `id="main-content"` and `tabindex="-1"` to public main content regions.
+- Improved portfolio lightbox focus behavior by returning focus to the opener after close.
+- Added a focus trap inside the image lightbox while it is open.
+- Added horizontal swipe support for next/previous image navigation in the lightbox on touch devices.
+- Added CSS support for skip-link behavior, lightbox overscroll containment, and mobile lightbox touch handling.
+- Preserved public copy, editor files, image data, gallery data, and virtual-gallery mechanics.
+

@@ -14,6 +14,7 @@ import {
   getHeroFrameInlineStyle,
   getHeroImageInlineStyle,
   getHeroLayerClassName,
+  getHeroMobileSource,
   isHeroEligibleImage,
   getResolvedHeroFrameStyle
 } from './heroFraming';
@@ -49,8 +50,14 @@ function formatTwoDigitNumber(index: number): string {
   return String(index + 1).padStart(2, '0');
 }
 
-const HERO_INPUT_COOLDOWN_MS = 30;
-const HERO_IMAGE_LOAD_TIMEOUT_MS = 450;
+const HERO_INPUT_COOLDOWN_MS = 20;
+const HERO_IMAGE_LOAD_TIMEOUT_MS = 360;
+const HERO_DEFERRED_PRELOAD_DELAY_MS = 1800;
+const HERO_MOBILE_QUERY = '(max-width: 700px)';
+const PORTFOLIO_CATEGORY_RAIL_SCROLL_KEY = 'taylor-pike-portfolio-category-rail-scroll-left';
+const LIGHTBOX_FOCUSABLE_SELECTOR = 'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+const LIGHTBOX_SWIPE_THRESHOLD_PX = 44;
+const LIGHTBOX_SWIPE_MAX_DURATION_MS = 700;
 
 const heroTransitionStates = new WeakMap<HTMLElement, HeroTransitionState>();
 
@@ -84,24 +91,75 @@ function getResolvedHeroSlides(): ResolvedHeroSlide[] {
 }
 
 const preloadedHeroImageSources = new Set<string>();
+let deferredHeroPreloadTimer: number | null = null;
 
-function preloadHeroSlideImages(slides: ResolvedHeroSlide[]): void {
-  slides.forEach((slide) => {
-    const sources = [slide.image.src, slide.image.thumbSrc].filter((source): source is string => Boolean(source));
+function isSmallHeroViewport(): boolean {
+  return window.matchMedia(HERO_MOBILE_QUERY).matches;
+}
 
-    sources.forEach((source) => {
-      if (preloadedHeroImageSources.has(source)) {
+function getRuntimeHeroImageSource(image: GalleryImage): string {
+  const mobileSource = getHeroMobileSource(image);
+
+  if (isSmallHeroViewport() && mobileSource) {
+    return mobileSource;
+  }
+
+  return image.src;
+}
+
+function preloadHeroImageSource(source: string): void {
+  if (!source || preloadedHeroImageSources.has(source)) {
+    return;
+  }
+
+  preloadedHeroImageSources.add(source);
+
+  const image = new Image();
+  image.decoding = 'async';
+  image.loading = 'eager';
+  image.src = source;
+}
+
+function normalizeHeroSlideIndex(index: number, totalSlides: number): number {
+  return ((index % totalSlides) + totalSlides) % totalSlides;
+}
+
+function preloadHeroSlidesByIndex(slides: ResolvedHeroSlide[], indexes: number[]): void {
+  if (!slides.length) {
+    return;
+  }
+
+  indexes.forEach((index) => {
+    const safeIndex = normalizeHeroSlideIndex(index, slides.length);
+    preloadHeroImageSource(getRuntimeHeroImageSource(slides[safeIndex].image));
+  });
+}
+
+function preloadHeroSlideNeighborhood(slides: ResolvedHeroSlide[], activeIndex: number): void {
+  preloadHeroSlidesByIndex(slides, [activeIndex, activeIndex + 1, activeIndex - 1]);
+}
+
+function scheduleDeferredHeroPreload(slides: ResolvedHeroSlide[], activeIndex: number): void {
+  if (!slides.length || deferredHeroPreloadTimer !== null) {
+    return;
+  }
+
+  deferredHeroPreloadTimer = window.setTimeout(() => {
+    deferredHeroPreloadTimer = null;
+
+    slides.forEach((_slide, index) => {
+      if (Math.abs(index - activeIndex) <= 1) {
         return;
       }
 
-      preloadedHeroImageSources.add(source);
-
-      const image = new Image();
-      image.decoding = 'async';
-      image.loading = 'eager';
-      image.src = source;
+      preloadHeroSlidesByIndex(slides, [index]);
     });
-  });
+  }, HERO_DEFERRED_PRELOAD_DELAY_MS);
+}
+
+function preloadHeroSlideImages(slides: ResolvedHeroSlide[], activeIndex = 0): void {
+  preloadHeroSlideNeighborhood(slides, activeIndex);
+  scheduleDeferredHeroPreload(slides, activeIndex);
 }
 
 // Stores transition timing data for one hero slideshow element.
@@ -167,7 +225,7 @@ function loadHeroImageForSwap(image: GalleryImage, onReady: () => void): number 
 
   imageLoader.decoding = 'async';
   imageLoader.loading = 'eager';
-  imageLoader.src = image.src;
+  imageLoader.src = getRuntimeHeroImageSource(image);
 
   if (imageLoader.complete && imageLoader.naturalWidth > 0) {
     finish();
@@ -326,6 +384,7 @@ function requestHeroSlideByIndex(slideshow: HTMLElement, nextIndex: number): voi
   const nextSlide = slides[safeNextIndex];
 
   slideshow.dataset.heroIndex = String(safeNextIndex);
+  preloadHeroSlideNeighborhood(slides, safeNextIndex);
   swapHeroImage(slideshow, nextSlide);
 }
 
@@ -344,6 +403,62 @@ function requestHeroSlideMove(slideshow: HTMLElement, direction: number): void {
 // Jumps the carousel to a specific slide while preserving the same transition guard.
 function requestHeroSlideJump(slideshow: HTMLElement, nextIndex: number): void {
   requestHeroSlideByIndex(slideshow, nextIndex);
+}
+
+
+function getPortfolioCategoryRail(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('.portfolio-category-sidebar');
+}
+
+function savePortfolioCategoryRailScroll(): void {
+  const categoryRail = getPortfolioCategoryRail();
+
+  if (!categoryRail) {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(PORTFOLIO_CATEGORY_RAIL_SCROLL_KEY, String(categoryRail.scrollLeft));
+  } catch {
+    // Session storage can be unavailable in some privacy modes. The category
+    // rail still works normally; it just cannot restore its horizontal offset.
+  }
+}
+
+function restorePortfolioCategoryRailScroll(): void {
+  const categoryRail = getPortfolioCategoryRail();
+
+  if (!categoryRail) {
+    return;
+  }
+
+  let storedOffset = 0;
+
+  try {
+    storedOffset = Number(window.sessionStorage.getItem(PORTFOLIO_CATEGORY_RAIL_SCROLL_KEY) ?? '0');
+  } catch {
+    storedOffset = 0;
+  }
+
+  if (!Number.isFinite(storedOffset) || storedOffset <= 0) {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    categoryRail.scrollLeft = storedOffset;
+  });
+}
+
+function bindPortfolioCategoryRailScrollMemory(): void {
+  const categoryRail = getPortfolioCategoryRail();
+
+  if (!categoryRail || categoryRail.dataset.scrollMemoryBound === 'true') {
+    return;
+  }
+
+  categoryRail.dataset.scrollMemoryBound = 'true';
+  restorePortfolioCategoryRailScroll();
+  categoryRail.addEventListener('scroll', savePortfolioCategoryRailScroll, { passive: true });
 }
 
 function getPortfolioImagesForCategory(category: string): GalleryImage[] {
@@ -410,10 +525,16 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
     existingLightbox.remove();
   }
 
+  const previouslyFocusedElement = document.activeElement instanceof HTMLElement
+    ? document.activeElement
+    : null;
   const safeImageSet = imageSet.length ? imageSet : [image];
   const resolvedInitialIndex = Math.max(0, safeImageSet.findIndex((item) => item.id === image.id));
   const startIndex = resolvedInitialIndex >= 0 ? resolvedInitialIndex : initialIndex;
   const lightbox = document.createElement('div');
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
 
   lightbox.className = 'image-lightbox';
   lightbox.dataset.lightboxIndex = String(startIndex);
@@ -456,6 +577,10 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
   }
 
   function moveLightbox(direction: number) {
+    if (safeImageSet.length <= 1) {
+      return;
+    }
+
     const currentIndex = Number(lightbox.dataset.lightboxIndex ?? '0');
     showImageAtIndex(currentIndex + direction);
   }
@@ -464,9 +589,46 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
     document.removeEventListener('keydown', handleKeyDown);
     document.body.classList.remove('image-lightbox-is-open');
     lightbox.remove();
+
+    if (previouslyFocusedElement?.isConnected) {
+      previouslyFocusedElement.focus({ preventScroll: true });
+    }
+  }
+
+  function getFocusableLightboxElements(): HTMLElement[] {
+    return Array.from(lightbox.querySelectorAll<HTMLElement>(LIGHTBOX_FOCUSABLE_SELECTOR))
+      .filter((element) => !element.hasAttribute('disabled'));
+  }
+
+  function keepFocusInsideLightbox(event: KeyboardEvent) {
+    const focusableElements = getFocusableLightboxElements();
+
+    if (!focusableElements.length) {
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const activeElement = document.activeElement;
+
+    if (event.shiftKey && activeElement === firstElement) {
+      event.preventDefault();
+      lastElement.focus();
+      return;
+    }
+
+    if (!event.shiftKey && activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
   }
 
   function handleKeyDown(event: KeyboardEvent) {
+    if (event.code === 'Tab') {
+      keepFocusInsideLightbox(event);
+      return;
+    }
+
     if (event.code === 'Escape') {
       event.preventDefault();
       closeLightbox();
@@ -485,6 +647,44 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
     }
   }
 
+  function handleTouchStart(event: TouchEvent) {
+    const target = event.target instanceof Element ? event.target : null;
+
+    if (event.touches.length !== 1 || target?.closest('button')) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchStartTime = window.performance.now();
+  }
+
+  function handleTouchEnd(event: TouchEvent) {
+    if (safeImageSet.length <= 1 || touchStartTime <= 0 || !event.changedTouches.length) {
+      return;
+    }
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    const elapsed = window.performance.now() - touchStartTime;
+    const absoluteX = Math.abs(deltaX);
+    const absoluteY = Math.abs(deltaY);
+
+    touchStartTime = 0;
+
+    if (
+      elapsed > LIGHTBOX_SWIPE_MAX_DURATION_MS ||
+      absoluteX < LIGHTBOX_SWIPE_THRESHOLD_PX ||
+      absoluteX <= absoluteY * 1.35
+    ) {
+      return;
+    }
+
+    moveLightbox(deltaX < 0 ? 1 : -1);
+  }
+
   imageElement?.addEventListener('error', () => {
     if (!imageElement.dataset.fallbackSrc || imageElement.src.endsWith(imageElement.dataset.fallbackSrc)) {
       return;
@@ -499,6 +699,8 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
     }
   });
 
+  lightbox.addEventListener('touchstart', handleTouchStart, { passive: true });
+  lightbox.addEventListener('touchend', handleTouchEnd, { passive: true });
   closeButton?.addEventListener('click', closeLightbox);
   prevButton?.addEventListener('click', () => moveLightbox(-1));
   nextButton?.addEventListener('click', () => moveLightbox(1));
@@ -673,7 +875,8 @@ function setupHeroSlideshows(): void {
     const initialSlide = getCurrentHeroSlide(slideshow);
     const baseLayer = slideshow.querySelector<HTMLElement>('[data-hero-layer]');
 
-    preloadHeroSlideImages(slides);
+    const initialHeroIndex = Number(slideshow.dataset.heroIndex ?? '0');
+    preloadHeroSlideImages(slides, initialHeroIndex);
 
     if (initialSlide && baseLayer) {
       applyHeroShellSizingToSlideshow(slideshow, initialSlide.image);
@@ -700,9 +903,13 @@ function setupHeroSlideshows(): void {
 
 // Connects portfolio category buttons to hash routes.
 function setupPortfolioFilters(): void {
+  bindPortfolioCategoryRailScrollMemory();
+
   document.querySelectorAll<HTMLButtonElement>('[data-carousel-filter]').forEach((button) => {
     button.addEventListener('click', () => {
       const selectedCategory = button.dataset.carouselFilter ?? 'all';
+
+      savePortfolioCategoryRailScroll();
 
       window.location.hash = selectedCategory === 'all'
         ? '#/portfolio'

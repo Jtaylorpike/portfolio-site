@@ -11,8 +11,11 @@ import { getCategoryLabel, portfolioCategories } from '../data/categories';
 import {
   getHeroFitMode,
   getHeroFrameInlineStyle,
+  getHeroImageHeight,
   getHeroImageInlineStyle,
+  getHeroImageWidth,
   getHeroLayerClassName,
+  getHeroMobileSource,
   getHeroShellInlineStyle,
   getResolvedHeroFrameStyle
 } from './heroFraming';
@@ -98,7 +101,13 @@ function getImagesForCategory(category: PortfolioCategoryFilter): GalleryImage[]
 
 // Builds the shared top navigation shown on every traditional website page.
 function renderTopNav(activePage: PageName): string {
+  const homeCurrent = activePage === 'home' ? ' aria-current="page"' : '';
+  const portfolioCurrent = activePage === 'portfolio' ? ' aria-current="page"' : '';
+  const aboutCurrent = activePage === 'about' ? ' aria-current="page"' : '';
+
   return `
+    <a class="skip-to-content" href="#main-content">Skip to content</a>
+
     <header class="modern-header">
       <a class="modern-brand" href="#/home" aria-label="Taylor Pike home">
         <span class="modern-brand-name">Taylor Pike</span>
@@ -106,20 +115,31 @@ function renderTopNav(activePage: PageName): string {
       </a>
 
       <nav class="modern-nav" aria-label="Main navigation">
-        <a class="${activePage === 'home' ? 'is-active' : ''}" href="#/home">Home</a>
-        <a class="${activePage === 'portfolio' ? 'is-active' : ''}" href="#/portfolio">Portfolio</a>
-        <button type="button" data-open-virtual-gallery>Gallery</button>
-        <a class="${activePage === 'about' ? 'is-active' : ''}" href="#/about">About</a>
+        <a class="${activePage === 'home' ? 'is-active' : ''}" href="#/home"${homeCurrent}>Home</a>
+        <a class="${activePage === 'portfolio' ? 'is-active' : ''}" href="#/portfolio"${portfolioCurrent}>Portfolio</a>
+        <button class="modern-nav-gallery-button" type="button" data-open-virtual-gallery aria-label="Open virtual gallery">Gallery</button>
+        <a class="${activePage === 'about' ? 'is-active' : ''}" href="#/about"${aboutCurrent}>About</a>
       </nav>
     </header>
   `;
 }
 
 // Builds one hero slide using the stable layer, frame, and image structure.
-function renderHeroImageLayer(image: GalleryImage, extraClassName = ''): string {
+function renderHeroImageLayer(image: GalleryImage, extraClassName = '', isPriorityImage = false): string {
   // A hero slide is a layer containing a frame containing an image. The layer
   // covers the whole 16:9 hero stage. The frame controls the crop shape in cover
   // mode. The image controls whether it crops or fits entirely.
+  const mobileSource = getHeroMobileSource(image);
+  const mobileSourceMarkup = mobileSource
+    ? `<source data-hero-mobile-source media="(max-width: 700px)" srcset="${escapeHtml(mobileSource)}" />`
+    : '<source data-hero-mobile-source media="(max-width: 700px)" />';
+  const imageWidth = getHeroImageWidth(image);
+  const imageHeight = getHeroImageHeight(image);
+  const widthAttribute = imageWidth ? ` width="${imageWidth}"` : '';
+  const heightAttribute = imageHeight ? ` height="${imageHeight}"` : '';
+  const loadingAttribute = isPriorityImage ? 'eager' : 'lazy';
+  const fetchPriorityAttribute = isPriorityImage ? 'high' : 'auto';
+
   return `
     <div
       class="${getHeroLayerClassName(image, extraClassName)}"
@@ -132,15 +152,20 @@ function renderHeroImageLayer(image: GalleryImage, extraClassName = ''): string 
         data-hero-image-frame
         style="${getHeroFrameInlineStyle(image)}"
       >
-        <img
-          class="home-hero-image"
-          data-hero-image
-          data-hero-layer-image
-          src="${escapeHtml(image.src)}"
-          alt="${escapeHtml(image.alt)}"
-          decoding="async"
-          style="${getHeroImageInlineStyle(image)}"
-        />
+        <picture class="home-hero-picture" data-hero-picture>
+          ${mobileSourceMarkup}
+          <img
+            class="home-hero-image"
+            data-hero-image
+            data-hero-layer-image
+            src="${escapeHtml(image.src)}"
+            alt="${escapeHtml(image.alt)}"
+            loading="${loadingAttribute}"
+            fetchpriority="${fetchPriorityAttribute}"
+            decoding="async"${widthAttribute}${heightAttribute}
+            style="${getHeroImageInlineStyle(image)}"
+          />
+        </picture>
       </div>
     </div>
   `;
@@ -249,7 +274,7 @@ function renderHomeHeroSlideshow(): string {
 
       <div class="home-hero-stage">
         <div class="home-hero-image-shell" data-hero-image-shell data-hero-wheel-zone style="${getHeroShellInlineStyle(firstSlide.image)}">
-          ${renderHeroImageLayer(firstSlide.image)}
+          ${renderHeroImageLayer(firstSlide.image, '', true)}
 
           <button
             class="home-hero-click-zone home-hero-click-zone-left"
@@ -390,7 +415,7 @@ function renderCategoryButtons(initialCategory: PortfolioCategoryFilter): string
 // Builds the first landing screen that lets visitors choose website or virtual gallery.
 export function renderEntryPage(): string {
   return `
-    <main class="entry-page modern-entry-page" data-page="entry">
+    <main id="main-content" class="entry-page modern-entry-page" data-page="entry" tabindex="-1">
       <div class="modern-entry-card">
         <a class="modern-entry-brand" href="#/home" aria-label="Taylor Pike home">
           <span>Taylor Pike</span>
@@ -420,7 +445,7 @@ export function renderHomePage(): string {
     <div class="modern-site" data-page="home">
       ${renderTopNav('home')}
 
-      <main class="modern-main modern-home-page">
+      <main id="main-content" class="modern-main modern-home-page" tabindex="-1">
         <section class="modern-home-hero">
           ${renderHomeHeroSlideshow()}
         </section>
@@ -440,7 +465,7 @@ export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = '
     <div class="modern-site" data-page="portfolio">
       ${renderTopNav('portfolio')}
 
-      <main class="modern-main modern-portfolio-page">
+      <main id="main-content" class="modern-main modern-portfolio-page" tabindex="-1">
         <aside class="portfolio-category-sidebar" aria-label="Portfolio categories">
           <p class="eyebrow">Portfolio</p>
           ${renderCategoryButtons(initialCategory)}
@@ -454,10 +479,6 @@ export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = '
               <span>${String(visibleImageCount).padStart(2, '0')} shown</span>
               <span>${String(totalImageCount).padStart(2, '0')} total</span>
               <span>${String(portfolioCategories.length).padStart(2, '0')} categories</span>
-              <button class="portfolio-gallery-room-button" type="button" data-open-virtual-gallery>
-                <span>Open gallery room</span>
-                <span aria-hidden="true">↗</span>
-              </button>
             </div>
           </header>
 
@@ -474,7 +495,7 @@ export function renderAboutPage(): string {
     <div class="modern-site" data-page="about">
       ${renderTopNav('about')}
 
-      <main class="modern-main modern-about-page">
+      <main id="main-content" class="modern-main modern-about-page" tabindex="-1">
         <section class="modern-about-content">
           <p class="eyebrow">About</p>
           <h1>Photography started for me as a way to pay attention to the places I was already drawn to.</h1>
