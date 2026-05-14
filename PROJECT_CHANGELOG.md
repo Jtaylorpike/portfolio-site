@@ -1472,3 +1472,35 @@ Validation:
 - Added CSS support for skip-link behavior, lightbox overscroll containment, and mobile lightbox touch handling.
 - Preserved public copy, editor files, image data, gallery data, and virtual-gallery mechanics.
 
+
+---
+
+## Appended changelog fragments - 20260514-122721
+
+
+# Project Changelog Append — 2026-05-14 — Phase 2 Public Polish Closeout
+
+## Summary
+
+Closed Phase 2 public polish after confirming the public-polish commit was pushed to both `dev` and `main`.
+
+## Documentation added
+
+- Added `docs/PHASE2_PUBLIC_POLISH_CLOSEOUT.md`.
+- Added `docs/CURRENT_PROJECT_HANDOFF_PHASE2_CLOSEOUT.md`.
+- Updated `docs/PROJECT_ROADMAP_CURRENT.md` to mark Phase 2 complete and Phase 3 as next.
+- Updated `docs/PUBLIC_SITE_POLISH_AUDIT.md` with the Phase 2 closeout note.
+
+## Current checkpoint
+
+The user confirmed both remote branches show the same top commit:
+
+```text
+origin/dev  -> cf7886c Polish public portfolio experience
+origin/main -> cf7886c Polish public portfolio experience
+```
+
+## Notes
+
+This is a documentation-only closeout pack. It does not change runtime code, editor code, image data, gallery room data, curation data, or public copy.
+

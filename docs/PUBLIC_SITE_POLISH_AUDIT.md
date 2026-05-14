@@ -285,3 +285,27 @@ If LCP remains poor after applying this pack, treat that as evidence for adding 
 Phase 2K added a narrow public accessibility and interaction polish pass. It introduced a keyboard-visible skip link, main-content focus targets, lightbox focus restoration, lightbox focus trapping, and horizontal touch-swipe navigation in the portfolio lightbox.
 
 This pass did not change final public copy, About page copy, editor behavior, image data, gallery room data, curation data, or virtual-gallery mechanics.
+
+## Phase 2 closeout note
+
+Phase 2 public polish is closed for the current scope as of 2026-05-14. The user confirmed that `origin/dev` and `origin/main` both point to the Phase 2 public-polish commit:
+
+```text
+cf7886c Polish public portfolio experience
+```
+
+The public site should now be treated as stable enough to move into Phase 3 content and metadata curation.
+
+Current baseline:
+
+- homepage is hero-only for now
+- no unnecessary desktop scroll on a normal 1920x1080 homepage viewport
+- mobile homepage hero is simplified for space and performance
+- VCR/pixel typography remains scoped to minor numeric accents
+- portfolio/index has a refined archive browsing baseline
+- extra gallery CTA in the portfolio meta strip remains removed
+- top-nav Gallery does not use a red dot
+- lightbox supports keyboard focus management and mobile swipe navigation
+
+Do not keep adding Phase 2 polish packs unless the user identifies a specific issue. The next meaningful work is Phase 3 image/content curation, followed later by About/contact redesign, mobile 3D gallery controls, and SEO.
+
