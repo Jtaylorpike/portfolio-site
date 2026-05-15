@@ -1,0 +1,522 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-15",
+  "source": "Reviewed thumbnail images from TaylorPikePortfolio-ChatUpload-20260515-143125.zip, runtime image mode thumb.",
+  "targetFile": "src/data/galleryImages.json",
+  "updatePolicy": "Use the companion script to update only the alt string for matching image IDs. Review/edit wording before applying if desired.",
+  "items": [
+    {
+      "id": "raining-choss",
+      "title": "Raining Choss",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/raining-choss.webp",
+      "alt": "Black-and-white photo of a climber reaching across a steep overhanging rock face."
+    },
+    {
+      "id": "classic-arete",
+      "title": "Classic Arete",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/classic-arete.webp",
+      "alt": "Two climbers at a large forest boulder, with one spotting as the other moves across the rock."
+    },
+    {
+      "id": "left-into-center-45",
+      "title": "Left Into Center 45",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/left-into-center-45.webp",
+      "alt": "A climber moves across a steep boulder above crash pads under a rock overhang."
+    },
+    {
+      "id": "doomed-to-obscurity",
+      "title": "Doomed to Obscurity",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/doomed-to-obscurity.webp",
+      "alt": "A climber in a yellow sweatshirt reaches on a low boulder in the forest."
+    },
+    {
+      "id": "conditions",
+      "title": "Conditions",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/conditions.webp",
+      "alt": "A spotter in a yellow jacket watches a climber between large boulders."
+    },
+    {
+      "id": "rush-hour",
+      "title": "Rush Hour",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/rush-hour.webp",
+      "alt": "A climber in a red shirt moves around a mossy boulder partly hidden by wildflowers."
+    },
+    {
+      "id": "rush-hour-2",
+      "title": "Rush Hour",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/rush-hour-2.webp",
+      "alt": "A climber in a red shirt leans across a sloping boulder in the woods."
+    },
+    {
+      "id": "beacon-heights-slab",
+      "title": "Beacon Heights Slab",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/beacon-heights-slab.webp",
+      "alt": "A climber ascends a tall slab boulder surrounded by pine trees."
+    },
+    {
+      "id": "haptos",
+      "title": "Haptos",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/haptos.webp",
+      "alt": "A climber works up an angular boulder with crash pads below."
+    },
+    {
+      "id": "cobra-strike",
+      "title": "Cobra Strike",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/cobra-strike.webp",
+      "alt": "A climber presses into a rounded vertical boulder in a wooded area."
+    },
+    {
+      "id": "splitter-crack",
+      "title": "Splitter Crack",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/splitter-crack.webp",
+      "alt": "Black-and-white close-up of a narrow crack running through a rock surface."
+    },
+    {
+      "id": "nitrous-oxide",
+      "title": "Nitrous Oxide",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/nitrous-oxide.webp",
+      "alt": "A climber sits low beneath a sunlit boulder in dark forest shade."
+    },
+    {
+      "id": "little-details",
+      "title": "Little Details",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/little-details.webp",
+      "alt": "Close-up of a hand gripping a small hold beneath dark rock."
+    },
+    {
+      "id": "little-details-2",
+      "title": "Little Details",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/little-details-2.webp",
+      "alt": "Close-up of a hand touching textured rock in soft forest light."
+    },
+    {
+      "id": "cloak-and-dagger-low",
+      "title": "Cloak and Dagger Low",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/cloak-and-dagger-low.webp",
+      "alt": "A climber moves on a low roofed boulder seen through blurred foreground leaves."
+    },
+    {
+      "id": "a-moment-of-contemplation",
+      "title": "A Moment of Contemplation",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/a-moment-of-contemplation.webp",
+      "alt": "A climber sits quietly below a large boulder in a green forest."
+    },
+    {
+      "id": "outlaw",
+      "title": "Outlaw",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/outlaw.webp",
+      "alt": "A climber in a red shirt reaches across a gray vertical boulder."
+    },
+    {
+      "id": "outlaw-2",
+      "title": "Outlaw",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/outlaw-2.webp",
+      "alt": "A distant climber reaches across a broad overhanging gray rock face."
+    },
+    {
+      "id": "love-rocket",
+      "title": "Love Rocket",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/love-rocket.webp",
+      "alt": "A climber reaches out from beneath a sandstone boulder roof."
+    },
+    {
+      "id": "love-rocket-2",
+      "title": "Love Rocket",
+      "category": "climbing",
+      "thumbSrc": "/images/portfolio/thumb/love-rocket-2.webp",
+      "alt": "Overhead view of a climber compressed beneath a sandstone boulder."
+    },
+    {
+      "id": "grayson-highlands",
+      "title": "Grayson Highlands",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/grayson-highlands.webp",
+      "alt": "Open grassy highlands and a rocky hill beneath a blue sky."
+    },
+    {
+      "id": "grandmother-lake",
+      "title": "Grandmother Lake",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/grandmother-lake.webp",
+      "alt": "A mountain lake and layered ridges seen from a rocky overlook with a fir tree."
+    },
+    {
+      "id": "landscape-201019-jtp6059",
+      "title": "201019 JTP6059",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/landscape-201019-jtp6059.webp",
+      "alt": "The Blue Ridge Parkway viaduct curves through autumn mountains."
+    },
+    {
+      "id": "summer-in-linville",
+      "title": "Summer in Linville",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/summer-in-linville.webp",
+      "alt": "A rocky river gorge with boulders, moving water, and dense green forest."
+    },
+    {
+      "id": "grandma-at-sunset",
+      "title": "Grandma at Sunset",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/grandma-at-sunset.webp",
+      "alt": "A mountain ridge at dusk with dark trees in the foreground."
+    },
+    {
+      "id": "open-pastures",
+      "title": "Open Pastures",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/open-pastures.webp",
+      "alt": "A cow grazes in open grassy highlands beneath a cloudy sky."
+    },
+    {
+      "id": "blue-ridge-sunset",
+      "title": "Blue Ridge Sunset",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/blue-ridge-sunset.webp",
+      "alt": "A person sits on a rocky overlook above layered blue ridges at sunset."
+    },
+    {
+      "id": "leaving-the-highlands",
+      "title": "Leaving the Highlands",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/leaving-the-highlands.webp",
+      "alt": "A mountain road and overlook sit beneath dramatic storm clouds."
+    },
+    {
+      "id": "an-emerald-pool",
+      "title": "An Emerald Pool",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/an-emerald-pool.webp",
+      "alt": "A deep green pool rests below a rocky gorge and surrounding forest."
+    },
+    {
+      "id": "warm-winter-light",
+      "title": "Warm Winter Light",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/warm-winter-light.webp",
+      "alt": "A sunlit rural hillside with a small white shed and patches of winter ground."
+    },
+    {
+      "id": "winding-roads",
+      "title": "Winding Roads",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/winding-roads.webp",
+      "alt": "A road curves between desert canyon walls under a clear sky."
+    },
+    {
+      "id": "sunset-at-joe-s",
+      "title": "Sunset at Joe's",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/sunset-at-joe-s.webp",
+      "alt": "A Utah canyon landscape with cliffs lit by late afternoon sun."
+    },
+    {
+      "id": "pacific-coast-love",
+      "title": "Pacific Coast Love",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/pacific-coast-love.webp",
+      "alt": "A rocky Pacific shoreline with sea stacks and ocean surf."
+    },
+    {
+      "id": "rocky-coasts",
+      "title": "Rocky Coasts",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/rocky-coasts.webp",
+      "alt": "A pale rocky beach and ocean surf below forested coastal cliffs."
+    },
+    {
+      "id": "curves-of-the-parkway",
+      "title": "Curves of the Parkway",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/curves-of-the-parkway.webp",
+      "alt": "The underside of a curved parkway bridge surrounded by autumn foliage."
+    },
+    {
+      "id": "the-best-stretch",
+      "title": "The Best Stretch",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/the-best-stretch.webp",
+      "alt": "A winding two-lane road passes through colorful autumn forest."
+    },
+    {
+      "id": "linville-cove-sunrise",
+      "title": "Linville Cove Sunrise",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/linville-cove-sunrise.webp",
+      "alt": "Orange sunrise light spreads over layered mountain ridges."
+    },
+    {
+      "id": "linville-cove-viaduct",
+      "title": "Linville Cove Viaduct",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/linville-cove-viaduct.webp",
+      "alt": "The Blue Ridge Parkway viaduct runs through autumn foliage and mountain views."
+    },
+    {
+      "id": "grandfather-mountain",
+      "title": "Grandfather Mountain",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/grandfather-mountain.webp",
+      "alt": "Black-and-white panoramic view of the Grandfather Mountain ridgeline."
+    },
+    {
+      "id": "a-glimpse-of-gondor",
+      "title": "A Glimpse of Gondor",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/a-glimpse-of-gondor.webp",
+      "alt": "A sunlit valley and distant mountains are framed by trees."
+    },
+    {
+      "id": "colchuck-lake",
+      "title": "Colchuck Lake",
+      "category": "landscape",
+      "thumbSrc": "/images/portfolio/thumb/colchuck-lake.webp",
+      "alt": "Black-and-white alpine lake scene below jagged snow-streaked peaks."
+    },
+    {
+      "id": "portrait-of-devon",
+      "title": "Portrait of Devon",
+      "category": "portraits",
+      "thumbSrc": "/images/portfolio/thumb/portrait-of-devon.webp",
+      "alt": "Close portrait of a person in a yellow beanie against a softly blurred forest background."
+    },
+    {
+      "id": "portrait-of-tori-3",
+      "title": "Portrait of Tori",
+      "category": "portraits",
+      "thumbSrc": "/images/portfolio/thumb/portrait-of-tori-3.webp",
+      "alt": "Full-length portrait of a person in a black hat holding flowers on a hillside."
+    },
+    {
+      "id": "portrait-of-tori-2",
+      "title": "Portrait of Tori",
+      "category": "portraits",
+      "thumbSrc": "/images/portfolio/thumb/portrait-of-tori-2.webp",
+      "alt": "Portrait of a person in a black hat with soft foreground blur and mountains behind."
+    },
+    {
+      "id": "portrait-of-tori",
+      "title": "Portrait of Tori",
+      "category": "portraits",
+      "thumbSrc": "/images/portfolio/thumb/portrait-of-tori.webp",
+      "alt": "A person in a black hat holds a bouquet on a rocky overlook at dusk."
+    },
+    {
+      "id": "portrait-of-a-dog",
+      "title": "Portrait of a Dog",
+      "category": "portraits",
+      "thumbSrc": "/images/portfolio/thumb/portrait-of-a-dog.webp",
+      "alt": "Black-and-white portrait of a long-haired dog looking toward the camera."
+    },
+    {
+      "id": "portrait-of-carter",
+      "title": "Portrait of Carter",
+      "category": "portraits",
+      "thumbSrc": "/images/portfolio/thumb/portrait-of-carter.webp",
+      "alt": "Black-and-white portrait of a person wearing a knit hat."
+    },
+    {
+      "id": "kyle-in-the-forest",
+      "title": "Kyle in the Forest",
+      "category": "portraits",
+      "thumbSrc": "/images/portfolio/thumb/kyle-in-the-forest.webp",
+      "alt": "A person stands in a dark forest clearing among tall trees."
+    },
+    {
+      "id": "portrait-of-fritz-2",
+      "title": "Portrait of Fritz",
+      "category": "portraits",
+      "thumbSrc": "/images/portfolio/thumb/portrait-of-fritz-2.webp",
+      "alt": "A person in a yellow sweatshirt reclines beneath a low boulder."
+    },
+    {
+      "id": "portrait-of-fritz",
+      "title": "Portrait of Fritz",
+      "category": "portraits",
+      "thumbSrc": "/images/portfolio/thumb/portrait-of-fritz.webp",
+      "alt": "A person in a yellow sweatshirt stands beside a dark boulder."
+    },
+    {
+      "id": "a-soft-landing",
+      "title": "A Soft Landing",
+      "category": "personal",
+      "thumbSrc": "/images/portfolio/thumb/a-soft-landing.webp",
+      "alt": "Close-up of a dandelion seed head with an insect perched on it."
+    },
+    {
+      "id": "shades-of-light",
+      "title": "Shades of Light",
+      "category": "personal",
+      "thumbSrc": "/images/portfolio/thumb/shades-of-light.webp",
+      "alt": "Sunbeams filter through forest trees and ferns."
+    },
+    {
+      "id": "light-on-the-leaves",
+      "title": "Light on the Leaves",
+      "category": "personal",
+      "thumbSrc": "/images/portfolio/thumb/light-on-the-leaves.webp",
+      "alt": "Pink flowers and green leaves catch dappled light."
+    },
+    {
+      "id": "soft-light-on-moss",
+      "title": "Soft Light on Moss",
+      "category": "personal",
+      "thumbSrc": "/images/portfolio/thumb/soft-light-on-moss.webp",
+      "alt": "Close-up of moss catching sunlight on rough rock."
+    },
+    {
+      "id": "baby-oak",
+      "title": "Baby Oak",
+      "category": "personal",
+      "thumbSrc": "/images/portfolio/thumb/baby-oak.webp",
+      "alt": "An acorn rests on bright green moss."
+    },
+    {
+      "id": "neighborhood-walks",
+      "title": "Neighborhood Walks",
+      "category": "personal",
+      "thumbSrc": "/images/portfolio/thumb/neighborhood-walks.webp",
+      "alt": "A vintage truck is parked along a street beneath a large evergreen tree."
+    },
+    {
+      "id": "organic-climbing",
+      "title": "Organic Climbing:",
+      "category": "brand-work",
+      "thumbSrc": "/images/portfolio/thumb/organic-climbing.webp",
+      "alt": "A person laughs while sitting on a crash pad below a boulder."
+    },
+    {
+      "id": "black-diamond",
+      "title": "Black Diamond",
+      "category": "brand-work",
+      "thumbSrc": "/images/portfolio/thumb/black-diamond.webp",
+      "alt": "A climbing brush lies on dirt and leaves."
+    },
+    {
+      "id": "gramicci-2",
+      "title": "Gramicci",
+      "category": "brand-work",
+      "thumbSrc": "/images/portfolio/thumb/gramicci-2.webp",
+      "alt": "Close-up of rain-speckled pants with a hand resting at the side."
+    },
+    {
+      "id": "gramicci",
+      "title": "Gramicci",
+      "category": "brand-work",
+      "thumbSrc": "/images/portfolio/thumb/gramicci.webp",
+      "alt": "Close-up of a Gramicci pants pocket and waistband."
+    },
+    {
+      "id": "scarpa-climbing",
+      "title": "Scarpa Climbing",
+      "category": "brand-work",
+      "thumbSrc": "/images/portfolio/thumb/scarpa-climbing.webp",
+      "alt": "A pair of climbing shoes rests on sunlit rock."
+    },
+    {
+      "id": "fashion-editorial-6",
+      "title": "Fashion Editorial 6",
+      "category": "editorial",
+      "thumbSrc": "/images/portfolio/thumb/fashion-editorial-6.webp",
+      "alt": "A person in a light outfit walks through autumn woods."
+    },
+    {
+      "id": "fashion-editorial-5",
+      "title": "Fashion Editorial 5",
+      "category": "editorial",
+      "thumbSrc": "/images/portfolio/thumb/fashion-editorial-5.webp",
+      "alt": "A person in a coat stands among large rocks in cool blue light."
+    },
+    {
+      "id": "fashion-editorial-4",
+      "title": "Fashion Editorial 4",
+      "category": "editorial",
+      "thumbSrc": "/images/portfolio/thumb/fashion-editorial-4.webp",
+      "alt": "A person sits in a shadowed rock alcove."
+    },
+    {
+      "id": "fashion-editorial-3",
+      "title": "Fashion Editorial 3",
+      "category": "editorial",
+      "thumbSrc": "/images/portfolio/thumb/fashion-editorial-3.webp",
+      "alt": "Close portrait of a person holding a dried plant in front of their face."
+    },
+    {
+      "id": "fashion-editorial-2",
+      "title": "Fashion Editorial 2",
+      "category": "editorial",
+      "thumbSrc": "/images/portfolio/thumb/fashion-editorial-2.webp",
+      "alt": "A person sits beneath a twisting tree on a rocky overlook."
+    },
+    {
+      "id": "fashion-editorial-1",
+      "title": "Fashion Editorial 1",
+      "category": "editorial",
+      "thumbSrc": "/images/portfolio/thumb/fashion-editorial-1.webp",
+      "alt": "A person sits low beneath twisting tree branches in bright backlight."
+    }
+  ],
+  "unreferencedThumbnailItems": [
+    {
+      "id": "climbing-01",
+      "fileName": "climbing-01.webp",
+      "status": "thumbnail file present but not referenced by src/data/galleryImages.json in the reviewed upload",
+      "alt": "A climber moves under a steep forest boulder above crash pads."
+    },
+    {
+      "id": "climbing-02",
+      "fileName": "climbing-02.webp",
+      "status": "thumbnail file present but not referenced by src/data/galleryImages.json in the reviewed upload",
+      "alt": "A climber reaches between large rocks in a narrow boulder passage."
+    },
+    {
+      "id": "climbing-03",
+      "fileName": "climbing-03.webp",
+      "status": "thumbnail file present but not referenced by src/data/galleryImages.json in the reviewed upload",
+      "alt": "A climber in a red shirt reaches across a gray boulder near water."
+    },
+    {
+      "id": "climbing-climbing-workbook-03",
+      "fileName": "climbing-climbing-workbook-03.webp",
+      "status": "thumbnail file present but not referenced by src/data/galleryImages.json in the reviewed upload",
+      "alt": "A climber sits below a large boulder in a green forest."
+    },
+    {
+      "id": "landscape-01",
+      "fileName": "landscape-01.webp",
+      "status": "thumbnail file present but not referenced by src/data/galleryImages.json in the reviewed upload",
+      "alt": "A tall pine tree stands beside a large boulder in the forest."
+    },
+    {
+      "id": "landscape-03",
+      "fileName": "landscape-03.webp",
+      "status": "thumbnail file present but not referenced by src/data/galleryImages.json in the reviewed upload",
+      "alt": "A cow grazes in open grassy highlands beneath a cloudy sky."
+    },
+    {
+      "id": "landscape-landscape-workbook-03",
+      "fileName": "landscape-landscape-workbook-03.webp",
+      "status": "thumbnail file present but not referenced by src/data/galleryImages.json in the reviewed upload",
+      "alt": "A sunlit rural hillside with a small white shed and patches of winter ground."
+    }
+  ]
+}

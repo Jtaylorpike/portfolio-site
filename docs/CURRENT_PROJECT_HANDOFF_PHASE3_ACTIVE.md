@@ -4,67 +4,54 @@ Updated: 2026-05-15
 
 ## Current status
 
-The Taylor Pike portfolio site is in a stable public-design state after Phase 2. The project has moved from public polish into Phase 3: content, photo selection, metadata, and curation.
+The portfolio project is currently in **Phase 3: content, photo, and metadata curation**.
 
-Phase 0 is closed. The editor gallery map whitespace issue was fixed and confirmed by the user.
+The user confirmed they are happy with how the portfolio is looking. The current design baseline should be treated as stable.
 
-Phase 2 is closed. The public site polish work was pushed to both `dev` and `main`, and the user confirmed both remote branches showed the same top commit at that time.
+Do not begin broad redesign work unless the user identifies a specific issue. The next useful work is practical curation, metadata, alt text review, and eventual launch preparation.
 
-Phase 3 is active. The next real work is importing, selecting, organizing, hiding/removing weak images, assigning metadata, selecting hero slides, and deciding what belongs in the 3D gallery.
+## Completed phase summary
 
-## Current data shape from latest reviewed upload
+### Phase 0 — Editor map whitespace closure
 
-Latest reviewed upload: `TaylorPikePortfolio-ChatUpload-20260515-141337.zip`
+Complete. The gallery editor map whitespace issue was fixed and confirmed by the user.
 
-Observed data summary:
+### Phase 1 — Public-site audit
 
-```text
-Gallery images: 67
-Categories: 6
-Hero slides: 6
-Gallery wall slots: 17
-```
+Complete. The audit established that the public design direction was working and needed refinement rather than redesign.
 
-Current category set:
+### Phase 2 — Public polish
 
-```text
-climbing
-landscape
-portraits
-personal
-brand-work
-editorial
-```
+Complete. Major public-shell polish was completed and pushed to both `dev` and `main` at the confirmed checkpoint.
 
-A separate `thumb.zip` was uploaded with all 67 referenced thumbnails present. It also contained a small set of extra legacy/unreferenced thumbnail files, which can be cleaned later during an asset cleanup pass.
+Key Phase 2 outcomes:
 
-## Active architecture
+- Homepage simplified to hero-only.
+- Desktop homepage no longer needs unnecessary scroll in the current hero-only state.
+- Pixel/VCR font restored only as a narrow numeric/accent style.
+- Header/wordmark kept off the pixel font.
+- Portfolio/index header red underline removed.
+- Portfolio meta strip simplified to counters only.
+- Extra gallery button removed from portfolio meta strip.
+- Gallery remains reachable from nav and homepage hero CTA.
+- Mobile homepage spacing tightened.
+- Mobile virtual gallery button removed.
+- Mobile hero body copy removed.
+- Visual Index spacing corrected.
+- Mobile metadata made more compact.
+- Portfolio category rail scroll position preserved.
+- Mobile hero performance improved.
+- Lightbox received accessibility/focus and mobile swipe polish.
 
-The project remains:
+### Phase 3 — Content and metadata curation
 
-```text
-Vite + TypeScript
-vanilla modules
-Three.js gallery
-Flask local editor under local-editor/
-active data under src/data/
-```
+Active. This phase depends heavily on the user selecting the actual image set and metadata.
 
-Active editable data lives in:
+## Current data and image notes
 
-```text
-src/data/galleryImages.json
-src/data/categories.json
-src/data/heroSlides.json
-src/data/galleryCuration.json
-src/data/galleryRoom.json
-```
+The latest reviewed package showed the project had moved beyond the original small sample set. It contained a larger active gallery image set and active thumbnail coverage.
 
-Stale deployed data under `public/data/` should not be restored as active data.
-
-## Active public image structure
-
-The active image structure is rendition-based:
+The active runtime image structure is:
 
 ```text
 public/images/portfolio/display/
@@ -74,123 +61,78 @@ public/images/portfolio/full/
 public/images/ui/cards/
 ```
 
-There is currently no active `public/images/logo/` folder. Do not reference, stage, or require that folder unless logo assets are intentionally restored later.
+There is no active `public/images/logo/` folder.
 
-## Recently completed public-site baseline
+If public images are not pushing to GitHub, the likely issue is staging/commit flow, not `.gitignore`. Stage public runtime assets explicitly when needed:
 
-Completed public polish included:
-
-```text
-Homepage hero-only simplification
-Removal of unnecessary homepage below-hero UI
-Desktop no-scroll homepage behavior for normal 1920x1080 screens
-Portfolio header cleanup
-Removal of red portfolio header line
-Removal of awkward portfolio Open Gallery button
-Mobile homepage layout cleanup
-Mobile hero performance improvement
-Mobile metadata compaction
-Portfolio category rail scroll-position preservation
-Lightbox accessibility and mobile swipe behavior
-Pixel/VCR font scoped only as a secondary numeric accent
+```powershell
+git add -A public/images/portfolio
+git add -A public/images/ui
+git add -A public/fonts
+git add -A src/data
+git add index.html
 ```
 
-The pixel/VCR font should remain a secondary or tertiary accent only, especially for minor interface details such as hero slide numbering. It should not replace primary typography, and the `Taylor Pike` header/wordmark should not use it.
+## Copy policy
 
-## Copy authorship policy
+The user wants to write the actual final website copy. Do not replace or generate final public prose, especially About page copy, unless asked.
 
-The user wants to write the final website copy. Do not generate or replace final public-facing copy unless explicitly asked.
+Existing About text should be treated as placeholder unless the user confirms they wrote or approved it.
 
-This matters especially for the About page. Current About copy should be treated as placeholder or user-provided only if the user confirms it. Future work may structure the page, placeholders, or fields, but final prose should come from the user.
+## Subcategory decision
 
-## Phase 3 direction
-
-Phase 3 is content and metadata curation.
-
-Recommended workflow:
+Subcategories are not being added now. If future organization needs grow, use a restrained model:
 
 ```text
-1. Import the real image set.
-2. Remove or hide test/weak images.
-3. Assign each image to a primary category.
-4. Add basic metadata: title, year, location, category.
-5. Select final or likely hero candidates.
-6. Choose a smaller subset for the 3D gallery.
-7. Validate image data and build.
-8. Commit stable batches on dev.
+Category = public navigation
+Series/collection = optional curated body of work
+Tags = optional internal/search/SEO layer
 ```
 
-The portfolio does not need subcategories yet. If organization becomes difficult later, add an optional `series` or `collection` field rather than a deep nested category tree.
+Do not add nested category UI unless the user requests it later.
 
-Current recommended total portfolio size:
+## Portfolio size target
+
+Working guidance:
 
 ```text
-Minimum viable portfolio: 18–24 photos
-Strong complete portfolio: 30–45 photos
-Probably too much for launch: 60+ photos
+Minimum viable portfolio: 18–24 images
+Strong complete portfolio: 30–45 images
+Likely too much for launch: 60+ images unless tightly curated
+Homepage hero slides: 5–8 images
+3D gallery room: 12–18 images
 ```
 
-A good launch target is roughly:
+The site should feel curated, not exhaustive.
 
-```text
-5–8 homepage hero slides
-30–40 portfolio index images
-12–18 3D gallery room images
+## Next practical user workflow
+
+From repo root:
+
+```powershell
+cd C:\Users\jtayl\portfolio-site
+git checkout dev
+.\scripts\Run-LocalEditor.ps1
 ```
 
-## Future editor backlog
+Then focus on:
 
-Do not treat these as Phase 3 blockers unless the user asks to pause curation and improve tooling.
+1. importing final/near-final images;
+2. hiding/removing weak images;
+3. assigning categories;
+4. adding title/year/location/basic metadata;
+5. choosing hero candidates;
+6. choosing 3D gallery images;
+7. validating and committing stable batches.
 
-Requested future editor/import improvements:
+## Validation commands
 
-```text
-Add remove button to each import review card.
-Rename final import action to something like “Import X photo(s)”.
-Add import progress bar.
-Add log/status text showing which photo is being imported.
-Add estimated progress/time for larger imports if feasible.
-Consider creating a new category directly from the category dropdown.
+Use as appropriate:
+
+```powershell
+npm run build
+.\scripts\Validate-PortfolioImageData.ps1
+.\scripts\Validate-PortfolioDevBranch.ps1
 ```
 
-Requested future curation controls:
-
-```text
-Add hide/show from public website without deleting data or rendition files.
-Add bulk select image cards.
-Add bulk hide/show.
-Add bulk category changes.
-Add bulk hero-candidate selection.
-Possibly add bulk gallery eligibility, but not bulk physical gallery placement.
-Fix rename ID + rendition workflow bug where the file ID updates but title and suggested title/ID revert to the original values.
-```
-
-Hiding should be reversible and data-preserving. Removing/deleting should remain separate and destructive.
-
-## Future phases
-
-After Phase 3 curation, likely next phases are:
-
-```text
-Alt text generation after image set is near-final.
-Focused SEO/discoverability pass.
-About/contact structural redesign using user-authored copy.
-Mobile 3D gallery controls with touch movement and drag-to-look camera.
-Later 3D gallery room expansion, larger room presets, non-square/private archive room concepts.
-```
-
-## Upload script status
-
-The old chat upload script was stale and did not package the active runtime image folders or docs. A new replacement script has been prepared to include:
-
-```text
-src/
-scripts/
-local-editor/
-docs/
-PROJECT_CHANGELOG.md
-public/fonts/
-active portfolio runtime image folders depending on -RuntimeImageMode
-```
-
-Use `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md` for the current upload process.
+Do not repeat the old known active/placed/unassigned wall-slot warning unless it becomes directly relevant or blocking.

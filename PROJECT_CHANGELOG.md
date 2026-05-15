@@ -1546,3 +1546,58 @@ This is a documentation-only closeout pack. It does not change runtime code, edi
 - Added documentation for the current upload workflow and upload-size tradeoffs.
 - Updated the current roadmap to reflect Phase 2 completion, Phase 3 content curation, later alt text, later About/contact redesign, mobile 3D controls, SEO, and future gallery expansion.
 
+
+---
+
+## Appended changelog fragments - 20260515-153251
+
+
+# Changelog Append — 2026-05-15 — Alt Text and Handoff Review
+
+## Added
+
+- Added `docs/alt-text/portfolio-image-alt-text-20260515.json` with staged alt text for the current 67 referenced portfolio images.
+- Added `scripts/Apply-PortfolioImageAltTextOnly.mjs`, a targeted script that updates only existing `alt` string lines in `src/data/galleryImages.json`.
+- Added `docs/HANDOFF_DOCS_REVIEW_20260515.md`.
+
+## Updated
+
+- Updated `docs/CURRENT_PROJECT_HANDOFF.md`.
+- Updated `docs/CURRENT_PROJECT_HANDOFF_PHASE3_ACTIVE.md`.
+- Updated `docs/PROJECT_ROADMAP_CURRENT.md`.
+
+## Notes
+
+- The alt text was generated from thumbnail review and should be reviewed before final launch if more precise descriptions are desired.
+- The alt update script intentionally avoids reserializing `galleryImages.json` so non-alt data and formatting remain untouched.
+- The reviewed upload included 74 thumbnails: 67 referenced by current image data and 7 unreferenced legacy/test thumbnails.
+
+
+# Changelog fragment — Correct new chat transfer structure
+
+Date: 2026-05-15
+
+## Summary
+
+Reissued the new-chat transfer/handoff pack using the existing project folder structure.
+
+## Details
+
+- Removed the nested `docs/new-chat-transfer/` convention from the transfer pack.
+- Placed transfer files directly under `docs/`, matching the current project documentation structure.
+- Updated `CURRENT_PROJECT_HANDOFF.md`, `CURRENT_PROJECT_HANDOFF_PHASE3_ACTIVE.md`, `PROJECT_ROADMAP_CURRENT.md`, and `CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md` with the latest project state.
+- Added root-level next-chat starter and authentication checklist documents under `docs/`.
+- Reconfirmed that there is no active `public/images/logo/` folder.
+- Reconfirmed Phase 3 as the active project phase after Phase 2 public polish and alt text commit.
+
+## Files
+
+```text
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE3_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/NEXT_CHAT_STARTER_PROMPT.md
+docs/NEXT_CHAT_AUTHENTICATION_CHECKLIST.md
+```
+

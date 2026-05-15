@@ -10,8 +10,6 @@ The upload script was modernized because the older script still searched for leg
 
 ## Active runtime image structure
 
-The active public image structure is rendition-based:
-
 ```text
 public/images/portfolio/display/
 public/images/portfolio/thumb/
@@ -30,19 +28,11 @@ From the repo root:
 .\scripts\New-TaylorPikePortfolioChatUpload.cmd
 ```
 
-Default mode is intentionally small and includes:
-
-```text
-01-source/             active source, scripts, editor, docs, changelog, fonts
-02-runtime-images/     active portfolio thumbnails and UI image assets
-manifests/             source tree, runtime image tree, package manifest
-```
-
-This is the preferred mode for most code review, roadmap, handoff, and documentation tasks.
+Default mode is intentionally small and should include source/docs/changelog plus thumbnail-level runtime image assets where configured.
 
 ## Runtime image modes
 
-Use one of these modes depending on what the next chat needs to inspect:
+Use one of these depending on the next chat task:
 
 ```powershell
 .\scripts\New-TaylorPikePortfolioChatUpload.cmd -RuntimeImageMode thumb
@@ -51,86 +41,36 @@ Use one of these modes depending on what the next chat needs to inspect:
 .\scripts\New-TaylorPikePortfolioChatUpload.cmd -RuntimeImageMode none
 ```
 
-### `thumb`
+Use `thumb` for most handoffs. Use `display` when the next chat needs to visually inspect photos or generate/review alt text. Use `all` only when upload limits allow and full runtime coverage is needed.
 
-Default. Includes:
+## What future upload packages should include
+
+At minimum:
 
 ```text
-public/images/portfolio/thumb/
+src/
+local-editor/
+docs/
+scripts/
+public/fonts/
 public/images/ui/
+public/images/portfolio/thumb/    # or display/all depending on mode
+index.html
+package.json
+package-lock.json
+tsconfig.json
+vite.config.ts
+PROJECT_CHANGELOG.md
 ```
 
-Use this for normal continuity, code review, layout review, and data review where full visual fidelity is not required.
+## Next chat instruction
 
-### `display`
-
-Includes:
+In a new chat, upload the latest generated chat package and say:
 
 ```text
-public/images/portfolio/display/
-public/images/portfolio/thumb/
-public/images/ui/
+This is my current Taylor Pike portfolio site source. Read the docs folder first, especially CURRENT_PROJECT_HANDOFF.md, CURRENT_PROJECT_HANDOFF_PHASE3_ACTIVE.md, PROJECT_ROADMAP_CURRENT.md, and CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md. Treat the uploaded source as the source of truth. We are in Phase 3: portfolio content and metadata curation. Phase 2 public polish is complete, and the alt text pack has been applied and committed.
 ```
 
-Use this when the next chat needs to visually inspect photos, generate alt text, or review portfolio image presentation.
+## Important transfer rule
 
-### `all`
-
-Includes:
-
-```text
-public/images/portfolio/display/
-public/images/portfolio/thumb/
-public/images/portfolio/texture/
-public/images/portfolio/full/
-public/images/ui/
-```
-
-Use this only when the image pipeline, Three.js texture behavior, full-size viewing, or rendition validation is under review. This mode may exceed upload size limits.
-
-### `none`
-
-Includes no runtime image payload. Use this only for code-only discussion or when upload size is the priority.
-
-## Original/source images
-
-Original import assets are not included by default. To include them:
-
-```powershell
-.\scripts\New-TaylorPikePortfolioChatUpload.cmd -IncludeOriginalImages
-```
-
-This attempts to include:
-
-```text
-source-images/
-assets-to-import/
-```
-
-Use this only when import pipeline behavior or source-original processing is the task.
-
-## What should be uploaded to a new chat
-
-For normal project continuation:
-
-```text
-1. The latest generated TaylorPikePortfolio-ChatUpload-*.zip.
-2. The latest high-level handoff doc, if separately available.
-3. Any screenshots showing the specific visual issue being discussed.
-```
-
-For alt text or image-level visual review, use `-RuntimeImageMode display` if the package size is uploadable. If it is too large, upload the standard source package and a separate compressed folder containing the relevant display or thumbnail images.
-
-## What the next chat should treat as source of truth
-
-Priority order:
-
-```text
-1. Fresh uploaded current source files.
-2. Current docs in docs/.
-3. PROJECT_CHANGELOG.md.
-4. Prior handoff summaries.
-5. Long-term memory/context.
-```
-
-If current source files conflict with older handoffs or memory, the current source files win.
+Do not put transfer-only documents into a nested `docs/new-chat-transfer/` folder unless the project intentionally adopts that folder. Current project convention is to keep handoff files directly under `docs/`.
