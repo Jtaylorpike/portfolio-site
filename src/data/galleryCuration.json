@@ -1,7 +1,7 @@
 [
   {
     "wallId": "wall-entry-hero-personal",
-    "artworkId": "personal-01",
+    "artworkId": "blue-ridge-sunset",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 1,
@@ -40,7 +40,7 @@
   },
   {
     "wallId": "wall-left-climbing-01",
-    "artworkId": "climbing-01",
+    "artworkId": "",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 4,
@@ -53,7 +53,7 @@
   },
   {
     "wallId": "wall-left-climbing-02",
-    "artworkId": "climbing-02",
+    "artworkId": "",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 5,
@@ -66,7 +66,7 @@
   },
   {
     "wallId": "wall-left-climbing-03",
-    "artworkId": "climbing-03",
+    "artworkId": "",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 6,
@@ -92,7 +92,7 @@
   },
   {
     "wallId": "wall-left-inner-portfolio-08",
-    "artworkId": "climbing-climbing-portfolio-08",
+    "artworkId": "rush-hour",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 8,
@@ -105,7 +105,7 @@
   },
   {
     "wallId": "wall-left-inner-portfolio-09",
-    "artworkId": "climbing-climbing-portfolio-09",
+    "artworkId": "rush-hour-2",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 9,
@@ -118,7 +118,7 @@
   },
   {
     "wallId": "wall-rear-climbing-workbook-01",
-    "artworkId": "climbing-climbing-workbook-01",
+    "artworkId": "left-into-center-45",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 10,
@@ -131,7 +131,7 @@
   },
   {
     "wallId": "wall-rear-climbing-workbook-03",
-    "artworkId": "climbing-climbing-workbook-03",
+    "artworkId": "",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 11,
@@ -144,7 +144,7 @@
   },
   {
     "wallId": "wall-right-landscape-01",
-    "artworkId": "landscape-01",
+    "artworkId": "",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 12,
@@ -157,7 +157,7 @@
   },
   {
     "wallId": "wall-right-landscape-02",
-    "artworkId": "landscape-02",
+    "artworkId": "grayson-highlands",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 13,
@@ -170,7 +170,7 @@
   },
   {
     "wallId": "wall-right-landscape-03",
-    "artworkId": "landscape-03",
+    "artworkId": "",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 14,
@@ -196,7 +196,7 @@
   },
   {
     "wallId": "wall-right-inner-landscape-portfolio-06",
-    "artworkId": "climbing-landscape-portfolio-06",
+    "artworkId": "grandmother-lake",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 16,
@@ -209,7 +209,7 @@
   },
   {
     "wallId": "wall-rear-landscape-workbook-03",
-    "artworkId": "landscape-landscape-workbook-03",
+    "artworkId": "",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 17,

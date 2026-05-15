@@ -1,26 +1,26 @@
 [
   {
-    "imageId": "climbing-landscape-portfolio-06",
-    "targetCategory": "landscape"
-  },
-  {
-    "imageId": "landscape-landscape-workbook-03",
-    "targetCategory": "landscape"
-  },
-  {
-    "imageId": "personal-01",
-    "targetCategory": "personal"
-  },
-  {
-    "imageId": "landscape-02",
-    "targetCategory": "landscape"
-  },
-  {
-    "imageId": "climbing-01",
-    "targetCategory": "climbing"
-  },
-  {
     "imageId": "raining-choss",
     "targetCategory": "climbing"
+  },
+  {
+    "imageId": "grandmother-lake",
+    "targetCategory": "landscape"
+  },
+  {
+    "imageId": "outlaw-2",
+    "targetCategory": "climbing"
+  },
+  {
+    "imageId": "a-moment-of-contemplation",
+    "targetCategory": "climbing"
+  },
+  {
+    "imageId": "fashion-editorial-2",
+    "targetCategory": "editorial"
+  },
+  {
+    "imageId": "warm-winter-light",
+    "targetCategory": "landscape"
   }
 ]

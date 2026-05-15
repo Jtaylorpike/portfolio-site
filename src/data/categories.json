@@ -8,11 +8,19 @@
     "label": "Landscape"
   },
   {
+    "id": "portraits",
+    "label": "Portraits"
+  },
+  {
     "id": "personal",
     "label": "Personal"
   },
   {
-    "id": "test",
-    "label": "Test"
+    "id": "brand-work",
+    "label": "Brand Work"
+  },
+  {
+    "id": "editorial",
+    "label": "Editorial"
   }
 ]
