@@ -1,18 +1,23 @@
 <#
 Creates a clean Taylor Pike portfolio upload package for ChatGPT project handoff.
 
-Run this from the project root:
-  .\scripts\New-TaylorPikePortfolioChatUpload.ps1
-
-If your PowerShell policy blocks unsigned scripts, use the included launcher:
+Run from the project root through the .cmd launcher:
   .\scripts\New-TaylorPikePortfolioChatUpload.cmd
+
+Common modes:
+  .\scripts\New-TaylorPikePortfolioChatUpload.cmd
+  .\scripts\New-TaylorPikePortfolioChatUpload.cmd -RuntimeImageMode display
+  .\scripts\New-TaylorPikePortfolioChatUpload.cmd -RuntimeImageMode all
+  .\scripts\New-TaylorPikePortfolioChatUpload.cmd -RuntimeImageMode none
 
 Primary output:
   _chat-uploads\TaylorPikePortfolio-ChatUpload-YYYYMMDD-HHMMSS.zip
 
-The package includes active source, editor code, small public data, logo assets,
-and runtime image folders needed for visual verification. It excludes generated,
-large, stale, and machine-local artifacts by default.
+Default behavior is intentionally upload-size conscious. It includes active source,
+local editor code, docs, scripts, changelog, public fonts, and thumbnail/runtime UI
+assets. Use -RuntimeImageMode display when a future chat needs to visually inspect
+photos. Use -RuntimeImageMode all only when the full rendition pipeline itself needs
+review.
 #>
 
 [CmdletBinding()]
@@ -20,6 +25,8 @@ param(
   [string]$ProjectRoot = (Get-Location).Path,
   [string]$OutputRoot,
   [string]$TransferKitPath,
+  [ValidateSet('none', 'thumb', 'display', 'all')]
+  [string]$RuntimeImageMode = 'thumb',
   [switch]$IncludeOriginalImages,
   [switch]$IncludeLocalEditorBackups,
   [switch]$KeepStagingFolder,
@@ -43,7 +50,6 @@ function New-CleanDirectory {
 
   New-Item -ItemType Directory -Force -Path $PathValue | Out-Null
 }
-
 
 function Get-RelativePathCompat {
   param(
@@ -210,6 +216,56 @@ function Get-RelativeTreeLines {
     }
 }
 
+function Get-DirectoryFileSummary {
+  param([Parameter(Mandatory=$true)][string]$RootPath)
+
+  if (-not (Test-Path -LiteralPath $RootPath -PathType Container)) {
+    return 'Not included.'
+  }
+
+  $files = @(Get-ChildItem -LiteralPath $RootPath -File -Recurse -Force)
+  $sizeBytes = 0
+  foreach ($file in $files) {
+    $sizeBytes += $file.Length
+  }
+
+  return "$($files.Count) files, $sizeBytes bytes"
+}
+
+function Get-JsonArrayCount {
+  param([Parameter(Mandatory=$true)][string]$RelativePath)
+
+  $path = Join-Path $ProjectRootFull $RelativePath
+  if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+    return 'missing'
+  }
+
+  try {
+    $json = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    if ($null -eq $json) { return 0 }
+    if ($json -is [System.Array]) { return $json.Count }
+    if ($json.PSObject.Properties.Name -contains 'items') { return @($json.items).Count }
+    return 1
+  } catch {
+    return 'unreadable'
+  }
+}
+
+function Invoke-GitText {
+  param([Parameter(Mandatory=$true)][string[]]$GitArgs)
+
+  try {
+    $result = & git @GitArgs 2>$null
+    if ($LASTEXITCODE -eq 0) {
+      return ($result -join [Environment]::NewLine).Trim()
+    }
+  } catch {
+    return ''
+  }
+
+  return ''
+}
+
 $ProjectRootFull = Resolve-ExistingFullPath $ProjectRoot
 
 if (-not $OutputRoot) {
@@ -238,7 +294,11 @@ $commonExcludedDirectories = @(
   '.vite',
   '__pycache__',
   'portfolio-public-site-polish-pack',
-  '_chat-uploads'
+  '_chat-uploads',
+  'asset-archive',
+  'asset-reports',
+  'assets-to-import',
+  'source-images'
 )
 
 $commonExcludedFiles = @(
@@ -261,13 +321,15 @@ $requiredFiles = @(
   'vite.config.ts',
   'tsconfig.json',
   'README.md',
-  '.gitignore'
+  '.gitignore',
+  'PROJECT_CHANGELOG.md'
 )
 
 $sourceDirectories = @(
   'src',
   'scripts',
-  'local-editor'
+  'local-editor',
+  'docs'
 )
 
 $includedFiles = New-Object System.Collections.Generic.List[string]
@@ -295,19 +357,37 @@ foreach ($dir in $sourceDirectories) {
   }
 }
 
-# Small public context that helps verify data paths without duplicating image payloads inside 01-source.
-Copy-DirectoryIfExists -RelativePath 'public/data' -DestinationRoot $sourcePackage -ExcludeDirectories $commonExcludedDirectories -ExcludeFiles $commonExcludedFiles | Out-Null
-Copy-DirectoryIfExists -RelativePath 'public/images/logo' -DestinationRoot $sourcePackage -ExcludeDirectories $commonExcludedDirectories -ExcludeFiles $commonExcludedFiles | Out-Null
+# Small public context. Runtime image payloads are copied into 02-runtime-images instead of 01-source.
 Copy-DirectoryIfExists -RelativePath 'public/fonts' -DestinationRoot $sourcePackage -ExcludeDirectories $commonExcludedDirectories -ExcludeFiles $commonExcludedFiles | Out-Null
 
-# Runtime images needed for visual verification. This intentionally includes imported optimized/thumb/texture
-# folders by default, while avoiding full/original image folders unless explicitly requested.
-$runtimeImageDirs = @(
-  'public/images/logo',
-  'public/images/card-optimized',
-  'public/images/gallery-optimized',
-  'public/images/thumbnails'
-)
+$runtimeImageDirs = @()
+switch ($RuntimeImageMode) {
+  'none' {
+    $runtimeImageDirs = @()
+  }
+  'thumb' {
+    $runtimeImageDirs = @(
+      'public/images/portfolio/thumb',
+      'public/images/ui'
+    )
+  }
+  'display' {
+    $runtimeImageDirs = @(
+      'public/images/portfolio/display',
+      'public/images/portfolio/thumb',
+      'public/images/ui'
+    )
+  }
+  'all' {
+    $runtimeImageDirs = @(
+      'public/images/portfolio/display',
+      'public/images/portfolio/thumb',
+      'public/images/portfolio/texture',
+      'public/images/portfolio/full',
+      'public/images/ui'
+    )
+  }
+}
 
 $runtimeImagesFound = $false
 foreach ($dir in $runtimeImageDirs) {
@@ -316,30 +396,14 @@ foreach ($dir in $runtimeImageDirs) {
   }
 }
 
-$runtimeImportedCount = Copy-DirectoryMatches `
-  -SearchRootRelativePath 'public/images/imported' `
-  -AllowedLeafNames @('optimized', 'thumb', 'texture', 'textures', 'preview', 'previews') `
-  -DestinationRoot $runtimeImagesPackage `
-  -ExcludeDirectories $commonExcludedDirectories `
-  -ExcludeFiles $commonExcludedFiles
-
-if ($runtimeImportedCount -gt 0) {
-  $runtimeImagesFound = $true
-}
-
 if (-not $runtimeImagesFound -and (Test-Path -LiteralPath $runtimeImagesPackage)) {
   Remove-Item -LiteralPath $runtimeImagesPackage -Recurse -Force
 }
 
 if ($IncludeOriginalImages) {
   $originalImageRoots = @(
-    'public/images/imported',
-    'public/images/climbing',
-    'public/images/landscape',
-    'public/images/personal',
-    'public/images/commercial',
-    'public/images/portraits',
-    'public/images/product-brand'
+    'source-images',
+    'assets-to-import'
   )
 
   $originalImagesFound = $false
@@ -383,16 +447,29 @@ $missingExpectedText = if ($missingExpected.Count -gt 0) {
 }
 
 $runtimeImagesText = if (Test-Path -LiteralPath $runtimeImagesPackage) {
-  '- Included optimized/card/gallery/logo/imported runtime images available in the project.'
+  "- Included active runtime image package using mode: $RuntimeImageMode."
 } else {
-  '- No runtime image package was created because no matching runtime image folders were found.'
+  "- No runtime image package was created. Runtime image mode: $RuntimeImageMode."
 }
 
 $originalImagesText = if (Test-Path -LiteralPath $originalImagesPackage) {
   '- Included because -IncludeOriginalImages was used.'
 } else {
-  '- Not included. Use -IncludeOriginalImages only when full/original image processing matters.'
+  '- Not included. Use -IncludeOriginalImages only when source import assets matter.'
 }
+
+$currentBranch = Invoke-GitText -GitArgs @('branch', '--show-current')
+$currentCommit = Invoke-GitText -GitArgs @('rev-parse', '--short', 'HEAD')
+$gitStatus = Invoke-GitText -GitArgs @('status', '--short')
+if (-not $gitStatus) { $gitStatus = 'Clean or unavailable.' }
+
+$imageCount = Get-JsonArrayCount -RelativePath 'src/data/galleryImages.json'
+$categoryCount = Get-JsonArrayCount -RelativePath 'src/data/categories.json'
+$heroSlideCount = Get-JsonArrayCount -RelativePath 'src/data/heroSlides.json'
+$gallerySlotCount = Get-JsonArrayCount -RelativePath 'src/data/galleryCuration.json'
+$sourceSummary = Get-DirectoryFileSummary -RootPath $sourcePackage
+$runtimeSummary = Get-DirectoryFileSummary -RootPath $runtimeImagesPackage
+$originalSummary = Get-DirectoryFileSummary -RootPath $originalImagesPackage
 
 $manifest = @"
 # Taylor Pike Portfolio Chat Upload Manifest
@@ -400,6 +477,15 @@ $manifest = @"
 Created: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 Project root: $ProjectRootFull
 Package root: $packageRoot
+Git branch: $currentBranch
+Git commit: $currentCommit
+Runtime image mode: $RuntimeImageMode
+
+## Current data summary
+- Gallery images: $imageCount
+- Categories: $categoryCount
+- Hero slides: $heroSlideCount
+- Gallery wall slots: $gallerySlotCount
 
 ## Included source files
 $includedFilesText
@@ -410,24 +496,43 @@ $includedDirectoriesText
 ## Missing expected files or folders
 $missingExpectedText
 
+## Package summaries
+- 01-source: $sourceSummary
+- 02-runtime-images: $runtimeSummary
+- 03-original-images: $originalSummary
+
 ## Runtime image package
 $runtimeImagesText
 
-## Original/full image package
+Active runtime folders are expected to be:
+- public/images/portfolio/display/
+- public/images/portfolio/thumb/
+- public/images/portfolio/texture/
+- public/images/portfolio/full/
+- public/images/ui/cards/
+
+There is no active public/images/logo/ folder unless it is intentionally added later.
+
+## Original/source image package
 $originalImagesText
+
+## Git working tree at packaging time
+````text
+$gitStatus
+````
 
 ## Excluded by design
 - node_modules/ because dependencies can be recreated with npm install.
 - dist/ because it is generated build output.
-- .drive-browser-profile/ because it is local browser cache/profile data.
 - .git/ because repository internals are unnecessary for ChatGPT review.
 - _chat-uploads/ because upload packages should not recursively include older upload packages.
-- old generated replacement packs and zip packs because they can be stale.
+- asset-archive/ and asset-reports/ because they are generated/local audit artifacts.
+- source-images/ and assets-to-import/ unless -IncludeOriginalImages is used.
 - local-editor/backups/ by default because backup history is noisy unless specifically needed.
 - *.bak, *.backup-*, *.pyc, __pycache__/, *.tmp, and logs because they are local artifacts.
 
 ## Upload instruction for the next chat
-Upload this zip after the latest transfer kit or handoff summary. Treat current source files as source of truth. Treat summaries as memory backups only. Do not treat generated build output, old replacement packs, browser cache, or backup files as active source.
+Upload this zip after the latest handoff summary. Treat current source files as source of truth. Treat docs and summaries as continuity aids. Do not treat generated build output, old replacement packs, browser cache, or backup files as active source.
 "@
 
 $manifest | Set-Content -LiteralPath $manifestPath -Encoding UTF8

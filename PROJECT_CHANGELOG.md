@@ -1529,3 +1529,20 @@ This is a documentation-only closeout pack. It does not change runtime code, edi
 - No image data changed.
 - No gallery data changed.
 
+
+---
+
+## Appended changelog fragments - 20260515-143115
+
+
+## 2026-05-15 — Modernize chat upload workflow and Phase 3 handoff
+
+- Replaced the chat upload PowerShell script with a version that understands the current rendition-based image structure.
+- Added runtime image modes: `none`, `thumb`, `display`, and `all`.
+- Defaulted the upload script to thumbnail runtime assets so normal chat handoffs stay within upload size limits.
+- Added docs and `PROJECT_CHANGELOG.md` to the upload package source set.
+- Removed stale upload assumptions around `public/images/logo`, `card-optimized`, `gallery-optimized`, and legacy thumbnails folders.
+- Added handoff documentation for the current Phase 3 active state.
+- Added documentation for the current upload workflow and upload-size tradeoffs.
+- Updated the current roadmap to reflect Phase 2 completion, Phase 3 content curation, later alt text, later About/contact redesign, mobile 3D controls, SEO, and future gallery expansion.
+
