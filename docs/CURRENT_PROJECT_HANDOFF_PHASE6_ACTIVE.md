@@ -71,6 +71,21 @@ Implemented behavior:
 - the top global **Save Changes** behavior remains unchanged;
 - the editor cache version is bumped to `v=73`.
 
+
+
+## Phase 6E mobile responsiveness tuning
+
+Phase 6E lightly increases touch-control responsiveness after real-phone testing confirmed the controls work but feel slightly under-sensitive.
+
+Implemented behavior:
+
+- touch drag-look sensitivity is increased from the Phase 6B restrained baseline;
+- touch look delta clamping is loosened slightly so intentional swipes can rotate the camera more quickly;
+- touch-only movement speed is increased without affecting desktop WASD/arrow movement;
+- the analog thumb dead zone is reduced so movement starts with less thumb travel;
+- the analog response curve is made closer to linear for a more immediate feel;
+- the movement pad's effective vector radius is slightly reduced so the same thumb travel produces a stronger movement vector.
+
 ## Files touched in Phase 6A
 
 ```text
@@ -144,18 +159,35 @@ docs/pack-manifests/PACK_MANIFEST_PHASE6D.txt
 PROJECT_CHANGELOG.md
 ```
 
+## Files touched in Phase 6E
+
+```text
+src/app/galleryController.ts
+src/gallery/controls/lookController.ts
+src/gallery/controls/movementController.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE6E_MOBILE_GALLERY_RESPONSIVENESS_TUNING.md
+docs/pack-notes/PACK_NOTES_PHASE6E.md
+docs/pack-manifests/PACK_MANIFEST_PHASE6E.txt
+PROJECT_CHANGELOG.md
+```
+
 ## Important constraints
 
 - Do not redesign the public site broadly while tuning mobile gallery controls.
 - Preserve existing gallery curation data, artwork placement, wall collision, plaque fallback, lighting, and material behavior unless the user explicitly asks to modify them.
 - Treat Phase 6A/6B as the current mobile interaction baseline. Real-device review from a dev preview is still expected before considering Phase 6 complete.
 - Treat Phase 6D as a local-editor hotfix only; it should not change public gallery runtime behavior.
+- Treat Phase 6E as the current touch-responsiveness tuning baseline for real-phone testing.
 - Keep internal wall type labels out of public gallery plaques and artwork info cards unless the user later asks to expose them again.
 - Keep controls restrained and professional. Avoid game-like decorative UI beyond what is required for touch usability.
 
 ## Recommended next QA
 
-After applying Phase 6A, Phase 6B, and Phase 6C, push to the `dev` branch and test on a real phone or tablet:
+After applying Phase 6A through Phase 6E, push to the `dev` branch and test on a real phone or tablet:
 
 1. Open the virtual gallery from the nav or homepage CTA.
 2. Confirm the old desktop-only fallback does not appear.
@@ -164,5 +196,6 @@ After applying Phase 6A, Phase 6B, and Phase 6C, push to the `dev` branch and te
 5. Confirm the Exit button remains usable.
 6. Confirm the artwork info panel does not sit under the thumb control.
 7. Confirm public gallery plaques and bottom-right cards do not show wall type labels.
-8. Note whether movement speed, look sensitivity, landscape behavior, or control placement needs tuning.
-9. In the local editor, open one image, edit a metadata field, click the lower image-card **Save JSON** button, reload data, and confirm the change persisted.
+8. Confirm the Phase 6E movement/look sensitivity feels more responsive without becoming jumpy.
+9. Note whether landscape behavior or control placement needs tuning.
+10. In the local editor, open one image, edit a metadata field, click the lower image-card **Save JSON** button, reload data, and confirm the change persisted.

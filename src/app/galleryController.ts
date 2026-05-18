@@ -223,7 +223,7 @@ export function setupGalleryController() {
     const rect = galleryTouchMove.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    const radius = Math.max(1, Math.min(rect.width, rect.height) * 0.36);
+    const radius = Math.max(1, Math.min(rect.width, rect.height) * 0.33);
     const rawX = event.clientX - centerX;
     const rawY = event.clientY - centerY;
     const distance = Math.hypot(rawX, rawY);

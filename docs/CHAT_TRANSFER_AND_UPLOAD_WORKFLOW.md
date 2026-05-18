@@ -70,7 +70,7 @@ PROJECT_CHANGELOG.md
 In a new chat, upload the latest generated chat package and say:
 
 ```text
-This is my current Taylor Pike portfolio site source. Read the docs folder first, especially CURRENT_PROJECT_HANDOFF.md, CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md, PROJECT_ROADMAP_CURRENT.md, and CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md. Treat the uploaded source as the source of truth. Phase 6 mobile 3D gallery controls is active. Phase 6A added the first touch-control baseline for the public Three.js gallery. Final public About copy should be written by me, not generated as finished copy.
+This is my current Taylor Pike portfolio site source. Read the docs folder first, especially CURRENT_PROJECT_HANDOFF.md, CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md, PROJECT_ROADMAP_CURRENT.md, and CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md. Treat the uploaded source as the source of truth. Phase 6 mobile 3D gallery controls is active. Phase 6E is the current touch-responsiveness tuning baseline for the public Three.js gallery. Final public About copy should be written by me, not generated as finished copy.
 ```
 
 ## Important transfer rule
@@ -88,5 +88,5 @@ When transferring Phase 6 mobile gallery work, include the gallery runtime contr
 
 ## Current Phase 6 transfer note — 2026-05-18
 
-As of Phase 6D, the mobile Three.js gallery can be tested through a dev deployment rather than local phone tunneling. Phase 6A created the baseline touch controls; Phase 6B softened the interaction layer, added first-use hint fadeout, safer phone/landscape spacing, touch analog dead-zone/curve behavior, slightly slower touch movement, and less jumpy drag-look. Phase 6C cleaned up public gallery metadata so plaques and bottom-right artwork cards no longer expose internal wall type labels. Phase 6D is a narrow local-editor hotfix for the individual image editor's lower Save JSON button. Treat local Chrome mobile emulation as a first-pass check only. Real-device QA should happen from the `dev` branch preview before merging to `main`.
+As of Phase 6E, the mobile Three.js gallery can be tested through a dev deployment rather than local phone tunneling. Phase 6A created the baseline touch controls; Phase 6B softened the interaction layer, added first-use hint fadeout, safer phone/landscape spacing, touch analog dead-zone/curve behavior, slightly slower touch movement, and less jumpy drag-look. Phase 6C cleaned up public gallery metadata so plaques and bottom-right artwork cards no longer expose internal wall type labels. Phase 6D is a narrow local-editor hotfix for the individual image editor's lower Save JSON button. Phase 6E lightly increases touch movement and drag-look responsiveness after real-phone testing found the controls working but slightly under-sensitive. Treat local Chrome mobile emulation as a first-pass check only. Real-device QA should happen from the `dev` branch preview before merging to `main`.
 

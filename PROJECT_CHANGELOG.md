@@ -2909,3 +2909,43 @@ Additional tested behavior:
 - This is a local-editor hotfix only.
 - It does not change public gallery runtime behavior, mobile touch controls, gallery curation data, wall placement, plaque metadata, collision behavior, About layout, or the image rendition pipeline.
 - Manual Flask editor validation is still recommended because the sandbox cannot run the local editor exactly as the user's Windows environment does.
+
+## 2026-05-18 — Phase 6E Mobile gallery responsiveness tuning
+
+### Summary
+
+- Lightly increased touch drag-look sensitivity after real-phone testing found the mobile controls working but slightly under-sensitive.
+- Slightly loosened touch-look delta clamping so intentional swipes can rotate the camera more quickly.
+- Increased touch-only movement speed without affecting desktop WASD/arrow movement.
+- Reduced the analog thumb dead zone so movement begins with less thumb travel.
+- Made the analog thumb response curve closer to linear for a more immediate feel.
+- Reduced the effective movement-pad vector radius so normal thumb movement produces a stronger movement vector.
+- Added Phase 6E documentation, pack notes, and manifest.
+
+### Files changed
+
+- `src/app/galleryController.ts`
+- `src/gallery/controls/lookController.ts`
+- `src/gallery/controls/movementController.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE6E_MOBILE_GALLERY_RESPONSIVENESS_TUNING.md`
+- `docs/pack-notes/PACK_NOTES_PHASE6E.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE6E.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm ci --ignore-scripts`
+- `npm run build`
+- Static source checks for Phase 6E touch sensitivity constants
+- `unzip -t`
+
+### Notes
+
+- This is a mobile gallery touch-feel tuning pack only.
+- It does not change desktop gallery controls, public site layout, gallery curation data, wall placement, collision geometry, plaque metadata, image texture loading, lighting, About/contact behavior, or local-editor save behavior.
+- Real-device QA should continue from the `dev` deployment, then merge to `main` once the feel is acceptable.
+

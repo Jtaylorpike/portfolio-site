@@ -41,7 +41,7 @@ export class MovementController {
   // gallery wall blocks feel too tight or too loose.
   private wallCollisionRadius = 0.52;
   private speed = 3.35;
-  private touchSpeedMultiplier = 0.82;
+  private touchSpeedMultiplier = 0.94;
 
   public getFrameDelta(timestamp?: number) {
     const currentTime = timestamp ?? performance.now();
@@ -211,14 +211,14 @@ export class MovementController {
 
     const clamped = Math.max(-1, Math.min(1, value));
     const magnitude = Math.abs(clamped);
-    const deadZone = 0.14;
+    const deadZone = 0.1;
 
     if (magnitude < deadZone) {
       return 0;
     }
 
     const normalized = (magnitude - deadZone) / (1 - deadZone);
-    const curved = Math.pow(normalized, 1.12);
+    const curved = Math.pow(normalized, 1.02);
 
     return Math.sign(clamped) * curved;
   }
