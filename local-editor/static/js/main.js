@@ -17,6 +17,7 @@ import { elements } from "./dom.js";
 import {
   collectCategories,
   collectEditorData,
+  collectImageCardSavePayload,
   collectGalleryCuration,
   collectGalleryCurationCard,
   collectImportReviewRecords,
@@ -2890,6 +2891,7 @@ async function savePayload(payload) {
   applyLoadedState(savedData);
   setDirtyState(false);
   setStatus(`Saved ${state.images.length} images, ${state.categories.length} categories, and About page copy.${getBackupStatusText(savedData)}`, "success");
+  return savedData;
 }
 
 
@@ -2935,6 +2937,14 @@ async function saveData() {
   }
 
   await savePayload(collectEditorData(state));
+}
+
+async function saveImageCard(card) {
+  const payload = collectImageCardSavePayload(state, card);
+  const imageTitle = card?.querySelector('[data-field="title"]')?.value?.trim() || card?.dataset.imageId || "image";
+
+  const savedData = await savePayload(payload);
+  setStatus(`Saved ${imageTitle} from the image editor.${getBackupStatusText(savedData)}`, "success");
 }
 
 // Reads only the crop/framing controls from the open crop page.
@@ -4415,7 +4425,9 @@ elements.editorList.addEventListener("click", (event) => {
   }
 
   if (saveButton) {
-    saveData().catch((error) => {
+    const card = saveButton.closest("[data-image-card]");
+
+    saveImageCard(card).catch((error) => {
       console.error(error);
       setStatus(error.message, "error");
     });

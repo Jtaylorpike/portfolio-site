@@ -73,6 +73,17 @@ export type GalleryArtwork = {
   maxHeight: number;
 };
 
+
+export function formatGalleryArtworkPublicMeta(artwork: Pick<GalleryArtwork, 'displayOrder' | 'category' | 'year'>): string {
+  const displayIndex = String(artwork.displayOrder).padStart(2, '0');
+  const categoryLabel = artwork.category?.trim();
+  const yearLabel = artwork.year?.trim() || 'Archive';
+
+  return [displayIndex, categoryLabel, yearLabel]
+    .filter((value): value is string => Boolean(value))
+    .join(' / ');
+}
+
 const imageById = new Map(
   galleryImages.map((image) => {
     return [image.id, image];

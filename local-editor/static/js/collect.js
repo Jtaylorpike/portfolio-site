@@ -155,6 +155,79 @@ function collectEditedImageFromCard(card, fallbackCategoryId, validCategoryIds) 
   return image;
 }
 
+function getEditableCategories(state) {
+  const categoryRows = document.querySelectorAll("[data-category-row]");
+
+  if (!categoryRows.length) {
+    return state.categories ?? [];
+  }
+
+  const collectedCategories = collectCategories();
+
+  return collectedCategories.length ? collectedCategories : state.categories ?? [];
+}
+
+function getHeroTargetCategoryFromCard(card, validCategoryIds, fallbackCategoryId) {
+  const heroCategory = getFieldValue(card, "heroTargetCategory");
+
+  return validCategoryIds.has(heroCategory) ? heroCategory : fallbackCategoryId;
+}
+
+// Builds a full save payload from one open image-detail card.
+// This keeps the image page's lower Save JSON button scoped to the card the user
+// is editing instead of relying on a broad DOM scan of every active editor pane.
+export function collectImageCardSavePayload(state, card) {
+  if (!card) {
+    throw new Error("No image editor card is currently open.");
+  }
+
+  const originalImageId = card.dataset.imageId;
+
+  if (!originalImageId) {
+    throw new Error("The image editor card is missing its saved image ID.");
+  }
+
+  const categories = getEditableCategories(state);
+  const validCategoryIds = new Set(categories.map((category) => category.id));
+  const fallbackCategoryId = categories[0]?.id ?? "personal";
+  const editedImage = collectEditedImageFromCard(card, fallbackCategoryId, validCategoryIds);
+  let foundImage = false;
+
+  const images = (state.images ?? []).map((image) => {
+    if (image.id !== originalImageId) {
+      return image;
+    }
+
+    foundImage = true;
+    return editedImage;
+  });
+
+  if (!foundImage) {
+    throw new Error(`Image not found in current editor state: ${originalImageId}`);
+  }
+
+  const heroSlidesWithoutEditedImage = (state.heroSlides ?? []).filter((slide) => {
+    return slide.imageId !== originalImageId && slide.imageId !== editedImage.id;
+  });
+
+  const heroSlides = [...heroSlidesWithoutEditedImage];
+
+  if (getCheckboxValue(card, "isHeroSlide") && isHeroEligibleCard(card)) {
+    heroSlides.push({
+      imageId: editedImage.id,
+      targetCategory: getHeroTargetCategoryFromCard(card, validCategoryIds, fallbackCategoryId)
+    });
+  }
+
+  return {
+    categories,
+    images,
+    heroSlides,
+    aboutPhotos: collectAboutPhotosFromPage(state),
+    aboutCopy: collectAboutCopyFromPage(state)
+  };
+}
+
 function getCropPageEdit() {
   const cropEditor = document.querySelector("[data-crop-editor]");
 

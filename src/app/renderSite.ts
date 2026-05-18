@@ -8,7 +8,7 @@ export function renderSite(app: HTMLElement) {
     <div id="sitePage"></div>
 
     <div class="gallery-overlay" id="galleryOverlay" aria-hidden="true">
-      <button class="gallery-close" id="closeGalleryButton" type="button">Exit</button>
+      <button class="gallery-close" id="closeGalleryButton" type="button" aria-label="Exit virtual gallery">Exit</button>
 
       <div class="gallery-control-card" id="galleryControlCard" aria-hidden="true">
         <p class="eyebrow">Controls</p>
@@ -31,8 +31,8 @@ export function renderSite(app: HTMLElement) {
       <div class="gallery-crosshair" aria-hidden="true"></div>
 
       <div class="gallery-touch-controls" id="galleryTouchControls" aria-hidden="true">
-        <div class="gallery-touch-look-hint" aria-hidden="true">Drag anywhere to look</div>
-        <div class="gallery-touch-move" id="galleryTouchMove" aria-label="Move through gallery" role="application">
+        <div class="gallery-touch-look-hint" aria-hidden="true">Drag to look · left thumb to move</div>
+        <div class="gallery-touch-move" id="galleryTouchMove" aria-label="Touch movement control for the virtual gallery" role="application">
           <span class="gallery-touch-move-label">Move</span>
           <span class="gallery-touch-move-base" aria-hidden="true">
             <span class="gallery-touch-move-knob" id="galleryTouchMoveKnob"></span>

@@ -41,6 +41,7 @@ export class MovementController {
   // gallery wall blocks feel too tight or too loose.
   private wallCollisionRadius = 0.52;
   private speed = 3.35;
+  private touchSpeedMultiplier = 0.82;
 
   public getFrameDelta(timestamp?: number) {
     const currentTime = timestamp ?? performance.now();
@@ -106,8 +107,8 @@ export class MovementController {
   }
 
   public setTouchMovement(localX: number, localZ: number) {
-    this.touchMovementX = this.clampAnalogValue(localX);
-    this.touchMovementZ = this.clampAnalogValue(localZ);
+    this.touchMovementX = this.shapeAnalogValue(localX);
+    this.touchMovementZ = this.shapeAnalogValue(localZ);
   }
 
   public clearTouchMovement() {
@@ -131,7 +132,8 @@ export class MovementController {
     }
 
     const currentPosition = camera.position.clone();
-    const nextPosition = currentPosition.clone().addScaledVector(direction, this.speed * delta);
+    const movementSpeed = this.hasTouchMovement() ? this.speed * this.touchSpeedMultiplier : this.speed;
+    const nextPosition = currentPosition.clone().addScaledVector(direction, movementSpeed * delta);
 
     this.clampToGalleryBounds(nextPosition);
 
@@ -198,12 +200,27 @@ export class MovementController {
     return direction;
   }
 
-  private clampAnalogValue(value: number) {
+  private hasTouchMovement() {
+    return Math.abs(this.touchMovementX) > 0.001 || Math.abs(this.touchMovementZ) > 0.001;
+  }
+
+  private shapeAnalogValue(value: number) {
     if (!Number.isFinite(value)) {
       return 0;
     }
 
-    return Math.max(-1, Math.min(1, value));
+    const clamped = Math.max(-1, Math.min(1, value));
+    const magnitude = Math.abs(clamped);
+    const deadZone = 0.14;
+
+    if (magnitude < deadZone) {
+      return 0;
+    }
+
+    const normalized = (magnitude - deadZone) / (1 - deadZone);
+    const curved = Math.pow(normalized, 1.12);
+
+    return Math.sign(clamped) * curved;
   }
 
   private clampToGalleryBounds(position: THREE.Vector3) {

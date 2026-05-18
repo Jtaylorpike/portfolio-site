@@ -20,6 +20,7 @@ import {
   galleryRoom,
   galleryStart,
   galleryWalls,
+  formatGalleryArtworkPublicMeta,
   type GalleryArtwork,
   type ResolvedGalleryWall
 } from './artwork/galleryLayout';
@@ -482,11 +483,7 @@ export class GalleryScene {
     context.fillRect(0, 0, width, 10);
 
     const title = artwork.title.toUpperCase();
-    const metaParts = [
-      String(artwork.displayOrder).padStart(2, '0'),
-      artwork.wallSection,
-      artwork.year || 'Archive'
-    ];
+    const metaLine = formatGalleryArtworkPublicMeta(artwork);
 
     context.fillStyle = 'rgba(8, 9, 8, 1)';
     context.font = '700 54px Arial, Helvetica, sans-serif';
@@ -495,7 +492,7 @@ export class GalleryScene {
 
     context.fillStyle = 'rgba(8, 9, 8, 0.9)';
     context.font = '700 30px Arial, Helvetica, sans-serif';
-    context.fillText(this.truncatePlaqueText(context, metaParts.join(' / ').toUpperCase(), width - 84), 38, 126);
+    context.fillText(this.truncatePlaqueText(context, metaLine.toUpperCase(), width - 84), 38, 126);
 
     context.fillStyle = 'rgba(8, 9, 8, 0.78)';
     context.font = '600 28px Arial, Helvetica, sans-serif';

@@ -24,7 +24,8 @@ export class LookController {
   private lastTouchLookX = 0;
   private lastTouchLookY = 0;
   private sensitivity = 0.002;
-  private touchSensitivity = 0.0042;
+  private touchSensitivity = 0.0034;
+  private maxTouchLookDelta = 44;
 
   constructor(options: LookControllerOptions) {
     this.canvas = options.canvas;
@@ -131,8 +132,8 @@ export class LookController {
       return;
     }
 
-    const deltaX = event.clientX - this.lastTouchLookX;
-    const deltaY = event.clientY - this.lastTouchLookY;
+    const deltaX = this.clampTouchDelta(event.clientX - this.lastTouchLookX);
+    const deltaY = this.clampTouchDelta(event.clientY - this.lastTouchLookY);
 
     this.lastTouchLookX = event.clientX;
     this.lastTouchLookY = event.clientY;
@@ -152,6 +153,14 @@ export class LookController {
     this.activeTouchLookPointerId = null;
     event.preventDefault();
   };
+
+  private clampTouchDelta(value: number) {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+
+    return Math.max(-this.maxTouchLookDelta, Math.min(this.maxTouchLookDelta, value));
+  }
 
   private applyLookDelta(deltaX: number, deltaY: number, sensitivity: number) {
     this.yaw -= deltaX * sensitivity;

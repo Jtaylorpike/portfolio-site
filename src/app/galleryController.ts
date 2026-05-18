@@ -10,7 +10,11 @@
 // - binding the mobile/touch movement control surface
 // - dismissing the controls card once the viewer has used the core desktop inputs
 
-import { galleryArtworks, type GalleryArtwork } from '../gallery/artwork/galleryLayout';
+import {
+  galleryArtworks,
+  formatGalleryArtworkPublicMeta,
+  type GalleryArtwork
+} from '../gallery/artwork/galleryLayout';
 
 type GalleryInputMode = 'desktop' | 'touch';
 
@@ -29,6 +33,7 @@ let galleryInputListenersBound = false;
 let touchMovePointerId: number | null = null;
 let touchControlsBound = false;
 let controlCardDismissTimeout: number | null = null;
+let touchUiDismissTimeout: number | null = null;
 
 const usedMovementDirections = new Set<string>();
 
@@ -85,6 +90,13 @@ export function setupGalleryController() {
 
   function shouldDismissControlCard() {
     return hasMovedMouseInGallery && usedMovementDirections.size >= 2;
+  }
+
+  function clearTouchUiDismissTimeout() {
+    if (touchUiDismissTimeout !== null) {
+      window.clearTimeout(touchUiDismissTimeout);
+      touchUiDismissTimeout = null;
+    }
   }
 
   function clearControlCardDismissTimeout() {
@@ -173,6 +185,34 @@ export function setupGalleryController() {
   function setTouchControlsVisible(isVisible: boolean) {
     galleryTouchControls?.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
     document.body.classList.toggle('gallery-touch-enabled', isVisible);
+
+    if (isVisible) {
+      galleryTouchControls?.classList.add('is-visible');
+      return;
+    }
+
+    galleryTouchControls?.classList.remove(
+      'is-visible',
+      'has-touch-input',
+      'has-used-touch-look',
+      'has-used-touch-move',
+      'is-minimal',
+      'is-looking'
+    );
+  }
+
+  function markTouchControlUsed(kind: 'look' | 'move') {
+    if (!galleryTouchControls || activeGalleryInputMode !== 'touch') {
+      return;
+    }
+
+    galleryTouchControls.classList.add('has-touch-input', `has-used-touch-${kind}`);
+
+    clearTouchUiDismissTimeout();
+    touchUiDismissTimeout = window.setTimeout(() => {
+      galleryTouchControls.classList.add('is-minimal');
+      touchUiDismissTimeout = null;
+    }, 1500);
   }
 
   function getTouchMoveVector(event: PointerEvent) {
@@ -225,6 +265,7 @@ export function setupGalleryController() {
     touchMovePointerId = event.pointerId;
     galleryTouchMove?.setPointerCapture(event.pointerId);
     galleryTouchMove?.classList.add('is-active');
+    markTouchControlUsed('move');
     updateTouchMove(event);
     event.preventDefault();
   }
@@ -253,10 +294,31 @@ export function setupGalleryController() {
     event.preventDefault();
   }
 
+  function handleTouchLookSurfaceStart(event: PointerEvent) {
+    if (activeGalleryInputMode !== 'touch' || event.pointerType === 'mouse') {
+      return;
+    }
+
+    galleryTouchControls?.classList.add('is-looking');
+    markTouchControlUsed('look');
+  }
+
+  function handleTouchLookSurfaceEnd(event: PointerEvent) {
+    if (event.pointerType === 'mouse') {
+      return;
+    }
+
+    galleryTouchControls?.classList.remove('is-looking');
+  }
+
   function bindTouchControls() {
     if (touchControlsBound || !galleryTouchMove) {
       return;
     }
+
+    galleryCanvas?.addEventListener('pointerdown', handleTouchLookSurfaceStart);
+    galleryCanvas?.addEventListener('pointerup', handleTouchLookSurfaceEnd);
+    galleryCanvas?.addEventListener('pointercancel', handleTouchLookSurfaceEnd);
 
     galleryTouchMove.addEventListener('pointerdown', handleTouchMoveStart);
     galleryTouchMove.addEventListener('pointermove', handleTouchMoveChange);
@@ -271,6 +333,10 @@ export function setupGalleryController() {
       return;
     }
 
+    galleryCanvas?.removeEventListener('pointerdown', handleTouchLookSurfaceStart);
+    galleryCanvas?.removeEventListener('pointerup', handleTouchLookSurfaceEnd);
+    galleryCanvas?.removeEventListener('pointercancel', handleTouchLookSurfaceEnd);
+
     galleryTouchMove.removeEventListener('pointerdown', handleTouchMoveStart);
     galleryTouchMove.removeEventListener('pointermove', handleTouchMoveChange);
     galleryTouchMove.removeEventListener('pointerup', handleTouchMoveEnd);
@@ -280,6 +346,7 @@ export function setupGalleryController() {
   }
 
   function resetTouchControls() {
+    clearTouchUiDismissTimeout();
     touchMovePointerId = null;
     galleryTouchMove?.classList.remove('is-active');
     clearTouchMove();
@@ -291,11 +358,8 @@ export function setupGalleryController() {
       return;
     }
 
-    const displayIndex = String(artwork.displayOrder).padStart(2, '0');
-    const yearLabel = artwork.year || 'Archive';
-
     galleryInfoPanel.classList.add('is-active');
-    galleryInfoMeta.textContent = `${displayIndex} / ${artwork.wallSection} / ${artwork.category} / ${yearLabel}`;
+    galleryInfoMeta.textContent = formatGalleryArtworkPublicMeta(artwork);
     galleryInfoTitle.textContent = artwork.title;
     galleryInfoNote.textContent = artwork.note;
   }

@@ -1,6 +1,6 @@
 # Taylor Pike Portfolio — Current Roadmap
 
-Updated: 2026-05-16
+Updated: 2026-05-18
 
 ## Current project state
 
@@ -130,7 +130,13 @@ The 3D gallery should be viewable on mobile using touch movement controls simila
 
 Phase 6A establishes the first mobile-control baseline: touch/coarse devices open the real Three.js gallery instead of the old desktop-only fallback, a restrained left thumb movement pad feeds analog movement into the existing collision-aware movement controller, and the canvas supports drag-to-look camera control.
 
-Remaining Phase 6 review should happen on a real phone/tablet after applying the pack. Likely follow-ups may include tuning movement sensitivity, tuning look sensitivity, adjusting control placement around device safe areas, and reducing any control overlap with artwork info panels.
+Phase 6B polishes the touch baseline for dev-preview testing. It fades the touch hint after first use, softens movement-pad visuals, improves safe-area and landscape safeguards, shapes analog input with a dead zone/curve, slightly reduces touch movement speed, and makes drag-look less jumpy.
+
+Phase 6C cleans up public gallery metadata so plaques and the bottom-right artwork card no longer expose internal wall type labels. Wall type remains an editor/layout concept, not a viewer-facing label.
+
+Phase 6D is a narrow local-editor hotfix for the individual image editor: the lower Save JSON button now uses a card-scoped full-save payload so metadata edits persist reliably from that button.
+
+Remaining Phase 6 review should happen on a real phone/tablet from the `dev` deployment. Likely follow-ups may include tuning movement sensitivity, tuning look sensitivity, adjusting control placement around specific devices, and reducing any control overlap with artwork info panels. Also manually confirm the Phase 6D lower image-card save behavior in the local editor.
 
 ## Phase 7 — SEO/discoverability and launch pass
 
@@ -312,4 +318,4 @@ Deferred until pre-launch:
 - final About photo curation;
 - final public/3D gallery curation.
 
-Current phase: Phase 6 mobile 3D gallery controls. Phase 6A adds the first touch-control baseline.
+Current phase: Phase 6 mobile 3D gallery controls. Phase 6A adds the first touch-control baseline. Phase 6D also includes a narrow local-editor image-card Save JSON hotfix.

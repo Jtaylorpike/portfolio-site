@@ -85,3 +85,8 @@ When transferring Phase 5 work, include `src/data/aboutPhotos.json`, `src/data/a
 ## Phase 6 upload note
 
 When transferring Phase 6 mobile gallery work, include the gallery runtime controllers and CSS: `src/app/galleryController.ts`, `src/app/renderSite.ts`, `src/gallery/GalleryScene.ts`, `src/gallery/controls/lookController.ts`, `src/gallery/controls/movementController.ts`, and `src/styles/global.css`. Real-device mobile QA is important because headless browser coverage may not capture touch feel, device safe-area placement, or mobile GPU performance.
+
+## Current Phase 6 transfer note — 2026-05-18
+
+As of Phase 6D, the mobile Three.js gallery can be tested through a dev deployment rather than local phone tunneling. Phase 6A created the baseline touch controls; Phase 6B softened the interaction layer, added first-use hint fadeout, safer phone/landscape spacing, touch analog dead-zone/curve behavior, slightly slower touch movement, and less jumpy drag-look. Phase 6C cleaned up public gallery metadata so plaques and bottom-right artwork cards no longer expose internal wall type labels. Phase 6D is a narrow local-editor hotfix for the individual image editor's lower Save JSON button. Treat local Chrome mobile emulation as a first-pass check only. Real-device QA should happen from the `dev` branch preview before merging to `main`.
+

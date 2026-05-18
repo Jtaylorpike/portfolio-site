@@ -2787,3 +2787,125 @@ Additional tested behavior:
 - This is the first mobile-control baseline, not final Phase 6 closeout.
 - Real-device phone/tablet testing is still needed to tune movement sensitivity, look sensitivity, safe-area placement, and info-panel/control overlap.
 - No gallery curation data, wall placement, collision geometry, plaque fallback, image texture loading, lighting, or local editor behavior was changed.
+
+## 2026-05-18 — Phase 6B Mobile gallery polish
+
+### Summary
+
+- Refined the Phase 6A mobile gallery touch-control baseline for dev-preview real-device testing.
+- Updated touch hint copy to `Drag to look · left thumb to move`.
+- Added touch-control state tracking so the hint fades after first touch look/move use.
+- Reduced touch look sensitivity and clamped large touch deltas to avoid accidental camera jumps.
+- Added touch analog movement shaping with a dead zone and response curve to reduce drift/jitter.
+- Added a touch-only movement speed reduction while preserving desktop movement speed.
+- Softened and slightly reduced the touch movement pad visual treatment.
+- Improved safe-area-aware control placement, artwork info-panel clamping, touch-mode crosshair scale, and compact landscape-phone behavior.
+- Added Phase 6B documentation, pack notes, and manifest.
+
+### Files changed
+
+- `src/app/galleryController.ts`
+- `src/app/renderSite.ts`
+- `src/gallery/controls/lookController.ts`
+- `src/gallery/controls/movementController.ts`
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE6B_MOBILE_GALLERY_POLISH.md`
+- `docs/pack-notes/PACK_NOTES_PHASE6B.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE6B.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- CSS brace-balance check
+- Static source checks for Phase 6B touch-state hooks and tuning constants
+- `unzip -t`
+
+### Notes
+
+- Real-device QA should happen from the `dev` branch deployment instead of spending more time on local phone tunnel/firewall setup.
+- No gallery curation data, wall placement, collision geometry, plaque fallback, image texture loading, lighting, About/contact work, or local editor behavior was changed.
+
+## 2026-05-18 — Phase 6C Gallery metadata simplification
+
+### Summary
+
+- Removed internal wall type labels from public Three.js gallery plaque metadata.
+- Removed internal wall type labels from the bottom-right public artwork info card.
+- Added a shared public metadata formatter for plaques and info cards.
+- Preserved display order/archive numbering, category, and year/archive status as the viewer-facing metadata line.
+- Preserved wall type data and controls for layout, wall scale, editor filtering, and placement logic.
+- Added Phase 6C documentation, pack notes, and manifest.
+
+### Files changed
+
+- `src/gallery/artwork/galleryLayout.ts`
+- `src/gallery/GalleryScene.ts`
+- `src/app/galleryController.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE6C_GALLERY_METADATA_SIMPLIFICATION.md`
+- `docs/pack-notes/PACK_NOTES_PHASE6C.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE6C.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- Static source checks for removed public `wallSection` metadata usage
+- `unzip -t`
+
+### Notes
+
+- This is a public display cleanup only.
+- No gallery curation data, wall placement, collision geometry, plaque placement fallback, image texture loading, lighting, mobile controls, About/contact work, or local editor behavior was changed.
+
+
+## 2026-05-18 — Phase 6D Editor image-card Save JSON fix
+
+### Summary
+
+- Fixed the lower **Save JSON** button on individual image editor pages so it saves the currently open image card's edited metadata reliably.
+- Added a card-scoped payload builder that replaces the open image record in the full image array instead of relying on the broad page-level save collector.
+- Preserved categories, About photo data, About copy, and unrelated image records during the lower image-card save.
+- Preserved/updates hero slide membership for the edited image based on the open card controls.
+- Left the top global **Save Changes** button behavior unchanged.
+- Bumped the local editor asset cache from `v=72` to `v=73`.
+- Added Phase 6D documentation, pack notes, and manifest.
+
+### Files changed
+
+- `local-editor/static/js/collect.js`
+- `local-editor/static/js/main.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE6D_EDITOR_IMAGE_CARD_SAVE_FIX.md`
+- `docs/pack-notes/PACK_NOTES_PHASE6D.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE6D.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `node --check local-editor/static/js/collect.js`
+- `node --check local-editor/static/js/main.js`
+- `python3 -m py_compile local-editor/app/*.py`
+- `npm ci --ignore-scripts`
+- `npm run build`
+- targeted Node harness for `collectImageCardSavePayload`
+- static source checks for the new image-card save path and editor cache bump
+- `unzip -t`
+
+### Notes
+
+- This is a local-editor hotfix only.
+- It does not change public gallery runtime behavior, mobile touch controls, gallery curation data, wall placement, plaque metadata, collision behavior, About layout, or the image rendition pipeline.
+- Manual Flask editor validation is still recommended because the sandbox cannot run the local editor exactly as the user's Windows environment does.
