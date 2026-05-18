@@ -290,12 +290,17 @@ function updateHeroLink(slideshow: HTMLElement, slide: ResolvedHeroSlide): void 
   }
 
   linkElement.href = `#/portfolio/${slide.targetCategory}`;
-  linkElement.setAttribute('aria-label', `View ${categoryLabel} portfolio`);
+  linkElement.removeAttribute('aria-label');
 
-  const label = linkElement.querySelector('span');
+  const label = linkElement.querySelector<HTMLElement>('[data-hero-link-label]');
+  const context = linkElement.querySelector<HTMLElement>('[data-hero-link-context]');
 
   if (label) {
     label.textContent = 'View Portfolio';
+  }
+
+  if (context) {
+    context.textContent = ` — ${categoryLabel}`;
   }
 
   updateHeroInterface(slideshow, slide);

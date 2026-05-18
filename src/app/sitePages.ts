@@ -306,9 +306,9 @@ function renderHomeHeroSlideshow(): string {
               class="home-hero-portfolio-link"
               data-hero-link
               href="#/portfolio/${firstSlide.targetCategory}"
-              aria-label="View ${categoryLabel} portfolio"
             >
-              <span>View Portfolio</span>
+              <span data-hero-link-label>View Portfolio</span>
+              <span class="sr-only" data-hero-link-context> — ${escapeHtml(categoryLabel)}</span>
             </a>
           </div>
         </div>

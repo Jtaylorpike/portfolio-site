@@ -4,7 +4,9 @@ Updated: 2026-05-18
 
 ## Current project state
 
-The portfolio has completed Phase 6: Mobile 3D gallery controls as of Phase 6J. Phase 6A through Phase 6I established and tuned the touch gallery controls, public gallery metadata cleanup, horizontal-phone route handling, and touch interruption hardening. Phase 6J is documentation-only closeout. The next recommended phase is Phase 7: SEO/discoverability and launch-readiness infrastructure.
+The portfolio has completed Phase 7: SEO/discoverability and launch-readiness infrastructure as of Phase 7E. Phase 7A added the SEO metadata infrastructure, Phase 7B set the canonical/search baseline to `https://taylorpike.com/` and added the repeatable Lighthouse runner, Phase 7C fixed the homepage CTA accessible-name/touch-target issue and added first-hero LCP preload hints, Phase 7D raised primary navigation font sizing to the 12px Lighthouse mobile legibility threshold, and Phase 7E records the accepted closeout state. The accepted post-Phase 7D Lighthouse baseline is Performance 98, Accessibility 100, Best Practices 93, and SEO 100. Hash routing remains accepted for now.
+
+Phase 8: Advanced 3D gallery expansion, texture, and lighting is the next available future phase, but it has not started.
 
 The public design baseline is stable. The user is happy with the current portfolio direction. Future work should avoid broad visual churn unless a specific problem is identified.
 
@@ -145,28 +147,69 @@ Future mobile work should be limited to specific device/browser issues reported 
 
 ## Phase 7 — SEO/discoverability and launch pass
 
-Status: next recommended phase.
+Status: complete / closed with Phase 7E.
 
-Dedicated SEO/discoverability work can start now as launch-readiness infrastructure, but final public copy, final image curation, and final gallery selections should still remain user-authored/pre-launch content tasks.
+Phase 7A infrastructure completed:
 
-Scope should include:
+- added `src/data/siteSeo.json` as the editable metadata source;
+- added `src/data/siteSeo.ts` for typed defaults and normalization;
+- added `src/app/seoController.ts` for route-aware document titles, descriptions, canonical links, Open Graph/Twitter metadata, and JSON-LD structured data;
+- wired the hash router to update metadata on route changes;
+- updated `index.html` with stronger static baseline metadata for crawlers/social previews that do not execute the app;
+- added `public/robots.txt` and `public/sitemap.xml`.
 
-- page titles;
-- meta descriptions;
-- Open Graph/social previews;
-- structured data;
-- alt text review;
-- semantic headings;
-- performance;
-- image loading;
-- indexing behavior;
-- sitemap/robots if needed;
-- GitHub Pages deployment behavior;
-- public copy completeness.
+Phase 7B completed:
+
+- changed the canonical public URL baseline to `https://taylorpike.com/`;
+- updated `siteSeo.json`, `siteSeo.ts`, `index.html`, `robots.txt`, and `sitemap.xml` to use the intended domain;
+- added `scripts/Run-LighthouseBaseline.ps1` for repeatable local or deployed Lighthouse checks;
+- documented the sandbox limitation that prevented a trustworthy local Lighthouse browser score here;
+- completed static root-document SEO checks and a production build-size baseline.
+
+Phase 7C completed:
+
+- reviewed the user's local Lighthouse baseline: Performance 99, Accessibility 96, Best Practices 93, SEO 100;
+- fixed the homepage `View Portfolio` accessible-name mismatch and touch-target warning;
+- added first-hero image preloads for the current mobile and desktop LCP candidates;
+- kept hash routing intact because the SEO score is already 100 and there is no report-backed need for route migration.
+
+Phase 7D completed:
+
+- raised primary public-site navigation font sizing to the 12px Lighthouse mobile legibility threshold;
+- preserved the quiet uppercase editorial nav treatment with tighter tracking;
+- left gallery plaque/card type, homepage metadata microtype, homepage thumbnail microtype, favicon/logo/social-preview work, hash routing, and thumbnail rendition work out of scope.
+
+
+Phase 7E completed:
+
+- accepted the post-Phase 7D Lighthouse baseline: Performance 98, Accessibility 100, Best Practices 93, SEO 100;
+- recorded core metrics: FCP 1.5s, LCP 2.3s, Speed Index 1.5s, TBT 0ms, CLS 0, TTI 2.3s;
+- confirmed the navigation font-size cleanup removed primary nav from the Lighthouse small-font warning list;
+- closed Phase 7 without changing runtime code, CSS, data, images, routing, editor behavior, or public copy.
+
+Current hash-routing position:
+
+```text
+Keep hash routing for now.
+```
+
+Reason: the user prefers its performance/simplicity and wants production Lighthouse results before deciding whether route architecture is worth changing. A hash-to-real-route or prerender migration should be considered only if deployment data, Search Console data, or a clear launch requirement shows that separate crawlable routes are necessary.
+
+Remaining Phase 7 scope: none. Phase 7 is closed.
+
+Deferred by user preference:
+
+- favicon/logo update until after logo redesign;
+- app-icon update until after logo redesign;
+- final social preview image asset until after logo redesign;
+- final SEO launch copy polish;
+- final image alt text/content metadata pass after launch curation;
+- final image/gallery curation;
+- homepage thumbnail rendition efficiency until the pre-launch image pipeline/performance pass after final image/gallery/homepage curation.
 
 ## Phase 8 — Advanced 3D gallery expansion, texture, and lighting
 
-Status: future.
+Status: future / next available phase, not started.
 
 Long-term direction: museum/private archive feeling.
 
@@ -323,4 +366,4 @@ Deferred until pre-launch:
 - final About photo curation;
 - final public/3D gallery curation.
 
-Current phase: Phase 6 mobile 3D gallery controls. Phase 6A adds the first touch-control baseline. Phase 6F is the current touch-camera baseline, Phase 6E movement tuning remains intact, Phase 6H is the current horizontal-phone homepage baseline, Phase 6I is the current short-landscape route/touch-interruption hardening baseline, and Phase 6D includes a narrow local-editor image-card Save JSON hotfix.
+Current phase after Phase 7E closeout: Phase 8 is the next available future phase, but it has not started. Final content curation, final copy, logo/favicon/social-preview work, and thumbnail rendition efficiency remain deferred until their appropriate pre-launch or redesign points.

@@ -3133,3 +3133,199 @@ Additional tested behavior:
 
 - Phase 6J is documentation-only.
 - No runtime TypeScript, CSS, editor code, data files, gallery curation data, image assets, touch sensitivity, movement speed, or public copy changed in this pack.
+
+## 2026-05-18 — Phase 7A SEO infrastructure baseline
+
+### Summary
+
+- Started Phase 7 SEO/discoverability and launch-readiness infrastructure.
+- Added a data-backed SEO metadata source in `src/data/siteSeo.json`.
+- Added a typed normalization layer in `src/data/siteSeo.ts`.
+- Added `src/app/seoController.ts` to update route-aware document titles, descriptions, canonical links, Open Graph/Twitter metadata, robots directives, and JSON-LD structured data.
+- Wired the hash router to apply SEO metadata on route changes.
+- Strengthened `index.html` static baseline metadata for crawlers and social preview tools.
+- Added `public/robots.txt` and `public/sitemap.xml` for the GitHub Pages project URL.
+- Documented the hash-routing SEO limitation: hash routes are not independent crawlable server paths, so the sitemap currently lists the canonical project root.
+
+### Files changed
+
+- `index.html`
+- `public/robots.txt`
+- `public/sitemap.xml`
+- `src/app/seoController.ts`
+- `src/app/siteRouter.ts`
+- `src/data/siteSeo.json`
+- `src/data/siteSeo.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE7_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE7A_SEO_INFRASTRUCTURE.md`
+- `docs/pack-notes/PACK_NOTES_PHASE7A.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE7A.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- Static source checks for SEO controller wiring and crawl files
+- `unzip -t`
+
+### Notes
+
+- This is infrastructure only, not final launch copy.
+- No public visual design, editor behavior, gallery curation, image assets, mobile controls, or About/contact layout was changed.
+
+## 2026-05-18 — Phase 7B Domain and Lighthouse baseline prep
+
+### Summary
+
+- Updated the SEO canonical/search baseline from the temporary GitHub Pages project URL to the intended public domain: `https://taylorpike.com/`.
+- Updated `src/data/siteSeo.json`, `src/data/siteSeo.ts`, `index.html`, `public/robots.txt`, and `public/sitemap.xml` so active SEO/crawl files use the intended domain.
+- Added `scripts/Run-LighthouseBaseline.ps1` for repeatable Lighthouse checks against either a local production preview or the deployed public URL.
+- Documented that a trustworthy Lighthouse browser score could not be generated inside the sandbox because Chromium local navigation is blocked by the environment.
+- Completed static SEO validation and a production build-size baseline.
+- Recorded the current routing recommendation: keep hash routing for now and revisit only if production Lighthouse/Search Console/deployment results justify a real-route or prerender migration.
+
+### Files changed
+
+- `index.html`
+- `public/robots.txt`
+- `public/sitemap.xml`
+- `src/data/siteSeo.json`
+- `src/data/siteSeo.ts`
+- `scripts/Run-LighthouseBaseline.ps1`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE7_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE7B_DOMAIN_LIGHTHOUSE_BASELINE.md`
+- `docs/pack-notes/PACK_NOTES_PHASE7B.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE7B.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm ci --ignore-scripts`
+- `npm run build`
+- Static SEO/crawl-domain checks against production `dist/`
+- PowerShell script syntax review by source inspection
+- `unzip -t`
+
+### Notes
+
+- No favicon/logo/app-icon work was done because the user plans a logo redesign.
+- No social preview asset was created.
+- No hash-routing replacement was done.
+- No public visual design, gallery controls, editor behavior, image curation data, or public copy was changed.
+
+
+## 2026-05-18 — Phase 7C Lighthouse accessibility and LCP cleanup
+
+### Summary
+
+- Reviewed the user's local Lighthouse baseline from Phase 7B: Performance 99, Accessibility 96, Best Practices 93, and SEO 100.
+- Kept hash routing intact because the current root SEO score is already 100 and there is no Lighthouse-backed reason to migrate routes yet.
+- Fixed the homepage `View Portfolio` CTA accessible-name mismatch by removing the changing `aria-label` and adding screen-reader-only category context after the visible label.
+- Increased the homepage portfolio CTA touch target without changing it into a visually heavier button.
+- Added static preload hints for the current first hero image's mobile thumb and desktop display renditions to improve LCP discovery before the TypeScript app boots.
+- Recorded thumbnail rendition efficiency as deferred pre-launch image pipeline/performance work after final homepage/gallery/image curation.
+
+### Files changed
+
+- `index.html`
+- `src/app/sitePages.ts`
+- `src/app/siteInteractionsController.ts`
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE7_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE7C_LIGHTHOUSE_ACCESSIBILITY_LCP_CLEANUP.md`
+- `docs/pack-notes/PACK_NOTES_PHASE7C.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE7C.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- Static source checks for CTA accessible-name cleanup, first-hero preload hints, and deferred favicon/logo/social-preview scope
+- `unzip -t`
+
+### Notes
+
+- No favicon/logo/app-icon work was done because the user plans a logo redesign.
+- No social preview asset was created.
+- No hash-routing replacement was done.
+- No gallery microtype changes were made.
+- No thumbnail rendition pipeline changes were made yet; that belongs in a later pre-launch image pipeline/performance pass.
+
+## 2026-05-18 — Phase 7D navigation font-size cleanup
+
+### Summary
+
+- Raised primary public-site navigation text to the 12px Lighthouse mobile legibility threshold.
+- Preserved the quiet uppercase editorial treatment by tightening letter spacing rather than changing the navigation structure.
+- Added explicit mobile, very-small-phone, and short-landscape phone overrides so earlier 8px/9px navigation rules no longer win for the primary nav.
+- Kept gallery plaque/card typography, homepage metadata microtype, homepage thumbnail microtype, favicon/logo work, social preview work, hash routing, and thumbnail rendition work out of scope.
+
+### Files changed
+
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE7_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE7D_NAVIGATION_FONT_SIZE_CLEANUP.md`
+- `docs/pack-notes/PACK_NOTES_PHASE7D.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE7D.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- CSS brace-balance check
+- Static source checks for Phase 7D navigation font-size overrides
+- `unzip -t`
+
+### Notes
+
+- No favicon/logo/app-icon work was done because the user plans a logo redesign.
+- No social preview asset was created.
+- No hash-routing replacement was done.
+- No gallery microtype changes were made.
+- No thumbnail rendition pipeline changes were made yet; that remains a later pre-launch image pipeline/performance pass.
+
+
+## 2026-05-18 — Phase 7E SEO and Lighthouse closeout
+
+### Summary
+
+- Closed Phase 7 SEO/discoverability and launch-readiness infrastructure after the Phase 7D navigation font-size cleanup was accepted.
+- Recorded the accepted post-Phase 7D Lighthouse baseline: Performance 98, Accessibility 100, Best Practices 93, and SEO 100.
+- Recorded supporting core metrics: FCP 1.5s, LCP 2.3s, Speed Index 1.5s, Total Blocking Time 0ms, CLS 0, and Time to Interactive 2.3s.
+- Confirmed hash routing remains accepted for now because the root SEO score is healthy and the user prefers the performance/simplicity of the hash router.
+- Confirmed Phase 8 advanced 3D gallery expansion, texture, and lighting is the next available future phase, but not yet started.
+
+### Files changed
+
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE7_ACTIVE.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE7_CLOSEOUT.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE7E_SEO_LIGHTHOUSE_CLOSEOUT.md`
+- `docs/pack-notes/PACK_NOTES_PHASE7E.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE7E.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- Static documentation marker checks
+- Pack manifest check
+- `unzip -t`
+
+### Notes
+
+- This is a docs-only closeout pack.
+- No runtime code, CSS, data, image assets, editor behavior, public copy, hash routing, favicon/logo assets, or social preview assets were changed.

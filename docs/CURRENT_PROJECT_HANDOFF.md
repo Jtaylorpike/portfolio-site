@@ -4,9 +4,11 @@ Updated: 2026-05-18
 
 ## Current status
 
-**Phase 6: Mobile 3D gallery controls is complete/closed as of Phase 6J.** The public Three.js gallery now opens on touch/coarse devices, supports a left thumb movement pad, supports drag-to-look camera control, preserves desktop pointer-lock/WASD behavior, uses the accepted Phase 6E movement responsiveness and Phase 6F touch-camera midpoint, removes internal wall-type labels from viewer-facing gallery metadata, and includes short-landscape phone handling for Home, Portfolio, and About. Phase 6I added the final touch-interruption hardening so active movement/look state clears during orientation changes, app switching, blur/page-hide events, touch-mode resize, and gallery teardown. Phase 6J is docs-only closeout: no runtime code changes were made.
+**Phase 7: SEO/discoverability and launch-readiness infrastructure is complete/closed as of Phase 7E.** Phase 7A added the SEO metadata infrastructure, Phase 7B switched the canonical/search baseline to `https://taylorpike.com/` and added the repeatable Lighthouse runner, Phase 7C fixed the homepage `View Portfolio` accessible-name/touch-target issue and added first-hero LCP preload hints, Phase 7D raised primary navigation type to the 12px Lighthouse mobile legibility threshold, and Phase 7E records the accepted closeout state. The post-Phase 7D Lighthouse baseline is Performance 98, Accessibility 100, Best Practices 93, and SEO 100, with FCP 1.5s, LCP 2.3s, Speed Index 1.5s, TBT 0ms, CLS 0, and TTI 2.3s. Hash routing remains the accepted architecture for now because the root SEO score is healthy, the user prefers the performance/simplicity of hash routing, and there is no report-backed need for a real-route/prerender migration yet.
 
-The next recommended phase is **Phase 7: SEO/discoverability and launch-readiness infrastructure**. Do not treat Phase 7 as final launch content completion. Final About copy, final About image curation, final gallery curation, final public image count, and final launch copy remain user-authored/pre-launch content tasks.
+**Phase 8: Advanced 3D gallery expansion, texture, and lighting is the next available future phase, but it has not started.** Treat Phase 8 as user-directed future work. It should preserve collision, wall placement, plaque fallback, editor curation logic, and the accepted mobile gallery controls while exploring the museum/private-archive room direction, texture/material improvements, lighting design, and possible room expansion.
+
+**Phase 6: Mobile 3D gallery controls is complete/closed as of Phase 6J.** The public Three.js gallery now opens on touch/coarse devices, supports a left thumb movement pad, supports drag-to-look camera control, preserves desktop pointer-lock/WASD behavior, uses the accepted Phase 6E movement responsiveness and Phase 6F touch-camera midpoint, removes internal wall-type labels from viewer-facing gallery metadata, and includes short-landscape phone handling for Home, Portfolio, and About. Phase 6I added the final touch-interruption hardening so active movement/look state clears during orientation changes, app switching, blur/page-hide events, touch-mode resize, and gallery teardown. Phase 6J is docs-only closeout: no runtime code changes were made.
 
 **Phase 5: About/contact redesign is complete as of Phase 5K.** The About/contact page has the accepted vertical editorial layout, separate About image pipeline, data-backed copy editor, split About Copy/About Photos editor pages, responsive safeguards, accessibility polish, and closeout documentation. Final About image curation, final About copy, and final gallery setup remain pre-launch content tasks rather than active blockers.
 
@@ -48,9 +50,11 @@ src/data/galleryCuration.json
 src/data/galleryRoom.json
 src/data/aboutPhotos.json
 src/data/aboutCopy.json
+src/data/siteSeo.json
 src/data/images.ts
 src/data/aboutPhotos.ts
 src/data/aboutCopy.ts
+src/data/siteSeo.ts
 ```
 
 ## Active runtime image structure
@@ -104,6 +108,67 @@ Phase 6 is now complete. Mobile/coarse devices can enter the real Three.js galle
 - touch state cleanup on orientation/app-focus interruptions.
 
 Future mobile work should be issue-driven rather than treated as an open phase.
+
+
+## Phase 7 SEO/discoverability state
+
+Phase 7 is closed as of Phase 7E.
+
+Completed Phase 7 implementation:
+
+```text
+src/data/siteSeo.json      # editable SEO metadata source; siteUrl now https://taylorpike.com/
+src/data/siteSeo.ts        # typed normalization/fallback layer; fallback siteUrl now https://taylorpike.com/
+src/app/seoController.ts   # route-aware document/meta/JSON-LD updates
+src/app/siteRouter.ts      # applies SEO metadata after hash-route resolution
+index.html                 # static baseline SEO/social metadata for crawlers and previews
+public/robots.txt          # crawl allowance and sitemap pointer for https://taylorpike.com/
+public/sitemap.xml         # canonical root URL sitemap baseline for https://taylorpike.com/
+scripts/Run-LighthouseBaseline.ps1 # local/deployed Lighthouse baseline runner
+```
+
+Completed Phase 7 low-risk cleanup:
+
+```text
+index.html                            # first-hero mobile/desktop preload hints
+src/app/sitePages.ts                  # homepage CTA accessible-name markup
+src/app/siteInteractionsController.ts # dynamic CTA screen-reader context update
+src/styles/global.css                 # sr-only utility, CTA touch target, and nav font-size overrides
+```
+
+Accepted post-Phase 7D Lighthouse baseline from the user's local production-preview run:
+
+```text
+Performance: 98
+Accessibility: 100
+Best Practices: 93
+SEO: 100
+FCP: 1.5s
+LCP: 2.3s
+Speed Index: 1.5s
+TBT: 0ms
+CLS: 0
+TTI: 2.3s
+```
+
+The intended public URL/domain is:
+
+```text
+https://taylorpike.com/
+```
+
+Hash routing remains accepted for now. Hash routes do not create separately crawlable server paths, but the root SEO baseline is strong and the user currently prefers the performance/simplicity of the hash router. Only reconsider a real-route/prerender migration if deployed-domain data, Google Search Console evidence, or a clear launch requirement shows that separate crawlable routes are worth the architectural churn.
+
+Deferred until later by user preference or roadmap placement:
+
+- favicon/logo update after logo redesign;
+- app-icon update after logo redesign;
+- final social preview image asset after logo redesign;
+- final launch metadata copy rewrite by the user;
+- final image alt text/content metadata pass after launch curation;
+- final image/gallery/homepage curation;
+- homepage thumbnail rendition efficiency during the pre-launch image pipeline/performance pass;
+- hash-router replacement unless deployment data justifies it.
 
 ## Phase 4 editor closeout state
 

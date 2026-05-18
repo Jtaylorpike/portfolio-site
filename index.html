@@ -6,35 +6,56 @@
     <title>Taylor Pike Productions | Photography Portfolio</title>
     <meta
       name="description"
-      content="Photography portfolio by Taylor Pike featuring climbing, landscape, personal, and commercial image work, plus a desktop virtual gallery experience."
+      content="Photography portfolio by Taylor Pike featuring climbing, landscape, personal, and commercial image work, plus an interactive virtual gallery."
     />
     <meta name="author" content="Taylor Pike" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#060807" />
+    <link rel="canonical" href="https://taylorpike.com/" />
+    <link
+      rel="preload"
+      as="image"
+      href="/images/portfolio/thumb/raining-choss.webp"
+      type="image/webp"
+      fetchpriority="high"
+      media="(max-width: 700px)"
+    />
+    <link
+      rel="preload"
+      as="image"
+      href="/images/portfolio/display/raining-choss.webp"
+      type="image/webp"
+      fetchpriority="high"
+      media="(min-width: 701px)"
+    />
 
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:site_name" content="Taylor Pike Productions" />
+    <meta property="og:url" content="https://taylorpike.com/" />
     <meta property="og:title" content="Taylor Pike Productions | Photography Portfolio" />
     <meta
       property="og:description"
-      content="Photography portfolio by Taylor Pike featuring climbing, landscape, personal, and commercial image work."
+      content="Photography portfolio by Taylor Pike featuring climbing, landscape, personal, and commercial image work, plus an interactive virtual gallery."
     />
-    <meta property="og:image" content="images/portfolio/display/climbing-01.webp" />
+    <meta property="og:image" content="https://taylorpike.com/images/portfolio/display/climbing-01.webp" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Taylor Pike Productions | Photography Portfolio" />
     <meta
       name="twitter:description"
-      content="Photography portfolio by Taylor Pike featuring climbing, landscape, personal, and commercial image work."
+      content="Photography portfolio by Taylor Pike featuring climbing, landscape, personal, and commercial image work, plus an interactive virtual gallery."
     />
-    <meta name="twitter:image" content="images/portfolio/display/climbing-01.webp" />
+    <meta name="twitter:image" content="https://taylorpike.com/images/portfolio/display/climbing-01.webp" />
 
-    <script type="application/ld+json">
+    <script id="site-seo-structured-data" type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "Person",
+        "@id": "https://taylorpike.com/#taylor-pike",
         "name": "Taylor Pike",
-        "url": "https://jtaylorpike.github.io/portfolio-site/",
+        "url": "https://taylorpike.com/",
+        "image": "https://taylorpike.com/images/portfolio/display/climbing-01.webp",
         "jobTitle": "Photographer and creative technologist",
         "email": "mailto:jtaylorpike@gmail.com",
         "sameAs": [
@@ -46,7 +67,13 @@
           "Climbing photography",
           "Landscape photography",
           "Interactive web galleries"
-        ]
+        ],
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": "https://taylorpike.com/",
+          "name": "Taylor Pike Productions | Photography Portfolio",
+          "description": "Photography portfolio by Taylor Pike featuring climbing, landscape, personal, and commercial image work, plus an interactive virtual gallery."
+        }
       }
     </script>
   </head>

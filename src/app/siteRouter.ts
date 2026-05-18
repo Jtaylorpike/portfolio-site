@@ -11,9 +11,15 @@ import {
 import { setupSiteInteractions } from './siteInteractionsController';
 import { renderImageEditorPage } from './editor/imageEditorPage';
 import { setupImageEditorController } from './editor/imageEditorController';
+import { applySeoForRoute } from './seoController';
 import { isValidCategoryId } from '../data/categories';
 
 type RouteName = 'entry' | 'home' | 'portfolio' | 'about' | 'editor';
+
+type SiteRoute = {
+  name: RouteName;
+  category: string;
+};
 
 const mobileEntryQuery = window.matchMedia(
   '(hover: none), (pointer: coarse), (max-width: 860px)'
@@ -27,14 +33,14 @@ function getValidPortfolioCategory(category: string | undefined) {
   return 'all';
 }
 
-function getRouteFromHash() {
+function getRouteFromHash(): SiteRoute {
   const rawRoute = window.location.hash.replace(/^#\/?/, '');
   const routeParts = rawRoute.split('/');
   const route = routeParts[0];
 
   if (!route) {
     return {
-      name: mobileEntryQuery.matches ? 'home' : 'entry',
+      name: mobileEntryQuery.matches ? 'home' as RouteName : 'entry' as RouteName,
       category: 'all'
     };
   }
@@ -81,6 +87,11 @@ function renderRoute() {
   }
 
   const route = getRouteFromHash();
+
+  applySeoForRoute({
+    name: route.name,
+    category: route.category
+  });
 
   switch (route.name) {
     case 'entry':

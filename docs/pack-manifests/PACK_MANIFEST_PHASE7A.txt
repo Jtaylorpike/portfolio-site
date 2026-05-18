@@ -1,0 +1,19 @@
+Phase 7A SEO Infrastructure Baseline Pack
+
+Changed / added files:
+
+index.html
+public/robots.txt
+public/sitemap.xml
+src/app/seoController.ts
+src/app/siteRouter.ts
+src/data/siteSeo.json
+src/data/siteSeo.ts
+PROJECT_CHANGELOG.md
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE7_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE7A_SEO_INFRASTRUCTURE.md
+docs/pack-notes/PACK_NOTES_PHASE7A.md
+docs/pack-manifests/PACK_MANIFEST_PHASE7A.txt
