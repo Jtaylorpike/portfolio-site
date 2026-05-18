@@ -114,6 +114,19 @@ Implemented behavior:
 - the compact vertical index rail, simplified header/nav, hidden thumbnails, hidden meta panel, and hidden statement/actions from Phase 6F are preserved;
 - desktop, tablet, portrait-phone homepage, mobile gallery controls, editor behavior, gallery curation data, plaques, and About/contact behavior are unchanged.
 
+## Phase 6H Pixel-class horizontal-phone homepage guard
+
+Phase 6H fixes the Pixel 9 Pro XL horizontal-phone homepage issue reported after Phase 6G. The previous short landscape-phone layout used a max-width breakpoint that can miss wide CSS mobile viewports, so the desktop homepage layout could still appear on a real phone held horizontally.
+
+Implemented behavior:
+
+- the compact landscape-phone homepage guard now covers wider short mobile viewports up to 1080px CSS width;
+- Pixel-class horizontal phones use the same image-first home hero instead of the dense desktop metadata/thumbnail layout;
+- the public homepage hides the meta panel, thumbnail strip, copy panel, statement/actions, and rail label in this specific short landscape mode;
+- the hero image fills the available stage and uses cover fitting in this mode;
+- the header/nav are tightened and the brand descriptor is hidden only for this short landscape-phone layout;
+- mobile gallery controls, camera sensitivity, movement tuning, editor behavior, gallery data, About/contact behavior, desktop homepage, portrait-phone homepage, and normal tablet/desktop layouts are unchanged.
+
 
 ## Files touched in Phase 6A
 
@@ -234,19 +247,33 @@ docs/pack-manifests/PACK_MANIFEST_PHASE6G.txt
 PROJECT_CHANGELOG.md
 ```
 
+## Files touched in Phase 6H
+
+```text
+src/styles/global.css
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE6H_PIXEL_LANDSCAPE_HOME_FIX.md
+docs/pack-notes/PACK_NOTES_PHASE6H.md
+docs/pack-manifests/PACK_MANIFEST_PHASE6H.txt
+PROJECT_CHANGELOG.md
+```
+
 ## Important constraints
 
 - Do not redesign the public site broadly while tuning mobile gallery controls.
 - Preserve existing gallery curation data, artwork placement, wall collision, plaque fallback, lighting, and material behavior unless the user explicitly asks to modify them.
 - Treat Phase 6A/6B as the current mobile interaction baseline. Real-device review from a dev preview is still expected before considering Phase 6 complete.
 - Treat Phase 6D as a local-editor hotfix only; it should not change public gallery runtime behavior.
-- Treat Phase 6G as the current horizontal-phone homepage hero baseline. Phase 6F remains the current touch-camera baseline, and Phase 6E movement tuning remains intact.
+- Treat Phase 6H as the current horizontal-phone homepage baseline. Phase 6F remains the current touch-camera baseline, and Phase 6E movement tuning remains intact.
 - Keep internal wall type labels out of public gallery plaques and artwork info cards unless the user later asks to expose them again.
 - Keep controls restrained and professional. Avoid game-like decorative UI beyond what is required for touch usability.
 
 ## Recommended next QA
 
-After applying Phase 6A through Phase 6G, push to the `dev` branch and test on a real phone or tablet:
+After applying Phase 6A through Phase 6H, push to the `dev` branch and test on a real phone or tablet:
 
 1. Open the virtual gallery from the nav or homepage CTA.
 2. Confirm the old desktop-only fallback does not appear.
@@ -256,6 +283,6 @@ After applying Phase 6A through Phase 6G, push to the `dev` branch and test on a
 6. Confirm the artwork info panel does not sit under the thumb control.
 7. Confirm public gallery plaques and bottom-right cards do not show wall type labels.
 8. Confirm Phase 6F touch camera sensitivity feels balanced between Phase 6B and Phase 6E.
-9. Rotate the phone horizontally on the homepage and confirm the compact hero layout is usable, the hero image fills the available stage, and the dark copy-panel overlay no longer cuts into the photo.
+9. Rotate the phone horizontally on the homepage and confirm Pixel-class/wide landscape-phone viewports use the compact hero layout, the hero image fills the available stage, and the dense desktop metadata/thumbnail layout no longer appears.
 10. Note whether gallery landscape behavior or control placement needs further tuning.
 11. In the local editor, open one image, edit a metadata field, click the lower image-card **Save JSON** button, reload data, and confirm the change persisted.

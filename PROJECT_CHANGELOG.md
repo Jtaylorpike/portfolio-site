@@ -3024,3 +3024,40 @@ Additional tested behavior:
 
 - This is a scoped public homepage CSS fix for short landscape-phone viewports only.
 - It does not change mobile gallery control sensitivity, movement tuning, desktop homepage behavior, portrait-phone homepage behavior, gallery curation data, plaque metadata, local-editor behavior, or About/contact behavior.
+
+## 2026-05-18 — Phase 6H Pixel landscape homepage fix
+
+### Summary
+
+- Fixed the Pixel 9 Pro XL horizontal-phone homepage issue where the dense desktop hero metadata/thumbnail layout could still appear in landscape orientation.
+- Added a broader short landscape-phone homepage media query up to `1080px` CSS width and `560px` CSS height.
+- Kept the fix scoped to `.modern-site[data-page='home']` so other pages and the gallery runtime are unaffected.
+- Preserved the compact image-first homepage direction from Phase 6F/6G but made it apply to wider CSS mobile viewports.
+- Hid the metadata panel, thumbnail strip, copy panel, statement/actions, rail label, and grid marks in this mode.
+- Tightened the header/nav and made the hero image fill the available stage with cover fitting.
+
+### Files changed
+
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE6H_PIXEL_LANDSCAPE_HOME_FIX.md`
+- `docs/pack-notes/PACK_NOTES_PHASE6H.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE6H.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- CSS brace-balance check
+- Static source checks for the Phase 6H landscape-phone breakpoint and scoped homepage selectors
+- Inline headless CSS layout probe at a Pixel-class landscape viewport
+- `unzip -t`
+
+### Notes
+
+- This is a scoped homepage CSS fix for short landscape-phone viewports.
+- It does not change mobile gallery camera sensitivity, movement responsiveness, desktop homepage behavior, portrait-phone homepage behavior, gallery curation data, plaque metadata, local-editor behavior, or About/contact behavior.
+- Real-device QA from the `dev` deployment is still the source of truth for the Pixel 9 Pro XL.

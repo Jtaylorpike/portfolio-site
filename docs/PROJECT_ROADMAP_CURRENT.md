@@ -4,7 +4,7 @@ Updated: 2026-05-18
 
 ## Current project state
 
-The portfolio has completed Phase 5: About/contact redesign and has moved into Phase 6: Mobile 3D gallery controls. Phase 6A adds the first functional touch-control baseline for the public Three.js gallery, and Phase 6F is the current touch-camera plus horizontal-phone homepage tuning baseline.
+The portfolio has completed Phase 5: About/contact redesign and has moved into Phase 6: Mobile 3D gallery controls. Phase 6A adds the first functional touch-control baseline for the public Three.js gallery, Phase 6F is the current touch-camera baseline, and Phase 6H is the current horizontal-phone homepage baseline.
 
 The public design baseline is stable. The user is happy with the current portfolio direction. Future work should avoid broad visual churn unless a specific problem is identified.
 
@@ -138,9 +138,9 @@ Phase 6D is a narrow local-editor hotfix for the individual image editor: the lo
 
 Phase 6E lightly increased mobile touch responsiveness after real-phone testing confirmed the controls work but felt slightly under-sensitive. It increased drag-look sensitivity, slightly loosened touch delta clamping, increased touch-only movement speed, reduced the analog thumb dead zone, made the analog curve closer to linear, and reduced the effective thumb-vector radius so normal thumb travel produces a stronger movement response.
 
-Phase 6F balances that tuning by reducing touch camera sensitivity to a midpoint between Phase 6B and Phase 6E while preserving Phase 6E movement responsiveness. It also adds a targeted horizontal-phone homepage guard so the hero uses a compact, image-first landscape layout on short mobile screens. Phase 6G corrects that landscape-phone homepage guard by letting the hero image fill the available stage and hiding the copy-panel overlay in short landscape-phone mode.
+Phase 6F balances that tuning by reducing touch camera sensitivity to a midpoint between Phase 6B and Phase 6E while preserving Phase 6E movement responsiveness. It also adds a targeted horizontal-phone homepage guard so the hero uses a compact, image-first landscape layout on short mobile screens. Phase 6G corrects that landscape-phone homepage guard by letting the hero image fill the available stage and hiding the copy-panel overlay in short landscape-phone mode. Phase 6H broadens the same landscape-phone guard for wider CSS mobile viewports such as the Pixel 9 Pro XL, preventing the dense desktop homepage metadata/thumbnail layout from appearing in horizontal phone orientation.
 
-Remaining Phase 6 review should happen on a real phone/tablet from the `dev` deployment. Likely follow-ups may include adjusting control placement around specific devices, checking whether the Phase 6F camera midpoint feels balanced, checking the Phase 6G horizontal-phone homepage hero, and reducing any control overlap with artwork info panels. Also manually confirm the Phase 6D lower image-card save behavior in the local editor.
+Remaining Phase 6 review should happen on a real phone/tablet from the `dev` deployment. Likely follow-ups may include adjusting control placement around specific devices, checking whether the Phase 6F camera midpoint feels balanced, checking the Phase 6H horizontal-phone homepage guard on the Pixel 9 Pro XL and any other available phones, and reducing any control overlap with artwork info panels. Also manually confirm the Phase 6D lower image-card save behavior in the local editor.
 
 ## Phase 7 — SEO/discoverability and launch pass
 
@@ -322,4 +322,4 @@ Deferred until pre-launch:
 - final About photo curation;
 - final public/3D gallery curation.
 
-Current phase: Phase 6 mobile 3D gallery controls. Phase 6A adds the first touch-control baseline. Phase 6E is the current mobile responsiveness tuning baseline. Phase 6D also includes a narrow local-editor image-card Save JSON hotfix.
+Current phase: Phase 6 mobile 3D gallery controls. Phase 6A adds the first touch-control baseline. Phase 6F is the current touch-camera baseline, Phase 6E movement tuning remains intact, Phase 6H is the current horizontal-phone homepage baseline, and Phase 6D includes a narrow local-editor image-card Save JSON hotfix.
