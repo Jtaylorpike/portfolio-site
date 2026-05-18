@@ -1,12 +1,14 @@
-# Taylor Pike Portfolio — Phase 6 Active Handoff
+# Taylor Pike Portfolio — Phase 6 Complete Handoff
 
 Updated: 2026-05-18
 
-## Active phase
+## Closed phase
 
-**Phase 6: Mobile 3D gallery controls is active.**
+**Phase 6: Mobile 3D gallery controls is complete/closed as of Phase 6J.**
 
-Phase 5 About/contact redesign is complete/closed with Phase 5K. Final About copy, final About image curation, and final gallery curation are deferred pre-launch content tasks and should not block Phase 6.
+Phase 6A through Phase 6I implemented the mobile gallery controls, phone-specific homepage/route hardening, metadata cleanup, and one narrow editor save hotfix discovered during the phase. Phase 6J is a docs-only closeout pack. No runtime code was changed in Phase 6J.
+
+Phase 5 About/contact redesign remains complete/closed with Phase 5K. Final About copy, final About image curation, final gallery curation, final public image count, and final launch copy are deferred pre-launch content tasks and should not be treated as missing Phase 6 work.
 
 ## Phase 6A baseline
 
@@ -140,6 +142,20 @@ Implemented behavior:
 - fullscreen gallery overlay gets additional touch-callout and overscroll guards;
 - active touch movement/look state is cleared on window blur, page hide, document visibility loss, orientation change, touch-mode resize, and gallery destroy;
 - Phase 6F camera sensitivity and Phase 6E movement responsiveness remain unchanged.
+
+## Phase 6J closeout
+
+Phase 6J closes the mobile gallery phase after the user confirmed the Phase 6I route/touch hardening was working.
+
+Closeout state:
+
+- mobile gallery controls are considered accepted unless a specific device issue appears later;
+- Phase 6E movement responsiveness remains the accepted touch movement baseline;
+- Phase 6F camera sensitivity remains the accepted touch camera baseline;
+- Phase 6H is the accepted Pixel-class horizontal-phone homepage guard;
+- Phase 6I is the accepted short-landscape route/touch-interruption hardening baseline;
+- future mobile changes should be issue-driven rather than treated as open Phase 6 scope;
+- next recommended phase is Phase 7 SEO/discoverability and launch-readiness infrastructure.
 
 
 ## Files touched in Phase 6A
@@ -277,29 +293,23 @@ PROJECT_CHANGELOG.md
 
 ## Important constraints
 
-- Do not redesign the public site broadly while tuning mobile gallery controls.
+- Do not redesign the public site broadly after Phase 6 closeout unless the user identifies a specific issue.
 - Preserve existing gallery curation data, artwork placement, wall collision, plaque fallback, lighting, and material behavior unless the user explicitly asks to modify them.
-- Treat Phase 6A/6B as the current mobile interaction baseline. Real-device review from a dev preview is still expected before considering Phase 6 complete.
-- Treat Phase 6D as a local-editor hotfix only; it should not change public gallery runtime behavior.
-- Treat Phase 6H as the current horizontal-phone homepage baseline. Phase 6F remains the current touch-camera baseline, and Phase 6E movement tuning remains intact.
+- Treat Phase 6E movement responsiveness, Phase 6F camera sensitivity, Phase 6H Pixel-class homepage landscape guard, and Phase 6I public-route/touch-interruption hardening as the accepted mobile baseline.
+- Treat Phase 6D as a local-editor hotfix only; it should not be confused with mobile gallery runtime work.
 - Keep internal wall type labels out of public gallery plaques and artwork info cards unless the user later asks to expose them again.
 - Keep controls restrained and professional. Avoid game-like decorative UI beyond what is required for touch usability.
 
-## Recommended next QA
+## Post-closeout maintenance checklist
 
-After applying Phase 6A through Phase 6H, push to the `dev` branch and test on a real phone or tablet:
+If a future mobile issue is reported, check these first:
 
-1. Open the virtual gallery from the nav or homepage CTA.
-2. Confirm the old desktop-only fallback does not appear.
-3. Use the left thumb pad to move forward/backward/strafe.
-4. Drag on the main gallery canvas to look around.
-5. Confirm the Exit button remains usable.
-6. Confirm the artwork info panel does not sit under the thumb control.
-7. Confirm public gallery plaques and bottom-right cards do not show wall type labels.
-8. Confirm Phase 6F touch camera sensitivity feels balanced between Phase 6B and Phase 6E.
-9. Rotate the phone horizontally on the homepage and confirm Pixel-class/wide landscape-phone viewports use the compact hero layout, the hero image fills the available stage, and the dense desktop metadata/thumbnail layout no longer appears.
-10. Note whether gallery landscape behavior or control placement needs further tuning.
-11. In the local editor, open one image, edit a metadata field, click the lower image-card **Save JSON** button, reload data, and confirm the change persisted.
+1. Device and browser.
+2. Portrait vs. landscape orientation.
+3. Current route: Home, Portfolio, Gallery, or About.
+4. Whether the issue is runtime control feel, safe-area spacing, overlay placement, or public-page layout.
+5. Whether active movement/look state persists after orientation changes, app switching, lock/unlock, or browser tab changes.
+6. Whether the issue reproduces on the deployed `dev` preview and on `main`.
 
 ## Files touched in Phase 6I
 
@@ -315,5 +325,18 @@ docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
 docs/PHASE6I_MOBILE_ROUTE_AND_TOUCH_HARDENING.md
 docs/pack-notes/PACK_NOTES_PHASE6I.md
 docs/pack-manifests/PACK_MANIFEST_PHASE6I.txt
+PROJECT_CHANGELOG.md
+```
+
+## Files touched in Phase 6J
+
+```text
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE6J_MOBILE_GALLERY_CLOSEOUT.md
+docs/pack-notes/PACK_NOTES_PHASE6J.md
+docs/pack-manifests/PACK_MANIFEST_PHASE6J.txt
 PROJECT_CHANGELOG.md
 ```

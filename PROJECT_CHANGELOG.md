@@ -3101,3 +3101,35 @@ Additional tested behavior:
 - This is a scoped mobile/landscape and input-hardening pack.
 - It does not change gallery curation data, wall placement, collision geometry, public plaque metadata, local-editor behavior, desktop gallery controls, or the accepted About/contact data model.
 - Real-device QA from the `dev` deployment remains the source of truth.
+
+## 2026-05-18 — Phase 6J Mobile gallery closeout
+
+### Summary
+
+- Closed Phase 6 mobile 3D gallery controls after the Phase 6I route/touch hardening was confirmed working.
+- Recorded the accepted mobile gallery baseline: Phase 6E movement responsiveness, Phase 6F touch-camera sensitivity, Phase 6H Pixel-class horizontal-phone homepage handling, and Phase 6I short-landscape route/touch-interruption hardening.
+- Updated the current handoff, Phase 6 handoff, roadmap, transfer workflow, and dedicated closeout notes.
+- Marked future mobile work as issue-driven rather than open Phase 6 scope.
+- Pointed the next recommended phase toward Phase 7 SEO/discoverability and launch-readiness infrastructure while keeping final copy/image/gallery curation as user-authored pre-launch tasks.
+
+### Files changed
+
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE6J_MOBILE_GALLERY_CLOSEOUT.md`
+- `docs/pack-notes/PACK_NOTES_PHASE6J.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE6J.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- Documentation marker checks
+- Pack manifest check
+- `unzip -t`
+
+### Notes
+
+- Phase 6J is documentation-only.
+- No runtime TypeScript, CSS, editor code, data files, gallery curation data, image assets, touch sensitivity, movement speed, or public copy changed in this pack.

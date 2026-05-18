@@ -4,7 +4,7 @@ Updated: 2026-05-18
 
 ## Current project state
 
-The portfolio has completed Phase 5: About/contact redesign and has moved into Phase 6: Mobile 3D gallery controls. Phase 6A adds the first functional touch-control baseline for the public Three.js gallery, Phase 6F is the current touch-camera baseline, Phase 6H is the current horizontal-phone homepage baseline, and Phase 6I is the current short-landscape public-route/touch-interruption hardening baseline.
+The portfolio has completed Phase 6: Mobile 3D gallery controls as of Phase 6J. Phase 6A through Phase 6I established and tuned the touch gallery controls, public gallery metadata cleanup, horizontal-phone route handling, and touch interruption hardening. Phase 6J is documentation-only closeout. The next recommended phase is Phase 7: SEO/discoverability and launch-readiness infrastructure.
 
 The public design baseline is stable. The user is happy with the current portfolio direction. Future work should avoid broad visual churn unless a specific problem is identified.
 
@@ -124,29 +124,30 @@ The user wants to write the actual page copy. Do not generate final About copy u
 
 ## Phase 6 — Mobile 3D gallery controls
 
-Status: active.
+Status: complete / closed with Phase 6J.
 
-The 3D gallery should be viewable on mobile using touch movement controls similar to Minecraft mobile and drag-to-look camera controls.
+The 3D gallery is now viewable on mobile using a restrained touch control layer: left thumb movement pad plus drag-to-look camera controls. Desktop pointer-lock/WASD behavior remains intact.
 
-Phase 6A establishes the first mobile-control baseline: touch/coarse devices open the real Three.js gallery instead of the old desktop-only fallback, a restrained left thumb movement pad feeds analog movement into the existing collision-aware movement controller, and the canvas supports drag-to-look camera control.
+Completed baseline:
 
-Phase 6B polishes the touch baseline for dev-preview testing. It fades the touch hint after first use, softens movement-pad visuals, improves safe-area and landscape safeguards, shapes analog input with a dead zone/curve, slightly reduces touch movement speed, and makes drag-look less jumpy.
+- Phase 6A established the functional mobile-control baseline and removed the touch-device desktop-only fallback.
+- Phase 6B polished hint behavior, safe-area spacing, movement-pad presentation, analog shaping, and drag-look jump protection.
+- Phase 6C removed internal wall type labels from viewer-facing plaques and bottom-right artwork info cards.
+- Phase 6D fixed the local editor individual image-card lower Save JSON button.
+- Phase 6E increased touch movement responsiveness and made analog movement feel more immediate.
+- Phase 6F reduced camera sensitivity to a midpoint between Phase 6B and Phase 6E while preserving Phase 6E movement responsiveness.
+- Phase 6G fixed the horizontal-phone homepage hero overlay/crop issue.
+- Phase 6H broadened the landscape-phone homepage guard for Pixel-class wide CSS mobile viewports.
+- Phase 6I extended short-landscape phone handling to Portfolio/About and added touch state cleanup on orientation/app-focus interruptions.
+- Phase 6J closed the phase with documentation updates only.
 
-Phase 6C cleans up public gallery metadata so plaques and the bottom-right artwork card no longer expose internal wall type labels. Wall type remains an editor/layout concept, not a viewer-facing label.
-
-Phase 6D is a narrow local-editor hotfix for the individual image editor: the lower Save JSON button now uses a card-scoped full-save payload so metadata edits persist reliably from that button.
-
-Phase 6E lightly increased mobile touch responsiveness after real-phone testing confirmed the controls work but felt slightly under-sensitive. It increased drag-look sensitivity, slightly loosened touch delta clamping, increased touch-only movement speed, reduced the analog thumb dead zone, made the analog curve closer to linear, and reduced the effective thumb-vector radius so normal thumb travel produces a stronger movement response.
-
-Phase 6F balances that tuning by reducing touch camera sensitivity to a midpoint between Phase 6B and Phase 6E while preserving Phase 6E movement responsiveness. It also adds a targeted horizontal-phone homepage guard so the hero uses a compact, image-first landscape layout on short mobile screens. Phase 6G corrects that landscape-phone homepage guard by letting the hero image fill the available stage and hiding the copy-panel overlay in short landscape-phone mode. Phase 6H broadens the same landscape-phone guard for wider CSS mobile viewports such as the Pixel 9 Pro XL, preventing the dense desktop homepage metadata/thumbnail layout from appearing in horizontal phone orientation. Phase 6I extends short-landscape phone treatment to Portfolio/About and hardens touch-interruption cleanup for the fullscreen gallery.
-
-Remaining Phase 6 review should happen on a real phone/tablet from the `dev` deployment. Likely follow-ups may include adjusting control placement around specific devices, checking whether the Phase 6F camera midpoint feels balanced after more use, checking the Phase 6I landscape Portfolio/About guards on the Pixel 9 Pro XL and any other available phones, and reducing any control overlap with artwork info panels. Also manually confirm the Phase 6D lower image-card save behavior in the local editor.
+Future mobile work should be limited to specific device/browser issues reported after deployment. It should not reopen Phase 6 broadly.
 
 ## Phase 7 — SEO/discoverability and launch pass
 
-Status: future.
+Status: next recommended phase.
 
-Dedicated SEO should happen after public structure and content are closer to final.
+Dedicated SEO/discoverability work can start now as launch-readiness infrastructure, but final public copy, final image curation, and final gallery selections should still remain user-authored/pre-launch content tasks.
 
 Scope should include:
 
