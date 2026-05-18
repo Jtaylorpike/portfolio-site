@@ -257,6 +257,22 @@ export function setupGalleryController() {
     galleryTouchMoveKnob?.style.setProperty('--gallery-touch-knob-y', '0px');
   }
 
+  function releaseTouchMovePointerCapture() {
+    if (touchMovePointerId === null || !galleryTouchMove?.hasPointerCapture(touchMovePointerId)) {
+      return;
+    }
+
+    galleryTouchMove.releasePointerCapture(touchMovePointerId);
+  }
+
+  function clearActiveTouchInteraction() {
+    releaseTouchMovePointerCapture();
+    touchMovePointerId = null;
+    galleryTouchMove?.classList.remove('is-active');
+    galleryTouchControls?.classList.remove('is-looking');
+    clearTouchMove();
+  }
+
   function handleTouchMoveStart(event: PointerEvent) {
     if (activeGalleryInputMode !== 'touch' || event.pointerType === 'mouse' || touchMovePointerId !== null) {
       return;
@@ -284,13 +300,7 @@ export function setupGalleryController() {
       return;
     }
 
-    if (galleryTouchMove?.hasPointerCapture(event.pointerId)) {
-      galleryTouchMove.releasePointerCapture(event.pointerId);
-    }
-
-    touchMovePointerId = null;
-    galleryTouchMove?.classList.remove('is-active');
-    clearTouchMove();
+    clearActiveTouchInteraction();
     event.preventDefault();
   }
 
@@ -311,6 +321,22 @@ export function setupGalleryController() {
     galleryTouchControls?.classList.remove('is-looking');
   }
 
+  function handleTouchViewportInterruption() {
+    if (activeGalleryInputMode !== 'touch') {
+      return;
+    }
+
+    clearActiveTouchInteraction();
+  }
+
+  function handleTouchVisibilityChange() {
+    if (!document.hidden) {
+      return;
+    }
+
+    handleTouchViewportInterruption();
+  }
+
   function bindTouchControls() {
     if (touchControlsBound || !galleryTouchMove) {
       return;
@@ -325,6 +351,10 @@ export function setupGalleryController() {
     galleryTouchMove.addEventListener('pointerup', handleTouchMoveEnd);
     galleryTouchMove.addEventListener('pointercancel', handleTouchMoveEnd);
     galleryTouchMove.addEventListener('lostpointercapture', handleTouchMoveEnd);
+    window.addEventListener('blur', handleTouchViewportInterruption);
+    window.addEventListener('pagehide', handleTouchViewportInterruption);
+    window.addEventListener('orientationchange', handleTouchViewportInterruption);
+    document.addEventListener('visibilitychange', handleTouchVisibilityChange);
     touchControlsBound = true;
   }
 
@@ -342,14 +372,16 @@ export function setupGalleryController() {
     galleryTouchMove.removeEventListener('pointerup', handleTouchMoveEnd);
     galleryTouchMove.removeEventListener('pointercancel', handleTouchMoveEnd);
     galleryTouchMove.removeEventListener('lostpointercapture', handleTouchMoveEnd);
+    window.removeEventListener('blur', handleTouchViewportInterruption);
+    window.removeEventListener('pagehide', handleTouchViewportInterruption);
+    window.removeEventListener('orientationchange', handleTouchViewportInterruption);
+    document.removeEventListener('visibilitychange', handleTouchVisibilityChange);
     touchControlsBound = false;
   }
 
   function resetTouchControls() {
     clearTouchUiDismissTimeout();
-    touchMovePointerId = null;
-    galleryTouchMove?.classList.remove('is-active');
-    clearTouchMove();
+    clearActiveTouchInteraction();
     setTouchControlsVisible(false);
   }
 

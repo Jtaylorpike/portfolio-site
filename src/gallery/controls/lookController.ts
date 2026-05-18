@@ -77,6 +77,14 @@ export class LookController {
     }
   }
 
+  public resetInteraction() {
+    if (this.activeTouchLookPointerId !== null && this.canvas.hasPointerCapture(this.activeTouchLookPointerId)) {
+      this.canvas.releasePointerCapture(this.activeTouchLookPointerId);
+    }
+
+    this.activeTouchLookPointerId = null;
+  }
+
   private handleCanvasClick = () => {
     if (this.inputMode === 'touch') {
       return;

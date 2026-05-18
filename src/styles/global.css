@@ -4887,3 +4887,237 @@ body.gallery-touch-enabled .gallery-crosshair {
     object-position: 50% 50% !important;
   }
 }
+
+/* Phase 6I mobile public-route and touch-interruption hardening.
+   Keep the accepted Phase 6 mobile gallery controls intact while making
+   short landscape-phone layouts safer beyond the homepage and preventing
+   browser gestures/text selection from interfering with the fullscreen gallery. */
+body.gallery-is-open {
+  overscroll-behavior: none;
+}
+
+.gallery-overlay,
+.gallery-touch-controls,
+.gallery-touch-move,
+.gallery-canvas,
+.gallery-canvas canvas {
+  -webkit-touch-callout: none;
+}
+
+body.gallery-touch-enabled .gallery-overlay {
+  touch-action: none;
+}
+
+body.gallery-touch-enabled .gallery-close {
+  touch-action: manipulation;
+}
+
+@media (max-width: 1080px) and (max-height: 560px) and (orientation: landscape) {
+  .modern-site:not([data-page='home']) .modern-header {
+    position: relative;
+    z-index: 8;
+    width: calc(100% - 20px);
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 12px;
+    padding-top: max(6px, env(safe-area-inset-top));
+    padding-bottom: 6px;
+  }
+
+  .modern-site:not([data-page='home']) .modern-header::before {
+    height: 64px;
+  }
+
+  .modern-site:not([data-page='home']) .modern-brand {
+    flex: 0 0 auto;
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+  }
+
+  .modern-site:not([data-page='home']) .modern-brand-name {
+    font-size: clamp(12px, 1.6vw, 14px);
+    letter-spacing: 0.28em;
+    white-space: nowrap;
+  }
+
+  .modern-site:not([data-page='home']) .modern-brand-field {
+    display: none;
+  }
+
+  .modern-site:not([data-page='home']) .modern-nav {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: clamp(16px, 4vw, 34px);
+    border-top: 0;
+    border-bottom: 0;
+    overflow: hidden;
+  }
+
+  .modern-site:not([data-page='home']) .modern-nav a,
+  .modern-site:not([data-page='home']) .modern-nav button {
+    min-height: 30px;
+    border-right: 0;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+  }
+
+  .modern-site:not([data-page='home']) .modern-main {
+    width: calc(100% - 20px);
+  }
+
+  .modern-site[data-page='portfolio'] .modern-portfolio-page {
+    display: block;
+    padding: 24px 0 58px;
+  }
+
+  .modern-site[data-page='portfolio'] .modern-portfolio-page::before {
+    display: none;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-category-sidebar {
+    position: static;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    overflow-x: auto;
+    gap: 16px;
+    margin: 0 -10px 22px;
+    padding: 0 10px 10px;
+    border-left: 0;
+    border-bottom: 1px solid var(--line-soft);
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-category-sidebar .eyebrow,
+  .modern-site[data-page='portfolio'] .portfolio-index-button::before,
+  .modern-site[data-page='portfolio'] .portfolio-index-button::after {
+    display: none;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-index-button {
+    width: auto;
+    grid-template-columns: auto auto auto;
+    gap: 8px;
+    min-height: 30px;
+    padding: 0;
+    scroll-snap-align: start;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-index-number,
+  .modern-site[data-page='portfolio'] .portfolio-index-label,
+  .modern-site[data-page='portfolio'] .portfolio-index-count {
+    font-size: 9px;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-page-heading {
+    gap: 12px;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-page-heading h1 {
+    max-width: 880px;
+    font-size: clamp(28px, 5vw, 48px);
+    line-height: 0.98;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-page-meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-page-meta-strip span,
+  .modern-site[data-page='portfolio'] .portfolio-page-meta-strip button {
+    min-height: 28px;
+    padding-inline: 9px;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-grid {
+    columns: 3 190px;
+    column-gap: 12px;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-grid-card,
+  .modern-site[data-page='portfolio'] .portfolio-grid-card:nth-child(4n + 2),
+  .modern-site[data-page='portfolio'] .portfolio-grid-card:nth-child(5n + 4) {
+    margin-bottom: 22px;
+    padding-top: 0;
+  }
+
+  .modern-site[data-page='portfolio'] .portfolio-grid-card-meta h2 {
+    font-size: 15px;
+  }
+
+  .modern-site[data-page='about'] .modern-about-page {
+    padding-top: 28px;
+    padding-bottom: 80px;
+  }
+
+  .modern-site[data-page='about'] .about-vertical-page {
+    gap: 48px;
+  }
+
+  .modern-site[data-page='about'] .about-vertical-hero,
+  .modern-site[data-page='about'] .about-split-section {
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 0.86fr);
+    gap: 28px;
+    align-items: center;
+  }
+
+  .modern-site[data-page='about'] .about-copy-block-primary h1 {
+    font-size: clamp(34px, 6vw, 62px);
+  }
+
+  .modern-site[data-page='about'] .about-page-kicker,
+  .modern-site[data-page='about'] .about-wide-copy-columns p,
+  .modern-site[data-page='about'] .about-copy-block-secondary p:not(.eyebrow),
+  .modern-site[data-page='about'] .about-contact-card p:not(.eyebrow) {
+    font-size: 14px;
+    line-height: 1.58;
+  }
+
+  .modern-site[data-page='about'] .about-photo-cluster {
+    min-height: min(76svh, 430px);
+  }
+
+  .modern-site[data-page='about'] .about-wide-copy-block {
+    grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1fr);
+    gap: 24px;
+    min-height: auto;
+    padding: 26px;
+  }
+
+  .modern-site[data-page='about'] .about-wide-copy-columns {
+    gap: 22px;
+  }
+
+  .modern-site[data-page='about'] .about-secondary-photo-stack,
+  .modern-site[data-page='about'] .about-copy-block-secondary {
+    min-height: min(78svh, 450px);
+  }
+
+  .modern-site[data-page='about'] .about-copy-block-secondary,
+  .modern-site[data-page='about'] .about-contact-card {
+    padding: 26px;
+  }
+
+  .modern-site[data-page='about'] .about-contact-section {
+    gap: 24px;
+    padding-top: 30px;
+  }
+
+  .modern-site[data-page='about'] .about-floating-photo {
+    opacity: 0.06;
+  }
+}

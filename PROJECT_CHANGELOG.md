@@ -3061,3 +3061,43 @@ Additional tested behavior:
 - This is a scoped homepage CSS fix for short landscape-phone viewports.
 - It does not change mobile gallery camera sensitivity, movement responsiveness, desktop homepage behavior, portrait-phone homepage behavior, gallery curation data, plaque metadata, local-editor behavior, or About/contact behavior.
 - Real-device QA from the `dev` deployment is still the source of truth for the Pixel 9 Pro XL.
+
+## 2026-05-18 — Phase 6I Mobile route and touch hardening
+
+### Summary
+
+- Extended the short landscape-phone public-shell treatment beyond the homepage to Portfolio and About routes.
+- Made Portfolio use a compact horizontal category rail, tighter heading/metadata spacing, and tighter grid spacing on wide, short phone viewports.
+- Made About use tighter spacing, smaller text scale, and less dominant background-float opacity on wide, short phone viewports.
+- Added touch-callout and overscroll guards around the fullscreen gallery overlay.
+- Added touch-interruption cleanup so active movement/look states clear on blur, page hide, document visibility loss, orientation change, touch-mode resize, and gallery teardown.
+- Preserved Phase 6F camera sensitivity and Phase 6E movement responsiveness.
+
+### Files changed
+
+- `src/app/galleryController.ts`
+- `src/gallery/GalleryScene.ts`
+- `src/gallery/controls/lookController.ts`
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE6I_MOBILE_ROUTE_AND_TOUCH_HARDENING.md`
+- `docs/pack-notes/PACK_NOTES_PHASE6I.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE6I.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm ci --ignore-scripts`
+- `npm run build`
+- CSS brace-balance check
+- Static Phase 6I source checks
+- `unzip -t`
+
+### Notes
+
+- This is a scoped mobile/landscape and input-hardening pack.
+- It does not change gallery curation data, wall placement, collision geometry, public plaque metadata, local-editor behavior, desktop gallery controls, or the accepted About/contact data model.
+- Real-device QA from the `dev` deployment remains the source of truth.

@@ -891,9 +891,15 @@ export class GalleryScene {
 
   private handleWindowBlur = () => {
     this.movementController.reset();
+    this.lookController.resetInteraction();
   };
 
   private handleResize = () => {
+    if (this.inputMode === 'touch') {
+      this.movementController.reset();
+      this.lookController.resetInteraction();
+    }
+
     const width = Math.max(1, this.container.clientWidth);
     const height = Math.max(1, this.container.clientHeight);
 
@@ -1032,6 +1038,7 @@ export class GalleryScene {
 
     this.plaqueTextures.clear();
 
+    this.lookController.resetInteraction();
     this.lookController.releasePointerLock();
     this.unbindEvents();
     this.disposeSceneResources();

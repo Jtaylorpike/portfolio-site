@@ -128,6 +128,20 @@ Implemented behavior:
 - mobile gallery controls, camera sensitivity, movement tuning, editor behavior, gallery data, About/contact behavior, desktop homepage, portrait-phone homepage, and normal tablet/desktop layouts are unchanged.
 
 
+## Phase 6I mobile route and touch hardening
+
+Phase 6I is a focused mobile follow-up after the Pixel 9 Pro XL horizontal homepage fix was confirmed functional.
+
+Implemented behavior:
+
+- short landscape-phone public shell styling now applies to Portfolio and About routes instead of only the homepage;
+- Portfolio route switches to a compact horizontal category rail and tighter heading/grid spacing on wide, short phone viewports;
+- About route uses tighter vertical spacing, smaller heading/copy scale, and less dominant background-float opacity on wide, short phone viewports;
+- fullscreen gallery overlay gets additional touch-callout and overscroll guards;
+- active touch movement/look state is cleared on window blur, page hide, document visibility loss, orientation change, touch-mode resize, and gallery destroy;
+- Phase 6F camera sensitivity and Phase 6E movement responsiveness remain unchanged.
+
+
 ## Files touched in Phase 6A
 
 ```text
@@ -286,3 +300,20 @@ After applying Phase 6A through Phase 6H, push to the `dev` branch and test on a
 9. Rotate the phone horizontally on the homepage and confirm Pixel-class/wide landscape-phone viewports use the compact hero layout, the hero image fills the available stage, and the dense desktop metadata/thumbnail layout no longer appears.
 10. Note whether gallery landscape behavior or control placement needs further tuning.
 11. In the local editor, open one image, edit a metadata field, click the lower image-card **Save JSON** button, reload data, and confirm the change persisted.
+
+## Files touched in Phase 6I
+
+```text
+src/app/galleryController.ts
+src/gallery/GalleryScene.ts
+src/gallery/controls/lookController.ts
+src/styles/global.css
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE6I_MOBILE_ROUTE_AND_TOUCH_HARDENING.md
+docs/pack-notes/PACK_NOTES_PHASE6I.md
+docs/pack-manifests/PACK_MANIFEST_PHASE6I.txt
+PROJECT_CHANGELOG.md
+```
