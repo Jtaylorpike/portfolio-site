@@ -2949,3 +2949,78 @@ Additional tested behavior:
 - It does not change desktop gallery controls, public site layout, gallery curation data, wall placement, collision geometry, plaque metadata, image texture loading, lighting, About/contact behavior, or local-editor save behavior.
 - Real-device QA should continue from the `dev` deployment, then merge to `main` once the feel is acceptable.
 
+
+
+## 2026-05-18 — Phase 6F Mobile camera and landscape homepage tuning
+
+### Summary
+
+- Reduced touch drag-look sensitivity from the Phase 6E value while keeping it above the Phase 6B restrained baseline.
+- Reduced touch-look delta clamping from the Phase 6E value to lower the chance of accidental camera jumps.
+- Preserved Phase 6E movement responsiveness because the reported issue was camera sensitivity, not movement speed.
+- Added a targeted horizontal-phone homepage media query for short landscape mobile screens.
+- In horizontal-phone homepage view, switched the hero to a compact image-first layout with a small index rail, hidden thumbnail strip, hidden meta panel, hidden statement/actions, and tighter header/nav spacing.
+- Added Phase 6F documentation, pack notes, and manifest.
+
+### Files changed
+
+- `src/gallery/controls/lookController.ts`
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE6F_MOBILE_CAMERA_AND_LANDSCAPE_HOME_TUNING.md`
+- `docs/pack-notes/PACK_NOTES_PHASE6F.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE6F.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm ci --ignore-scripts`
+- `npm run build`
+- CSS brace-balance check
+- Static source checks for Phase 6F touch camera constants and horizontal-phone homepage CSS
+- `unzip -t`
+
+### Notes
+
+- This is a focused mobile tuning pack.
+- It does not change gallery curation data, wall placement, collision geometry, public plaque metadata, About/contact behavior, local-editor save behavior, or desktop gallery controls.
+- Real-device QA should continue from the `dev` deployment before merging or treating Phase 6 as complete.
+
+
+## 2026-05-18 — Phase 6G Horizontal-phone homepage hero fix
+
+### Summary
+
+- Refined the Phase 6F short landscape-phone homepage layout after real-device testing showed the hero image being visually cut by the compact copy-panel overlay.
+- Let the horizontal-phone hero image shell fill the available stage width instead of rendering as a narrower 16:9 box aligned to the right.
+- Set the horizontal-phone hero shell to a fixed short viewport-based height for a cleaner photo-first layout.
+- Hid the copy panel only in this short landscape-phone homepage mode so the dark text overlay no longer covers the photo.
+- Preserved the Phase 6F compact index rail, simplified header/nav, hidden thumbnails, hidden meta panel, hidden statement/actions, and all gallery touch-control tuning.
+
+### Files changed
+
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE6G_HORIZONTAL_PHONE_HOMEPAGE_HERO_FIX.md`
+- `docs/pack-notes/PACK_NOTES_PHASE6G.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE6G.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm ci --ignore-scripts`
+- `npm run build`
+- CSS brace-balance check
+- Static source checks for Phase 6G horizontal-phone homepage CSS
+- `unzip -t`
+
+### Notes
+
+- This is a scoped public homepage CSS fix for short landscape-phone viewports only.
+- It does not change mobile gallery control sensitivity, movement tuning, desktop homepage behavior, portrait-phone homepage behavior, gallery curation data, plaque metadata, local-editor behavior, or About/contact behavior.

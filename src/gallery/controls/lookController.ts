@@ -24,8 +24,8 @@ export class LookController {
   private lastTouchLookX = 0;
   private lastTouchLookY = 0;
   private sensitivity = 0.002;
-  private touchSensitivity = 0.0041;
-  private maxTouchLookDelta = 52;
+  private touchSensitivity = 0.00375;
+  private maxTouchLookDelta = 48;
 
   constructor(options: LookControllerOptions) {
     this.canvas = options.canvas;

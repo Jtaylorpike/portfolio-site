@@ -86,6 +86,35 @@ Implemented behavior:
 - the analog response curve is made closer to linear for a more immediate feel;
 - the movement pad's effective vector radius is slightly reduced so the same thumb travel produces a stronger movement vector.
 
+
+
+## Phase 6F camera balance and horizontal-phone homepage guard
+
+Phase 6F adjusts two issues found after Phase 6E phone testing.
+
+Implemented behavior:
+
+- touch camera sensitivity is reduced from the Phase 6E value while remaining more responsive than the Phase 6B baseline;
+- touch camera delta clamping is pulled back slightly from Phase 6E to reduce accidental jumps;
+- Phase 6E movement tuning is preserved because the movement feel was not the reported problem;
+- the homepage gets a targeted short landscape-phone media query;
+- horizontal phones use a compact, image-first hero layout with a small index rail, hidden thumbnails, hidden meta panel, and simplified header/nav spacing;
+- the desktop homepage, normal portrait-phone homepage, portfolio pages, About page, editor, gallery curation data, plaques, and wall behavior are unchanged.
+
+
+## Phase 6G horizontal-phone homepage hero correction
+
+Phase 6G refines the Phase 6F landscape-phone homepage guard after real-device testing showed the hero image being partially covered by the copy-panel overlay on horizontal phones.
+
+Implemented behavior:
+
+- the short landscape-phone homepage hero image now fills the available hero stage width;
+- the hero image shell uses a fixed short landscape height instead of recalculating a narrower 16:9 box inside the stage;
+- the hero copy panel is hidden in this specific short landscape-phone mode so its dark overlay no longer cuts into the photo;
+- the compact vertical index rail, simplified header/nav, hidden thumbnails, hidden meta panel, and hidden statement/actions from Phase 6F are preserved;
+- desktop, tablet, portrait-phone homepage, mobile gallery controls, editor behavior, gallery curation data, plaques, and About/contact behavior are unchanged.
+
+
 ## Files touched in Phase 6A
 
 ```text
@@ -175,19 +204,49 @@ docs/pack-manifests/PACK_MANIFEST_PHASE6E.txt
 PROJECT_CHANGELOG.md
 ```
 
+
+## Files touched in Phase 6F
+
+```text
+src/gallery/controls/lookController.ts
+src/styles/global.css
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE6F_MOBILE_CAMERA_AND_LANDSCAPE_HOME_TUNING.md
+docs/pack-notes/PACK_NOTES_PHASE6F.md
+docs/pack-manifests/PACK_MANIFEST_PHASE6F.txt
+PROJECT_CHANGELOG.md
+```
+
+## Files touched in Phase 6G
+
+```text
+src/styles/global.css
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE6G_HORIZONTAL_PHONE_HOMEPAGE_HERO_FIX.md
+docs/pack-notes/PACK_NOTES_PHASE6G.md
+docs/pack-manifests/PACK_MANIFEST_PHASE6G.txt
+PROJECT_CHANGELOG.md
+```
+
 ## Important constraints
 
 - Do not redesign the public site broadly while tuning mobile gallery controls.
 - Preserve existing gallery curation data, artwork placement, wall collision, plaque fallback, lighting, and material behavior unless the user explicitly asks to modify them.
 - Treat Phase 6A/6B as the current mobile interaction baseline. Real-device review from a dev preview is still expected before considering Phase 6 complete.
 - Treat Phase 6D as a local-editor hotfix only; it should not change public gallery runtime behavior.
-- Treat Phase 6E as the current touch-responsiveness tuning baseline for real-phone testing.
+- Treat Phase 6G as the current horizontal-phone homepage hero baseline. Phase 6F remains the current touch-camera baseline, and Phase 6E movement tuning remains intact.
 - Keep internal wall type labels out of public gallery plaques and artwork info cards unless the user later asks to expose them again.
 - Keep controls restrained and professional. Avoid game-like decorative UI beyond what is required for touch usability.
 
 ## Recommended next QA
 
-After applying Phase 6A through Phase 6E, push to the `dev` branch and test on a real phone or tablet:
+After applying Phase 6A through Phase 6G, push to the `dev` branch and test on a real phone or tablet:
 
 1. Open the virtual gallery from the nav or homepage CTA.
 2. Confirm the old desktop-only fallback does not appear.
@@ -196,6 +255,7 @@ After applying Phase 6A through Phase 6E, push to the `dev` branch and test on a
 5. Confirm the Exit button remains usable.
 6. Confirm the artwork info panel does not sit under the thumb control.
 7. Confirm public gallery plaques and bottom-right cards do not show wall type labels.
-8. Confirm the Phase 6E movement/look sensitivity feels more responsive without becoming jumpy.
-9. Note whether landscape behavior or control placement needs tuning.
-10. In the local editor, open one image, edit a metadata field, click the lower image-card **Save JSON** button, reload data, and confirm the change persisted.
+8. Confirm Phase 6F touch camera sensitivity feels balanced between Phase 6B and Phase 6E.
+9. Rotate the phone horizontally on the homepage and confirm the compact hero layout is usable, the hero image fills the available stage, and the dark copy-panel overlay no longer cuts into the photo.
+10. Note whether gallery landscape behavior or control placement needs further tuning.
+11. In the local editor, open one image, edit a metadata field, click the lower image-card **Save JSON** button, reload data, and confirm the change persisted.

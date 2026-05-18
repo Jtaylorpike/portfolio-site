@@ -4582,3 +4582,139 @@ body.gallery-touch-enabled .gallery-crosshair {
     transition: none !important;
   }
 }
+
+
+
+
+/* Phase 6G horizontal-phone homepage hero correction.
+   Let the hero image fill the available landscape-phone stage and remove the
+   copy-panel overlay in this mode so panoramic slides do not appear cut by a
+   large black text slab. */
+/* Phase 6F mobile gallery camera balance + horizontal-phone homepage guard.
+   Pull the Phase 6E touch camera back toward the Phase 6B baseline, and keep
+   the home hero usable on short landscape phone screens by switching to a
+   compact, image-first layout instead of the normal stacked mobile flow. */
+@media (max-width: 900px) and (max-height: 520px) and (orientation: landscape) {
+  .modern-site[data-page='home'] .modern-header {
+    position: relative;
+    z-index: 8;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-bottom: 6px;
+  }
+
+  .modern-site[data-page='home'] .modern-brand {
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+  }
+
+  .modern-site[data-page='home'] .modern-brand-name {
+    font-size: 13px;
+    letter-spacing: 0.26em;
+    white-space: nowrap;
+  }
+
+  .modern-site[data-page='home'] .modern-brand-field {
+    display: none;
+  }
+
+  .modern-site[data-page='home'] .modern-nav {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    border-top: 0;
+    border-bottom: 0;
+  }
+
+  .modern-site[data-page='home'] .modern-nav a,
+  .modern-site[data-page='home'] .modern-nav button {
+    min-height: 32px;
+    border-right: 0;
+    font-size: 8px;
+    letter-spacing: 0.06em;
+  }
+
+  .modern-site[data-page='home'] .modern-main {
+    width: calc(100% - 20px);
+  }
+
+  .modern-site[data-page='home'] .modern-home-page {
+    padding: 0;
+  }
+
+  .modern-site[data-page='home'] .modern-home-hero {
+    min-height: auto;
+    align-items: start;
+  }
+
+  .modern-site[data-page='home'] .home-hero-slideshow {
+    --hero-stage-height: min(58svh, 270px);
+    grid-template-columns: minmax(40px, 0.12fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    min-height: auto;
+    padding-top: 6px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-grid-mark,
+  .modern-site[data-page='home'] .home-hero-rail-label,
+  .modern-site[data-page='home'] .home-hero-scroll-hint,
+  .modern-site[data-page='home'] .home-hero-meta-panel,
+  .modern-site[data-page='home'] .home-hero-thumbnail-strip,
+  .modern-site[data-page='home'] .home-hero-statement,
+  .modern-site[data-page='home'] .home-hero-actions {
+    display: none;
+  }
+
+  .modern-site[data-page='home'] .home-hero-index-rail {
+    align-self: stretch;
+    display: grid;
+    align-items: center;
+    padding: 0;
+  }
+
+  .modern-site[data-page='home'] .home-hero-index-list {
+    display: grid;
+    grid-auto-flow: row;
+    grid-auto-columns: initial;
+    align-content: center;
+    gap: 9px;
+    max-height: min(60svh, 260px);
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .modern-site[data-page='home'] .hero-index-button {
+    min-width: 0;
+    min-height: 0;
+    width: auto;
+  }
+
+  .modern-site[data-page='home'] .hero-index-number {
+    font-size: 15px;
+    letter-spacing: 0.035em;
+  }
+
+  .modern-site[data-page='home'] .home-hero-stage {
+    align-self: center;
+    width: 100%;
+  }
+
+  .modern-site[data-page='home'] .home-hero-image-shell {
+    width: 100%;
+    height: var(--hero-stage-height);
+    max-height: none;
+    margin: 0;
+    aspect-ratio: auto;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
+  }
+
+  .modern-site[data-page='home'] .home-hero-copy-panel {
+    display: none;
+  }
+}
