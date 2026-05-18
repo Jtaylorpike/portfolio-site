@@ -1,0 +1,13 @@
+local-editor/static/editor.css
+local-editor/static/js/main.js
+local-editor/static/js/render.js
+local-editor/templates/editor.html
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/PHASE4H_I_J_V6_CATEGORY_DRAG_SINGLE_PLACEHOLDER_FIX.md
+docs/PACK_NOTES_PHASE4H_I_J_V6.md
+docs/PACK_MANIFEST_PHASE4H_I_J_V6.txt
+PROJECT_CHANGELOG.md
+
+scripts/Move-PackDocsIntoDocs.ps1

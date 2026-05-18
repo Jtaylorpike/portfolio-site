@@ -1,0 +1,22 @@
+Phase 5I About Copy Editor Pack
+
+Files included:
+- src/data/aboutCopy.json
+- src/data/aboutCopy.ts
+- src/app/sitePages.ts
+- src/styles/global.css
+- local-editor/app/data_store.py
+- local-editor/app/routes.py
+- local-editor/static/js/collect.js
+- local-editor/static/js/dom.js
+- local-editor/static/js/main.js
+- local-editor/static/js/render.js
+- local-editor/static/editor.css
+- local-editor/templates/editor.html
+- docs/CURRENT_PROJECT_HANDOFF.md
+- docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md
+- docs/PROJECT_ROADMAP_CURRENT.md
+- docs/PHASE5I_ABOUT_COPY_EDITOR.md
+- docs/pack-notes/PACK_NOTES_PHASE5I.md
+- docs/pack-manifests/PACK_MANIFEST_PHASE5I.txt
+- PROJECT_CHANGELOG.md

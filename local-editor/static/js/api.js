@@ -7,7 +7,8 @@
 // rendering instead of repeated HTTP boilerplate.
 
 export async function loadDataApi() {
-  const response = await fetch('/api/data');
+  const cacheBust = encodeURIComponent(String(Date.now()));
+  const response = await fetch(`/api/data?cacheBust=${cacheBust}`, { cache: 'no-store' });
 
   if (!response.ok) {
     throw new Error('Could not load data.');
@@ -86,13 +87,13 @@ export async function saveImageUpdatesApi(imageId, updates) {
 }
 
 
-export async function renameImageIdApi(currentImageId, newImageId) {
+export async function renameImageIdApi(currentImageId, newImageId, imageUpdates = {}) {
   const response = await fetch('/api/rename-image-id', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ currentImageId, newImageId })
+    body: JSON.stringify({ currentImageId, newImageId, imageUpdates })
   });
 
   if (!response.ok) {
@@ -103,18 +104,60 @@ export async function renameImageIdApi(currentImageId, newImageId) {
   return response.json();
 }
 
-export async function importReviewedImagesApi(formData) {
-  const response = await fetch('/api/import-reviewed', {
-    method: 'POST',
-    body: formData
+export async function importReviewedImagesApi(formData, options = {}) {
+  const { onUploadProgress } = options;
+
+  // XMLHttpRequest gives the editor real upload progress events. Fetch is still
+  // cleaner for most API calls, but it cannot report multipart upload progress
+  // in the browsers this local editor targets.
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+
+    request.open('POST', '/api/import-reviewed');
+
+    request.upload.addEventListener('progress', (event) => {
+      if (!event.lengthComputable || typeof onUploadProgress !== 'function') {
+        return;
+      }
+
+      onUploadProgress({
+        loaded: event.loaded,
+        total: event.total,
+        percent: Math.round((event.loaded / event.total) * 100)
+      });
+    });
+
+    request.addEventListener('load', () => {
+      let payload = null;
+
+      try {
+        payload = request.responseText ? JSON.parse(request.responseText) : null;
+      } catch (error) {
+        reject(new Error('Import response was not valid JSON.'));
+        return;
+      }
+
+      if (request.status < 200 || request.status >= 300) {
+        const details = Array.isArray(payload?.errors) && payload.errors.length
+          ? ` ${payload.errors.join(' ')}`
+          : '';
+        reject(new Error(`${payload?.error ?? 'Could not import images.'}${details}`));
+        return;
+      }
+
+      resolve(payload);
+    });
+
+    request.addEventListener('error', () => {
+      reject(new Error('Could not import images. Check that the local editor server is still running.'));
+    });
+
+    request.addEventListener('abort', () => {
+      reject(new Error('Image import was canceled.'));
+    });
+
+    request.send(formData);
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => null);
-    throw new Error(error?.error ?? 'Could not import images.');
-  }
-
-  return response.json();
 }
 
 export async function listBackupsApi() {
@@ -144,3 +187,38 @@ export async function restoreBackupApi(backupFolder) {
 
   return response.json();
 }
+
+
+export async function importReviewedAboutPhotosApi(formData, options = {}) {
+  const { onUploadProgress } = options;
+
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('POST', '/api/about-photos/import');
+
+    request.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable && typeof onUploadProgress === 'function') {
+        onUploadProgress({ loaded: event.loaded, total: event.total, percent: Math.round((event.loaded / event.total) * 100) });
+      }
+    });
+
+    request.addEventListener('load', () => {
+      const payload = JSON.parse(request.responseText || '{}');
+
+      if (request.status < 200 || request.status >= 300) {
+        const details = Array.isArray(payload.errors) ? ` ${payload.errors.join(' ')}` : '';
+        reject(new Error(`${payload.error ?? 'Could not import About photos.'}${details}`));
+        return;
+      }
+
+      resolve(payload);
+    });
+
+    request.addEventListener('error', () => {
+      reject(new Error('Could not import About photos.'));
+    });
+
+    request.send(formData);
+  });
+}
+

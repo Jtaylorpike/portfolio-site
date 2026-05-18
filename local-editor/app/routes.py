@@ -12,8 +12,11 @@ from .data_store import (
     DataValidationError,
     PUBLIC_DIR,
     get_current_data,
+    get_current_about_photos,
+    get_current_about_copy,
     get_current_gallery_curation,
     get_current_gallery_room,
+    get_gallery_curation_status,
     list_data_backups,
     restore_data_backup,
     save_full_data,
@@ -23,6 +26,7 @@ from .data_store import (
     rename_image_id,
 )
 from .image_importer import import_reviewed_images_from_request
+from .about_importer import import_reviewed_about_photos_from_request
 
 
 bp = Blueprint("editor_routes", __name__)
@@ -43,6 +47,8 @@ def get_data():
         categories, images, hero_slides = get_current_data()
         gallery_curation = get_current_gallery_curation(images)
         gallery_room = get_current_gallery_room()
+        about_photos = get_current_about_photos()
+        about_copy = get_current_about_copy()
     except DataValidationError as error:
         return jsonify({"error": str(error)}), 400
 
@@ -52,7 +58,10 @@ def get_data():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": gallery_curation,
+            "galleryCurationStatus": get_gallery_curation_status(images, gallery_curation),
             "galleryRoom": gallery_room,
+            "aboutPhotos": about_photos,
+            "aboutCopy": about_copy,
         }
     )
 
@@ -74,6 +83,8 @@ def save_data():
     raw_categories = payload.get("categories")
     raw_images = payload.get("images")
     raw_hero_slides = payload.get("heroSlides")
+    raw_about_photos = payload.get("aboutPhotos")
+    raw_about_copy = payload.get("aboutCopy")
 
     if not isinstance(raw_categories, list):
         return jsonify({"error": "categories must be a list."}), 400
@@ -84,11 +95,19 @@ def save_data():
     if not isinstance(raw_hero_slides, list):
         return jsonify({"error": "heroSlides must be a list."}), 400
 
+    if raw_about_photos is not None and not isinstance(raw_about_photos, list):
+        return jsonify({"error": "aboutPhotos must be a list."}), 400
+
+    if raw_about_copy is not None and not isinstance(raw_about_copy, dict):
+        return jsonify({"error": "aboutCopy must be an object."}), 400
+
     try:
-        categories, images, hero_slides, backup = save_full_data(
+        categories, images, hero_slides, about_photos, about_copy, backup = save_full_data(
             raw_categories,
             raw_images,
             raw_hero_slides,
+            raw_about_photos,
+            raw_about_copy,
         )
     except DataValidationError as error:
         return jsonify({"error": str(error)}), 400
@@ -100,11 +119,15 @@ def save_data():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": get_current_gallery_curation(images),
+            "galleryCurationStatus": get_gallery_curation_status(images),
             "galleryRoom": get_current_gallery_room(),
+            "aboutPhotos": about_photos,
+            "aboutCopy": about_copy,
             "backup": backup,
             "categoryCount": len(categories),
             "imageCount": len(images),
             "heroSlideCount": len(hero_slides),
+            "aboutPhotoCount": len(about_photos),
         }
     )
 
@@ -135,6 +158,7 @@ def save_gallery_curation_data():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": gallery_curation,
+            "galleryCurationStatus": get_gallery_curation_status(images, gallery_curation),
             "galleryRoom": get_current_gallery_room(),
             "backup": backup,
             "galleryCurationCount": len(gallery_curation),
@@ -168,6 +192,7 @@ def save_single_gallery_curation_wall():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": gallery_curation,
+            "galleryCurationStatus": get_gallery_curation_status(images, gallery_curation),
             "galleryRoom": get_current_gallery_room(),
             "backup": backup,
             "galleryCurationCount": len(gallery_curation),
@@ -208,6 +233,7 @@ def update_image_record():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": get_current_gallery_curation(images),
+            "galleryCurationStatus": get_gallery_curation_status(images),
             "galleryRoom": get_current_gallery_room(),
             "updatedImage": updated_image,
             "backup": backup,
@@ -229,6 +255,7 @@ def rename_image_record_id():
 
     current_image_id = payload.get("currentImageId")
     new_image_id = payload.get("newImageId")
+    image_updates = payload.get("imageUpdates")
 
     if not isinstance(current_image_id, str) or not current_image_id.strip():
         return jsonify({"error": "currentImageId must be a non-empty string."}), 400
@@ -240,6 +267,7 @@ def rename_image_record_id():
         categories, images, hero_slides, updated_image, backup, file_moves = rename_image_id(
             current_image_id.strip(),
             new_image_id.strip(),
+            image_updates,
         )
     except DataValidationError as error:
         return jsonify({"error": str(error)}), 400
@@ -253,6 +281,7 @@ def rename_image_record_id():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": get_current_gallery_curation(images),
+            "galleryCurationStatus": get_gallery_curation_status(images),
             "galleryRoom": get_current_gallery_room(),
             "updatedImage": updated_image,
             "backup": backup,
@@ -305,7 +334,10 @@ def restore_backup():
             "images": images,
             "heroSlides": hero_slides,
             "galleryCuration": get_current_gallery_curation(images),
+            "galleryCurationStatus": get_gallery_curation_status(images),
             "galleryRoom": get_current_gallery_room(),
+            "aboutPhotos": get_current_about_photos(),
+            "aboutCopy": get_current_about_copy(),
             "backups": list_data_backups(),
             "restoredBackup": restored_backup,
             "backup": safety_backup,
@@ -321,6 +353,27 @@ def import_reviewed_images():
     """Handle reviewed image uploads and metadata creation."""
 
     response, status_code = import_reviewed_images_from_request(request)
+
+    if status_code == 200 and isinstance(response, dict):
+        images = response.get("images") if isinstance(response.get("images"), list) else []
+        gallery_curation = get_current_gallery_curation(images)
+        response["galleryCuration"] = gallery_curation
+        response["galleryCurationStatus"] = get_gallery_curation_status(images, gallery_curation)
+        response["galleryRoom"] = get_current_gallery_room()
+        response["aboutPhotos"] = get_current_about_photos()
+        response["aboutCopy"] = get_current_about_copy()
+
+    return jsonify(response), status_code
+
+
+@bp.route("/api/about-photos/import", methods=["POST"])
+def import_reviewed_about_photos():
+    """Import reviewed image files into the separate About page image folders."""
+
+    response, status_code = import_reviewed_about_photos_from_request(request)
+
+    if status_code == 200 and isinstance(response, dict):
+        response["aboutCopy"] = get_current_about_copy()
 
     return jsonify(response), status_code
 

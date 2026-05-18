@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "hero": {
+    "eyebrow": "About / Contact",
+    "headline": "A reserved space for the personal side of the archive.",
+    "intro": "Placeholder copy. Replace this with your final About introduction when you are ready."
+  },
+  "about": {
+    "eyebrow": "About Me",
+    "heading": "Personal background",
+    "paragraphs": [
+      "Placeholder copy. Use this block for the short version of who you are, where you are from, and what shaped your creative point of view.",
+      "Placeholder copy. Use this second paragraph for photography, climbing, community, technical work, and the personal thread between them."
+    ]
+  },
+  "project": {
+    "eyebrow": "Photography / Project",
+    "heading": "Creative practice, technical crossover, and the archive system.",
+    "paragraphs": [
+      "Placeholder copy. Use this block for how you think about photography, climbing, landscape, portrait work, commercial work, visual storytelling, and building this site as an evolving archive.",
+      "Placeholder copy. Use this block for the bridge between photography, editing, web development, support work, and the interactive gallery concept."
+    ]
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "headline": "Available for selected projects, collaborations, and image work.",
+    "body": "Placeholder copy. Replace this with your preferred contact language and availability notes.",
+    "email": "jtaylorpike@gmail.com",
+    "links": []
+  }
+}

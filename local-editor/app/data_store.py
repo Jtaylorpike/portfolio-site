@@ -29,6 +29,8 @@ GALLERY_IMAGES_PATH = DATA_DIR / "galleryImages.json"
 HERO_SLIDES_PATH = DATA_DIR / "heroSlides.json"
 GALLERY_CURATION_PATH = DATA_DIR / "galleryCuration.json"
 GALLERY_ROOM_PATH = DATA_DIR / "galleryRoom.json"
+ABOUT_PHOTOS_PATH = DATA_DIR / "aboutPhotos.json"
+ABOUT_COPY_PATH = DATA_DIR / "aboutCopy.json"
 
 DEFAULT_CATEGORIES = [
     {"id": "climbing", "label": "Climbing"},
@@ -419,7 +421,7 @@ def create_data_backup(reason: str) -> dict[str, Any]:
 
     backed_up_files: list[str] = []
 
-    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH, GALLERY_CURATION_PATH, GALLERY_ROOM_PATH]:
+    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH, GALLERY_CURATION_PATH, GALLERY_ROOM_PATH, ABOUT_PHOTOS_PATH, ABOUT_COPY_PATH]:
         if not source_path.exists():
             continue
 
@@ -495,7 +497,7 @@ def summarize_backup_folder(backup_path: Path) -> dict[str, Any]:
     manifest = read_backup_manifest(backup_path)
     files = [
         file_name
-        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json"]
+        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json", "aboutPhotos.json", "aboutCopy.json"]
         if (backup_path / file_name).exists()
     ]
 
@@ -512,7 +514,7 @@ def summarize_backup_folder(backup_path: Path) -> dict[str, Any]:
         "reason": clean_string(manifest.get("reason")) or "backup",
         "createdAtUtc": created_at_utc,
         "files": files,
-        "canRestore": all(file_name in files for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json"]),
+        "canRestore": all(file_name in files for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json", "aboutPhotos.json"]),
     }
 
 
@@ -625,6 +627,16 @@ def restore_data_backup(backup_name: str) -> tuple[list[dict[str, str]], list[di
 
     if backup_gallery_room_path.exists():
         write_json(GALLERY_ROOM_PATH, normalize_gallery_room(read_json(backup_gallery_room_path)))
+
+    backup_about_photos_path = backup_path / "aboutPhotos.json"
+
+    if backup_about_photos_path.exists():
+        write_json(ABOUT_PHOTOS_PATH, normalize_about_photos(read_json(backup_about_photos_path)))
+
+    backup_about_copy_path = backup_path / "aboutCopy.json"
+
+    if backup_about_copy_path.exists():
+        write_json(ABOUT_COPY_PATH, normalize_about_copy(read_json(backup_about_copy_path)))
 
     restored_backup = summarize_backup_folder(backup_path)
 
@@ -817,6 +829,11 @@ def normalize_image(
         "alt": clean_string(raw_image.get("alt")),
     }
 
+    # Missing isPublic means visible. Only write false into JSON so existing
+    # public records stay clean while hidden records remain explicit.
+    if clean_bool(raw_image.get("isPublic"), True) is False:
+        image["isPublic"] = False
+
     if width:
         image["imageWidth"] = width
 
@@ -857,6 +874,9 @@ def normalize_image(
 # Returns True when an image is eligible for the fixed 16:9 homepage hero.
 def is_landscape_hero_image(image: dict[str, Any] | None) -> bool:
     if not image:
+        return False
+
+    if clean_bool(image.get("isPublic"), True) is False:
         return False
 
     orientation = clean_string(image.get("imageOrientation"))
@@ -1159,6 +1179,35 @@ def get_current_gallery_curation(images: list[dict[str, Any]] | None = None) -> 
     return normalize_gallery_curation(read_json(GALLERY_CURATION_PATH), valid_image_ids)
 
 
+def get_gallery_curation_status(
+    images: list[dict[str, Any]] | None = None,
+    normalized_gallery_curation: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Return diagnostics for the editor's gallery curation empty state.
+
+    The frontend should not claim galleryCuration.json is missing when the file
+    exists but zero rows were loaded. This status lets the editor distinguish a
+    genuinely missing file from an empty or normalization-filtered file.
+    """
+
+    if images is None:
+        _categories, images, _hero_slides = get_current_data()
+
+    raw_gallery_curation = read_json(GALLERY_CURATION_PATH)
+    valid_image_ids = {image["id"] for image in images}
+    loaded_gallery_curation = (
+        normalized_gallery_curation
+        if normalized_gallery_curation is not None
+        else normalize_gallery_curation(raw_gallery_curation, valid_image_ids)
+    )
+
+    return {
+        "fileExists": GALLERY_CURATION_PATH.exists(),
+        "rawRowCount": len(raw_gallery_curation) if isinstance(raw_gallery_curation, list) else 0,
+        "loadedRowCount": len(loaded_gallery_curation),
+    }
+
+
 def make_centered_offsets(length: int) -> list[int]:
     safe_length = max(1, int(length or 1))
     half = safe_length // 2
@@ -1368,6 +1417,258 @@ def rename_gallery_curation_image_reference(
     return gallery_curation
 
 
+
+
+DEFAULT_ABOUT_COPY = {
+    "schemaVersion": 1,
+    "hero": {
+        "eyebrow": "About / Contact",
+        "headline": "A reserved space for the personal side of the archive.",
+        "intro": "Placeholder copy. Replace this with your final About introduction when you are ready.",
+    },
+    "about": {
+        "eyebrow": "About Me",
+        "heading": "Personal background",
+        "paragraphs": [
+            "Placeholder copy. Use this block for the short version of who you are, where you are from, and what shaped your creative point of view.",
+            "Placeholder copy. Use this second paragraph for photography, climbing, community, technical work, and the personal thread between them.",
+        ],
+    },
+    "project": {
+        "eyebrow": "Photography / Project",
+        "heading": "Creative practice, technical crossover, and the archive system.",
+        "paragraphs": [
+            "Placeholder copy. Use this block for how you think about photography, climbing, landscape, portrait work, commercial work, visual storytelling, and building this site as an evolving archive.",
+            "Placeholder copy. Use this block for the bridge between photography, editing, web development, support work, and the interactive gallery concept.",
+        ],
+    },
+    "contact": {
+        "eyebrow": "Contact",
+        "headline": "Available for selected projects, collaborations, and image work.",
+        "body": "Placeholder copy. Replace this with your preferred contact language and availability notes.",
+        "email": "jtaylorpike@gmail.com",
+        "links": [],
+    },
+}
+
+
+def clean_copy_text(value: Any, fallback: str) -> str:
+    """Clean one user-editable About copy field and preserve a safe fallback."""
+
+    text = clean_string(value)
+
+    return text or fallback
+
+
+def normalize_copy_paragraphs(raw_paragraphs: Any, fallback: list[str]) -> list[str]:
+    """Normalize one About copy paragraph list for public rendering."""
+
+    if not isinstance(raw_paragraphs, list):
+        return list(fallback)
+
+    paragraphs = [clean_string(paragraph) for paragraph in raw_paragraphs]
+    paragraphs = [paragraph for paragraph in paragraphs if paragraph]
+
+    return paragraphs[:4] or list(fallback)
+
+
+def normalize_about_copy_links(raw_links: Any) -> list[dict[str, str]]:
+    """Normalize optional contact/social links for the About contact card."""
+
+    if not isinstance(raw_links, list):
+        return []
+
+    links: list[dict[str, str]] = []
+
+    for raw_link in raw_links:
+        if not isinstance(raw_link, dict):
+            continue
+
+        label = clean_string(raw_link.get("label"))
+        url = clean_string(raw_link.get("url"))
+
+        if not label or not url:
+            continue
+
+        links.append({"label": label, "url": url})
+
+        if len(links) >= 6:
+            break
+
+    return links
+
+
+def normalize_about_copy(raw_copy: Any) -> dict[str, Any]:
+    """Normalize user-editable About/contact copy from aboutCopy.json."""
+
+    if not isinstance(raw_copy, dict):
+        raw_copy = {}
+
+    raw_hero = raw_copy.get("hero") if isinstance(raw_copy.get("hero"), dict) else {}
+    raw_about = raw_copy.get("about") if isinstance(raw_copy.get("about"), dict) else {}
+    raw_project = raw_copy.get("project") if isinstance(raw_copy.get("project"), dict) else {}
+    raw_contact = raw_copy.get("contact") if isinstance(raw_copy.get("contact"), dict) else {}
+
+    return {
+        "schemaVersion": 1,
+        "hero": {
+            "eyebrow": clean_copy_text(raw_hero.get("eyebrow"), DEFAULT_ABOUT_COPY["hero"]["eyebrow"]),
+            "headline": clean_copy_text(raw_hero.get("headline"), DEFAULT_ABOUT_COPY["hero"]["headline"]),
+            "intro": clean_copy_text(raw_hero.get("intro"), DEFAULT_ABOUT_COPY["hero"]["intro"]),
+        },
+        "about": {
+            "eyebrow": clean_copy_text(raw_about.get("eyebrow"), DEFAULT_ABOUT_COPY["about"]["eyebrow"]),
+            "heading": clean_copy_text(raw_about.get("heading"), DEFAULT_ABOUT_COPY["about"]["heading"]),
+            "paragraphs": normalize_copy_paragraphs(raw_about.get("paragraphs"), DEFAULT_ABOUT_COPY["about"]["paragraphs"]),
+        },
+        "project": {
+            "eyebrow": clean_copy_text(raw_project.get("eyebrow"), DEFAULT_ABOUT_COPY["project"]["eyebrow"]),
+            "heading": clean_copy_text(raw_project.get("heading"), DEFAULT_ABOUT_COPY["project"]["heading"]),
+            "paragraphs": normalize_copy_paragraphs(raw_project.get("paragraphs"), DEFAULT_ABOUT_COPY["project"]["paragraphs"]),
+        },
+        "contact": {
+            "eyebrow": clean_copy_text(raw_contact.get("eyebrow"), DEFAULT_ABOUT_COPY["contact"]["eyebrow"]),
+            "headline": clean_copy_text(raw_contact.get("headline"), DEFAULT_ABOUT_COPY["contact"]["headline"]),
+            "body": clean_copy_text(raw_contact.get("body"), DEFAULT_ABOUT_COPY["contact"]["body"]),
+            "email": clean_copy_text(raw_contact.get("email"), DEFAULT_ABOUT_COPY["contact"]["email"]),
+            "links": normalize_about_copy_links(raw_contact.get("links")),
+        },
+    }
+
+
+def get_current_about_copy() -> dict[str, Any]:
+    """Read and normalize About/contact page copy."""
+
+    return normalize_about_copy(read_json(ABOUT_COPY_PATH))
+
+
+def save_about_copy(raw_about_copy: Any, backup_reason: str = "about-copy-save") -> tuple[dict[str, Any], dict[str, Any]]:
+    """Save About/contact copy with a standard editor backup."""
+
+    about_copy = normalize_about_copy(raw_about_copy)
+    backup = create_data_backup(backup_reason)
+    write_json(ABOUT_COPY_PATH, about_copy)
+
+    return about_copy, backup
+
+
+ABOUT_PHOTO_PLACEMENT_ROLES = {"upper-collage", "lower-collage", "background-float", "unused"}
+
+
+def normalize_about_photo(raw_photo: Any) -> dict[str, Any]:
+    """Normalize one About/contact page photo record.
+
+    About photos are intentionally separate from portfolio images. They can
+    temporarily reference portfolio rendition paths, but native About imports
+    should write into public/images/about/.
+    """
+
+    if not isinstance(raw_photo, dict):
+        raw_photo = {}
+
+    photo_id = slugify(clean_string(raw_photo.get("id")) or "about-photo")
+    title = clean_string(raw_photo.get("title")) or photo_id.replace("-", " ").title()
+    src = clean_string(raw_photo.get("src"))
+    thumb_src = clean_string(raw_photo.get("thumbSrc")) or src
+    full_src = clean_string(raw_photo.get("fullSrc")) or src
+    alt = clean_string(raw_photo.get("alt")) or f"About page photograph: {title}"
+    orientation = clean_string(raw_photo.get("imageOrientation"))
+    placement_role = clean_string(raw_photo.get("placementRole")) or "lower-collage"
+
+    if orientation not in SUPPORTED_ORIENTATIONS:
+        orientation = "portrait"
+
+    if placement_role not in ABOUT_PHOTO_PLACEMENT_ROLES:
+        placement_role = "lower-collage"
+
+    normalized: dict[str, Any] = {
+        "id": photo_id,
+        "title": title,
+        "year": clean_string(raw_photo.get("year")),
+        "location": clean_string(raw_photo.get("location")),
+        "note": clean_string(raw_photo.get("note")),
+        "src": src,
+        "thumbSrc": thumb_src,
+        "fullSrc": full_src,
+        "alt": alt,
+        "imageOrientation": orientation,
+        "placementRole": placement_role,
+        "sourceType": clean_string(raw_photo.get("sourceType")) or "about",
+    }
+
+    if raw_photo.get("isActive") is False:
+        normalized["isActive"] = False
+
+    source_image_id = clean_string(raw_photo.get("sourceImageId"))
+
+    if source_image_id:
+        normalized["sourceImageId"] = source_image_id
+
+    for key in ["imageWidth", "imageHeight"]:
+        try:
+            value = int(raw_photo.get(key) or 0)
+        except (TypeError, ValueError):
+            value = 0
+
+        if value > 0:
+            normalized[key] = value
+
+    try:
+        aspect_ratio = float(raw_photo.get("imageAspectRatio") or 0)
+    except (TypeError, ValueError):
+        aspect_ratio = 0
+
+    if aspect_ratio > 0:
+        normalized["imageAspectRatio"] = round(aspect_ratio, 6)
+
+    return normalized
+
+
+def normalize_about_photos(raw_photos: Any) -> list[dict[str, Any]]:
+    """Normalize About/contact image records and make IDs unique."""
+
+    if not isinstance(raw_photos, list):
+        return []
+
+    normalized_photos: list[dict[str, Any]] = []
+    used_ids: set[str] = set()
+
+    for index, raw_photo in enumerate(raw_photos, start=1):
+        if not isinstance(raw_photo, dict):
+            continue
+
+        photo = normalize_about_photo(raw_photo)
+        base_id = photo["id"] or f"about-photo-{index:02d}"
+        candidate_id = base_id
+        suffix = 2
+
+        while candidate_id in used_ids:
+            candidate_id = f"{base_id}-{suffix}"
+            suffix += 1
+
+        photo["id"] = candidate_id
+        used_ids.add(candidate_id)
+        normalized_photos.append(photo)
+
+    return normalized_photos
+
+
+def get_current_about_photos() -> list[dict[str, Any]]:
+    """Read and normalize About/contact page photos."""
+
+    return normalize_about_photos(read_json(ABOUT_PHOTOS_PATH))
+
+
+def save_about_photos(raw_about_photos: Any, backup_reason: str = "about-photos-save") -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Save About/contact page photo records with a standard editor backup."""
+
+    about_photos = normalize_about_photos(raw_about_photos)
+    backup = create_data_backup(backup_reason)
+    write_json(ABOUT_PHOTOS_PATH, about_photos)
+
+    return about_photos, backup
+
+
 # Reads all JSON data files and returns normalized categories, images, and hero slides.
 def get_current_data() -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]]:
     categories = read_json(CATEGORIES_PATH)
@@ -1436,7 +1737,9 @@ def save_full_data(
     raw_categories: list[Any],
     raw_images: list[Any],
     raw_hero_slides: list[Any],
-) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], dict[str, Any]]:
+    raw_about_photos: Any = None,
+    raw_about_copy: Any = None,
+) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
     categories = normalize_categories(raw_categories)
     valid_category_ids = {category["id"] for category in categories}
     fallback_category_id = categories[0]["id"]
@@ -1461,14 +1764,71 @@ def save_full_data(
 
     backup = save_project_data(categories, images, hero_slides, "full-editor-save")
 
-    return categories, images, hero_slides, backup
+    if raw_about_photos is None:
+        about_photos = get_current_about_photos()
+    else:
+        about_photos = normalize_about_photos(raw_about_photos)
+        write_json(ABOUT_PHOTOS_PATH, about_photos)
+
+    if raw_about_copy is None:
+        about_copy = get_current_about_copy()
+    else:
+        about_copy = normalize_about_copy(raw_about_copy)
+        write_json(ABOUT_COPY_PATH, about_copy)
+
+    return categories, images, hero_slides, about_photos, about_copy, backup
+
+
+def normalize_rename_image_metadata_updates(raw_updates: Any) -> dict[str, Any]:
+    """Clean the non-path image fields that may travel with an ID rename.
+
+    The rename action is commonly run immediately after editing the image title.
+    Sending this small whitelist with the rename lets the backend save the
+    current visible metadata and the new filename-derived ID in one atomic write,
+    while still preventing the browser from overriding path, dimension, or ID
+    fields that the backend owns during the rename.
+    """
+
+    if not isinstance(raw_updates, dict):
+        return {}
+
+    updates: dict[str, Any] = {}
+
+    for field_name in ["title", "category", "year", "location", "note", "alt"]:
+        if field_name in raw_updates:
+            updates[field_name] = clean_string(raw_updates.get(field_name))
+
+    if "isPublic" in raw_updates:
+        updates["isPublic"] = clean_bool(raw_updates.get("isPublic"), True)
+
+    for field_name in ["thumbnailPosition", "heroPosition", "galleryPosition"]:
+        if field_name in raw_updates:
+            updates[field_name] = normalize_object_position(raw_updates.get(field_name))
+
+    if "galleryFitMode" in raw_updates:
+        updates["galleryFitMode"] = normalize_gallery_fit_mode(raw_updates.get("galleryFitMode"))
+
+    if "galleryFrameStyle" in raw_updates:
+        updates["galleryFrameStyle"] = normalize_frame_style(raw_updates.get("galleryFrameStyle"))
+
+    if "gallerySize" in raw_updates:
+        updates["gallerySize"] = raw_updates.get("gallerySize")
+
+    if "heroFitMode" in raw_updates:
+        updates["heroFitMode"] = normalize_hero_fit_mode(raw_updates.get("heroFitMode"))
+
+    if "heroFrameStyle" in raw_updates:
+        updates["heroFrameStyle"] = normalize_frame_style(raw_updates.get("heroFrameStyle"))
+
+    return updates
 
 
 def rename_image_id(
     current_image_id: str,
     requested_new_image_id: str,
+    image_updates: Any | None = None,
 ) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]], dict[str, Any], dict[str, Any], list[dict[str, str]]]:
-    """Rename an image ID, update references, and rename portfolio rendition files."""
+    """Rename an image ID, update references, rename renditions, and preserve visible metadata edits."""
 
     current_image_id = clean_string(current_image_id)
     requested_new_image_id = clean_string(requested_new_image_id)
@@ -1488,23 +1848,29 @@ def rename_image_id(
     existing_ids = {image["id"] for image in images if image.get("id") != current_image_id}
     new_image_id = make_unique_image_id(requested_new_image_id, existing_ids, current_image_id)
 
-    if new_image_id == current_image_id:
-        return categories, images, hero_slides, images[image_index], {"backupFolder": ""}, []
-
     if not IMAGE_ID_PATTERN.match(new_image_id):
         raise DataValidationError("New image ID must use lowercase letters, numbers, and hyphens only.")
 
     original_image = images[image_index]
-    file_plan = get_rename_file_plan(original_image, new_image_id)
+    metadata_updates = normalize_rename_image_metadata_updates(image_updates)
+
+    if new_image_id == current_image_id and not metadata_updates:
+        return categories, images, hero_slides, images[image_index], {"backupFolder": ""}, []
+
+    file_plan = [] if new_image_id == current_image_id else get_rename_file_plan(original_image, new_image_id)
 
     updated_image = {
         **original_image,
+        **metadata_updates,
         "id": new_image_id,
     }
 
     for item in file_plan:
         updated_image[item["field"]] = item["targetUrl"]
 
+    valid_category_ids = {category["id"] for category in categories}
+    fallback_category_id = categories[0]["id"] if categories else "personal"
+    updated_image = normalize_image(updated_image, valid_category_ids, fallback_category_id)
     images[image_index] = updated_image
 
     hero_slides = [
@@ -1525,7 +1891,11 @@ def rename_image_id(
     validate_project_data(categories, images, hero_slides)
     validate_gallery_curation(gallery_curation, {image["id"] for image in images})
 
-    backup = create_data_backup(f"rename-image-id-{current_image_id}-to-{new_image_id}")
+    backup_label = f"rename-image-id-{current_image_id}-to-{new_image_id}"
+    if new_image_id == current_image_id:
+        backup_label = f"rename-image-id-metadata-refresh-{current_image_id}"
+
+    backup = create_data_backup(backup_label)
     apply_rename_file_plan(file_plan)
 
     write_json(GALLERY_IMAGES_PATH, images)

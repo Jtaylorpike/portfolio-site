@@ -48,11 +48,14 @@ import {
 } from './environment/galleryMaterials';
 import { addGalleryLighting } from './environment/galleryLighting';
 
+type GalleryInputMode = 'desktop' | 'touch';
+
 type GallerySceneOptions = {
   container: HTMLElement;
   onExit: () => void;
   onArtworkFocus: (artwork: GalleryArtwork) => void;
   onArtworkClear: () => void;
+  inputMode?: GalleryInputMode;
 };
 
 type FrameDimensions = {
@@ -97,6 +100,7 @@ export class GalleryScene {
 
   private movementController = new MovementController();
   private lookController!: LookController;
+  private inputMode: GalleryInputMode;
   private unsubscribeFromTextureUpdates: (() => void) | null = null;
   private framedTextures = new Set<THREE.Texture>();
 
@@ -105,6 +109,7 @@ export class GalleryScene {
     this.onExit = options.onExit;
     this.onArtworkFocus = options.onArtworkFocus;
     this.onArtworkClear = options.onArtworkClear;
+    this.inputMode = options.inputMode ?? 'desktop';
 
     this.scene = this.createScene();
     this.camera = this.createCamera();
@@ -115,7 +120,8 @@ export class GalleryScene {
     this.lookController = new LookController({
       canvas: this.renderer.domElement,
       camera: this.camera,
-      initialYaw: galleryStart.yaw
+      initialYaw: galleryStart.yaw,
+      inputMode: this.inputMode
     });
 
     this.createFloor();
@@ -1001,6 +1007,14 @@ export class GalleryScene {
     }
 
     material.dispose();
+  }
+
+  public setTouchMovement(localX: number, localZ: number) {
+    this.movementController.setTouchMovement(localX, localZ);
+  }
+
+  public clearTouchMovement() {
+    this.movementController.clearTouchMovement();
   }
 
   public destroy() {

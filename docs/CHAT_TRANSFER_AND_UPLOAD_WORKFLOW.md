@@ -1,6 +1,6 @@
 # Chat Transfer and Upload Workflow
 
-Updated: 2026-05-15
+Updated: 2026-05-16
 
 ## Purpose
 
@@ -43,6 +43,8 @@ Use one of these depending on the next chat task:
 
 Use `thumb` for most handoffs. Use `display` when the next chat needs to visually inspect photos or generate/review alt text. Use `all` only when upload limits allow and full runtime coverage is needed.
 
+For editor code work, `thumb` or `none` is usually enough unless the task specifically needs runtime image inspection.
+
 ## What future upload packages should include
 
 At minimum:
@@ -68,9 +70,18 @@ PROJECT_CHANGELOG.md
 In a new chat, upload the latest generated chat package and say:
 
 ```text
-This is my current Taylor Pike portfolio site source. Read the docs folder first, especially CURRENT_PROJECT_HANDOFF.md, CURRENT_PROJECT_HANDOFF_PHASE3_ACTIVE.md, PROJECT_ROADMAP_CURRENT.md, and CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md. Treat the uploaded source as the source of truth. We are in Phase 3: portfolio content and metadata curation. Phase 2 public polish is complete, and the alt text pack has been applied and committed.
+This is my current Taylor Pike portfolio site source. Read the docs folder first, especially CURRENT_PROJECT_HANDOFF.md, CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md, PROJECT_ROADMAP_CURRENT.md, and CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md. Treat the uploaded source as the source of truth. Phase 6 mobile 3D gallery controls is active. Phase 6A added the first touch-control baseline for the public Three.js gallery. Final public About copy should be written by me, not generated as finished copy.
 ```
 
 ## Important transfer rule
 
 Do not put transfer-only documents into a nested `docs/new-chat-transfer/` folder unless the project intentionally adopts that folder. Current project convention is to keep handoff files directly under `docs/`.
+
+
+## Phase 5 upload note
+
+When transferring Phase 5 work, include `src/data/aboutPhotos.json`, `src/data/aboutPhotos.ts`, and the `public/images/about/` folder structure. If the next task involves imported About images, use a runtime image mode that includes the About display/thumb assets.
+
+## Phase 6 upload note
+
+When transferring Phase 6 mobile gallery work, include the gallery runtime controllers and CSS: `src/app/galleryController.ts`, `src/app/renderSite.ts`, `src/gallery/GalleryScene.ts`, `src/gallery/controls/lookController.ts`, `src/gallery/controls/movementController.ts`, and `src/styles/global.css`. Real-device mobile QA is important because headless browser coverage may not capture touch feel, device safe-area placement, or mobile GPU performance.

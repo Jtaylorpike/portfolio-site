@@ -4,6 +4,7 @@
 // - WASD / arrow key movement state
 // - frame delta timing
 // - gallery boundary limits
+// - touch/analog movement state
 // - wall collision
 // - wall sliding
 
@@ -31,6 +32,8 @@ export class MovementController {
   };
 
   private lastFrameTime = performance.now();
+  private touchMovementX = 0;
+  private touchMovementZ = 0;
 
   // Interior wall-block collision only.
   // Exterior room-shell distance is controlled by movementBounds in
@@ -102,11 +105,22 @@ export class MovementController {
     }
   }
 
+  public setTouchMovement(localX: number, localZ: number) {
+    this.touchMovementX = this.clampAnalogValue(localX);
+    this.touchMovementZ = this.clampAnalogValue(localZ);
+  }
+
+  public clearTouchMovement() {
+    this.touchMovementX = 0;
+    this.touchMovementZ = 0;
+  }
+
   public reset() {
     this.movement.forward = false;
     this.movement.backward = false;
     this.movement.left = false;
     this.movement.right = false;
+    this.clearTouchMovement();
   }
 
   public update(camera: THREE.PerspectiveCamera, yaw: number, delta: number) {
@@ -149,6 +163,9 @@ export class MovementController {
   private getMovementDirection(yaw: number) {
     const direction = new THREE.Vector3();
 
+    direction.x += this.touchMovementX;
+    direction.z += this.touchMovementZ;
+
     if (this.movement.forward) {
       direction.z -= 1;
     }
@@ -169,7 +186,9 @@ export class MovementController {
       return direction;
     }
 
-    direction.normalize();
+    if (direction.lengthSq() > 1) {
+      direction.normalize();
+    }
 
     // Movement follows camera yaw only.
     // Pitch is ignored so looking up/down does not affect walking direction.
@@ -177,6 +196,14 @@ export class MovementController {
     direction.applyEuler(yawOnly);
 
     return direction;
+  }
+
+  private clampAnalogValue(value: number) {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+
+    return Math.max(-1, Math.min(1, value));
   }
 
   private clampToGalleryBounds(position: THREE.Vector3) {

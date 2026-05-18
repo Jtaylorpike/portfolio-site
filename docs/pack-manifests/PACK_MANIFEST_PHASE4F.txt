@@ -1,0 +1,13 @@
+PACK_MANIFEST_PHASE4F.txt
+PACK_NOTES_PHASE4F.md
+PROJECT_CHANGELOG.md
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md
+docs/PHASE4F_EDITOR_IMPORT_AND_GALLERY_CLEANUP.md
+docs/PROJECT_ROADMAP_CURRENT.md
+local-editor/app/data_store.py
+local-editor/app/routes.py
+local-editor/static/editor.css
+local-editor/static/js/main.js
+local-editor/static/js/render.js
+local-editor/templates/editor.html

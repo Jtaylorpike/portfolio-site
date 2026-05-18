@@ -1,14 +1,53 @@
-# Current Project Handoff — Phase 3 Active
+# Current Project Handoff — Phase 3 Closed
 
 Updated: 2026-05-15
 
-## Current status
+## Status
 
-The portfolio project is currently in **Phase 3: content, photo, and metadata curation**.
+Phase 3 is **closed by user decision** as of 2026-05-15.
 
-The user confirmed they are happy with how the portfolio is looking. The current design baseline should be treated as stable.
+This file is retained for historical continuity because older chat starter prompts may still mention `CURRENT_PROJECT_HANDOFF_PHASE3_ACTIVE.md`. It should no longer be treated as the active project handoff.
 
-Do not begin broad redesign work unless the user identifies a specific issue. The next useful work is practical curation, metadata, alt text review, and eventual launch preparation.
+The active phase handoff is now:
+
+```text
+docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md
+```
+
+## Closeout decision
+
+The user decided Phase 3 can be marked complete even though the portfolio may still feel bloated. The reason is practical: the site is still far away from public launch, so portfolio image reduction and final metadata polish can continue later without blocking the next useful work.
+
+## Phase 3 outcome
+
+Phase 3 established a much larger real content set and moved the project beyond the earlier sample/demo state.
+
+Known current content state from the latest reviewed upload:
+
+```text
+Gallery images: 67
+Categories: 6
+Hero slides: 6
+Gallery wall slots: 17
+Assigned 3D gallery artworks: 7
+Alt text coverage: 67 / 67
+Referenced thumbnails present: 67 / 67
+Thumbnail files included in chat upload: 74
+Unreferenced thumbnail files in chat upload: 7
+```
+
+The latest normal chat upload was thumbnail-oriented, so full `display`, `texture`, and `full` runtime rendition validation still belongs in the local repo or a full runtime-image upload.
+
+## What remains intentionally deferred
+
+The following are not blockers for moving into Phase 4:
+
+- reducing the total public portfolio image count;
+- refining exact launch image selection;
+- filling every optional location/year field;
+- final launch copy;
+- final SEO pass;
+- final 3D gallery artwork selection.
 
 ## Completed phase summary
 
@@ -43,96 +82,8 @@ Key Phase 2 outcomes:
 - Mobile hero performance improved.
 - Lightbox received accessibility/focus and mobile swipe polish.
 
-### Phase 3 — Content and metadata curation
+## Current active work
 
-Active. This phase depends heavily on the user selecting the actual image set and metadata.
+The active project phase is now **Phase 4: editor curation controls and editor workflow fixes**.
 
-## Current data and image notes
-
-The latest reviewed package showed the project had moved beyond the original small sample set. It contained a larger active gallery image set and active thumbnail coverage.
-
-The active runtime image structure is:
-
-```text
-public/images/portfolio/display/
-public/images/portfolio/thumb/
-public/images/portfolio/texture/
-public/images/portfolio/full/
-public/images/ui/cards/
-```
-
-There is no active `public/images/logo/` folder.
-
-If public images are not pushing to GitHub, the likely issue is staging/commit flow, not `.gitignore`. Stage public runtime assets explicitly when needed:
-
-```powershell
-git add -A public/images/portfolio
-git add -A public/images/ui
-git add -A public/fonts
-git add -A src/data
-git add index.html
-```
-
-## Copy policy
-
-The user wants to write the actual final website copy. Do not replace or generate final public prose, especially About page copy, unless asked.
-
-Existing About text should be treated as placeholder unless the user confirms they wrote or approved it.
-
-## Subcategory decision
-
-Subcategories are not being added now. If future organization needs grow, use a restrained model:
-
-```text
-Category = public navigation
-Series/collection = optional curated body of work
-Tags = optional internal/search/SEO layer
-```
-
-Do not add nested category UI unless the user requests it later.
-
-## Portfolio size target
-
-Working guidance:
-
-```text
-Minimum viable portfolio: 18–24 images
-Strong complete portfolio: 30–45 images
-Likely too much for launch: 60+ images unless tightly curated
-Homepage hero slides: 5–8 images
-3D gallery room: 12–18 images
-```
-
-The site should feel curated, not exhaustive.
-
-## Next practical user workflow
-
-From repo root:
-
-```powershell
-cd C:\Users\jtayl\portfolio-site
-git checkout dev
-.\scripts\Run-LocalEditor.ps1
-```
-
-Then focus on:
-
-1. importing final/near-final images;
-2. hiding/removing weak images;
-3. assigning categories;
-4. adding title/year/location/basic metadata;
-5. choosing hero candidates;
-6. choosing 3D gallery images;
-7. validating and committing stable batches.
-
-## Validation commands
-
-Use as appropriate:
-
-```powershell
-npm run build
-.\scripts\Validate-PortfolioImageData.ps1
-.\scripts\Validate-PortfolioDevBranch.ps1
-```
-
-Do not repeat the old known active/placed/unassigned wall-slot warning unless it becomes directly relevant or blocking.
+Start with `docs/CURRENT_PROJECT_HANDOFF.md`, `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`, `docs/PROJECT_ROADMAP_CURRENT.md`, and `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`.

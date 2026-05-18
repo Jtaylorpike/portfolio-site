@@ -6,6 +6,36 @@ Current source files remain the source of truth. This changelog is a historical 
 
 ---
 
+## 2026-05-15 â€” Phase 4D import review workflow polish
+
+### Changed
+- Added remove-from-review controls to individual import review cards.
+- Changed the reviewed import action to dynamic wording such as `Import X photo(s)`.
+- Added an import progress panel with upload progress, percentage text, and log/status messages.
+- Added category creation controls within the import workflow.
+- Updated the backend import endpoint so reviewed categories can be saved with the import transaction.
+- Bumped the local editor script cache version to `v=48`.
+
+### Files changed
+- `local-editor/app/image_importer.py`
+- `local-editor/static/js/api.js`
+- `local-editor/static/js/dom.js`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/static/editor.css`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4D_IMPORT_REVIEW_WORKFLOW_POLISH.md`
+- `PROJECT_CHANGELOG.md`
+
+### Notes
+- Browser upload progress is real. Backend rendition generation remains a single non-streaming Flask request, so backend progress is stage-based.
+- New categories created from the import screen are saved when the reviewed import is submitted.
+
+---
+
 ## 2026-05-12 â€” Stale public data archive cleanup
 
 ### Changed
@@ -49,7 +79,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - Append this entry into `PROJECT_CHANGELOG.md` when ready rather than blindly replacing the current changelog.
 
 
-## 2026-05-12 — Validation empty report fix
+## 2026-05-12 ï¿½ Validation empty report fix
 
 ### Changed
 - Fixed `Audit-PublicImageReferences.ps1` so empty report files are explicitly cleared and recreated.
@@ -64,7 +94,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - The prior validation output showed `Missing referenced files: 0` in the summary but still failed with 4 missing files because stale rows remained in `public-image-missing.txt`.
 
 
-## 2026-05-12 — Dev validation PowerShell parser fix
+## 2026-05-12 ï¿½ Dev validation PowerShell parser fix
 
 ### Changed
 - Replaced the dev branch validation script with an ASCII-only version.
@@ -79,7 +109,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - This fixes the parser error caused by mojibake from a non-ASCII dash in the validation script.
 
 
-## 2026-05-12 — Workspace and image folder cleanup tooling
+## 2026-05-12 ï¿½ Workspace and image folder cleanup tooling
 
 ### Changed
 - Added root workspace cleanup audit tooling.
@@ -107,7 +137,7 @@ Current source files remain the source of truth. This changelog is a historical 
 ## Appended changelog fragments - 20260512-124709
 
 
-## 2026-05-12 — Dev validation image data integration
+## 2026-05-12 ï¿½ Dev validation image data integration
 
 ### Changed
 - Updated the dev branch validation script so it also runs the portfolio image data validator.
@@ -123,7 +153,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - This makes the full dev validation checkpoint include both file-level image checks and data-model checks.
 
 
-## 2026-05-12 — Local editor fit mode normalization fix
+## 2026-05-12 ï¿½ Local editor fit mode normalization fix
 
 ### Changed
 - Updated `local-editor/app/data_store.py` so `save_project_data()` performs a final normalization pass before validation and writing JSON.
@@ -141,7 +171,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - Valid fit modes remain `cover` and `contain`; invalid values are normalized to `cover`.
 
 
-## 2026-05-12 — Image data validation
+## 2026-05-12 ï¿½ Image data validation
 
 ### Changed
 - Added a portfolio image data validation script.
@@ -159,7 +189,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - The validator can run in normal mode or with warnings treated as errors.
 
 
-## 2026-05-12 — Image import workflow
+## 2026-05-12 ï¿½ Image import workflow
 
 ### Changed
 - Added a dry-run-first portfolio image import workflow.
@@ -180,7 +210,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - It should run on `dev` first.
 
 
-## 2026-05-12 — Image removal workflow
+## 2026-05-12 ï¿½ Image removal workflow
 
 ### Changed
 - Added a dry-run-first script for removing a portfolio image record by ID.
@@ -199,7 +229,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - Removed image files are moved to `asset-archive/`, not deleted.
 
 
-## 2026-05-12 — Legacy editor import repair
+## 2026-05-12 ï¿½ Legacy editor import repair
 
 ### Changed
 - Added a repair script for image records that still point to `/images/imported/...`.
@@ -220,7 +250,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - This fixes records that cause 4 prefix violations after a test import writes into `/images/imported/`.
 
 
-## 2026-05-12 — Local editor image pipeline contract
+## 2026-05-12 ï¿½ Local editor image pipeline contract
 
 ### Changed
 - Added a local editor compatibility audit script.
@@ -241,7 +271,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - It identifies stale path assumptions without replacing editor source code yet.
 
 
-## 2026-05-12 — Workspace root final cleanup tooling
+## 2026-05-12 ï¿½ Workspace root final cleanup tooling
 
 ### Changed
 - Added root artifact audit tooling.
@@ -268,7 +298,7 @@ Current source files remain the source of truth. This changelog is a historical 
 ## Appended changelog fragments - 20260512-125157
 
 
-## 2026-05-12 — Dev validation image data integration
+## 2026-05-12 ï¿½ Dev validation image data integration
 
 ### Changed
 - Updated the dev branch validation script so it also runs the portfolio image data validator.
@@ -284,7 +314,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - This makes the full dev validation checkpoint include both file-level image checks and data-model checks.
 
 
-## 2026-05-12 — Local editor fit mode normalization fix
+## 2026-05-12 ï¿½ Local editor fit mode normalization fix
 
 ### Changed
 - Updated `local-editor/app/data_store.py` so `save_project_data()` performs a final normalization pass before validation and writing JSON.
@@ -302,7 +332,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - Valid fit modes remain `cover` and `contain`; invalid values are normalized to `cover`.
 
 
-## 2026-05-12 — Image data validation
+## 2026-05-12 ï¿½ Image data validation
 
 ### Changed
 - Added a portfolio image data validation script.
@@ -320,7 +350,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - The validator can run in normal mode or with warnings treated as errors.
 
 
-## 2026-05-12 — Image import workflow
+## 2026-05-12 ï¿½ Image import workflow
 
 ### Changed
 - Added a dry-run-first portfolio image import workflow.
@@ -341,7 +371,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - It should run on `dev` first.
 
 
-## 2026-05-12 — Image removal workflow
+## 2026-05-12 ï¿½ Image removal workflow
 
 ### Changed
 - Added a dry-run-first script for removing a portfolio image record by ID.
@@ -360,7 +390,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - Removed image files are moved to `asset-archive/`, not deleted.
 
 
-## 2026-05-12 — Legacy editor import repair
+## 2026-05-12 ï¿½ Legacy editor import repair
 
 ### Changed
 - Added a repair script for image records that still point to `/images/imported/...`.
@@ -381,7 +411,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - This fixes records that cause 4 prefix violations after a test import writes into `/images/imported/`.
 
 
-## 2026-05-12 — Local editor image pipeline contract
+## 2026-05-12 ï¿½ Local editor image pipeline contract
 
 ### Changed
 - Added a local editor compatibility audit script.
@@ -402,7 +432,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - It identifies stale path assumptions without replacing editor source code yet.
 
 
-## 2026-05-12 — Workspace cleanup locked folder fix
+## 2026-05-12 ï¿½ Workspace cleanup locked folder fix
 
 ### Changed
 - Updated `Clean-WorkspaceRootArtifacts.ps1` to continue cleanup when one folder cannot be moved.
@@ -421,7 +451,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - This fixes cleanup failure caused by Windows denying access to `_chat-uploads`.
 
 
-## 2026-05-12 — Workspace root final cleanup tooling
+## 2026-05-12 ï¿½ Workspace root final cleanup tooling
 
 ### Changed
 - Added root artifact audit tooling.
@@ -448,7 +478,7 @@ Current source files remain the source of truth. This changelog is a historical 
 ## Appended changelog fragments - 20260512-130115
 
 
-## 2026-05-12 — Changelog fragment policy
+## 2026-05-12 ï¿½ Changelog fragment policy
 
 ### Changed
 - Added explicit policy for `PROJECT_CHANGELOG_APPEND_*.md` files.
@@ -466,7 +496,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - Changelog append files are temporary. They should be appended into `PROJECT_CHANGELOG.md`, then moved to `asset-archive/`.
 
 
-## 2026-05-12 — Handoff refresh workflow
+## 2026-05-12 ï¿½ Handoff refresh workflow
 
 ### Changed
 - Added a script that writes a current project handoff snapshot.
@@ -484,7 +514,7 @@ Current source files remain the source of truth. This changelog is a historical 
 - This keeps future chats aligned with the current `dev` branch, cleaned image pipeline, editor import workflow, and validation tools.
 
 
-## 2026-05-12 — Handoff snapshot PowerShell syntax fix
+## 2026-05-12 ï¿½ Handoff snapshot PowerShell syntax fix
 
 ### Changed
 - Replaced the handoff snapshot script with a Windows PowerShell-safe version.
@@ -506,7 +536,7 @@ Current source files remain the source of truth. This changelog is a historical 
 ## Appended changelog fragments - 20260512-131729
 
 
-## 2026-05-12 — Staged commit audit
+## 2026-05-12 ï¿½ Staged commit audit
 
 ### Changed
 - Added a staged commit audit for large cleanup commits.
@@ -528,7 +558,7 @@ Current source files remain the source of truth. This changelog is a historical 
 ## Appended changelog fragments - 20260512-132415
 
 
-## 2026-05-12 — Dev to main release readiness
+## 2026-05-12 ï¿½ Dev to main release readiness
 
 ### Changed
 - Added a dev-to-main release readiness audit.
@@ -598,7 +628,7 @@ Date: 2026-05-12
 The previous rename flow could leave the visible Image identity panel stale after `Rename ID + Rendition Files` because the editor state updated before the browser hash moved from the old image ID to the new image ID.
 
 
-## 2026-05-12 — Editor image ID rename workflow
+## 2026-05-12 ï¿½ Editor image ID rename workflow
 
 ### Changed
 - Added a controlled image ID rename endpoint to the Flask editor backend.
@@ -628,7 +658,7 @@ The previous rename flow could leave the visible Image identity panel stale afte
 - This pack should be applied before the gallery curation controls pack is regenerated.
 
 
-## 2026-05-12 — Editor import UI validation
+## 2026-05-12 ï¿½ Editor import UI validation
 
 ### Changed
 - Added browser-side import validation for IDs, duplicate IDs, required text fields, fit modes, and frame styles.
@@ -1601,3 +1631,1159 @@ docs/NEXT_CHAT_STARTER_PROMPT.md
 docs/NEXT_CHAT_AUTHENTICATION_CHECKLIST.md
 ```
 
+
+
+---
+
+## Changelog fragment â€” Phase 3 closeout and Phase 4 editor start
+
+Date: 2026-05-15
+
+## Summary
+
+Marked Phase 3 as complete by user decision and moved the project handoff/roadmap into Phase 4 editor curation controls and workflow fixes.
+
+## Details
+
+- Updated the current handoff to show Phase 4 as the active phase.
+- Marked Phase 3 content/metadata curation as closed, while documenting that final image reduction can happen later because the site is not near public launch.
+- Added `CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md` for the active editor-focused phase.
+- Retained `CURRENT_PROJECT_HANDOFF_PHASE3_ACTIVE.md` as a superseded historical handoff with a clear pointer to the Phase 4 handoff.
+- Added Phase 3 closeout documentation.
+- Added Phase 4 editor-start documentation.
+- Updated the roadmap so Phase 4 is active.
+- Updated the transfer workflow and next-chat starter prompt to reference Phase 4 instead of Phase 3.
+- Expanded Phase 8 to explicitly include texture, material, and lighting work for the 3D gallery.
+
+## Files
+
+```text
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE3_ACTIVE.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/NEXT_CHAT_STARTER_PROMPT.md
+docs/PHASE3_CONTENT_METADATA_CURATION_CLOSEOUT.md
+docs/PHASE4_EDITOR_FIXES_START.md
+PROJECT_CHANGELOG.md
+```
+
+## Notes
+
+- Documentation-only update.
+- No public site code changed.
+- No editor code changed.
+- No image data changed.
+- No runtime image files changed.
+
+
+---
+
+## Changelog fragment ï¿½ Phase 4A editor rename metadata refresh fix
+
+Date: 2026-05-15
+
+## Summary
+
+Fixed the local editor image ID rename workflow so visible title/metadata edits are preserved when the editor reloads authoritative data after renaming an image ID and its rendition files.
+
+## Details
+
+- Updated the browser rename request to send a whitelisted snapshot of the currently visible image metadata.
+- Updated the Flask rename route to pass that metadata snapshot into the backend rename workflow.
+- Updated the backend rename workflow to merge only safe non-path metadata fields before normalizing and writing the renamed image record.
+- Kept `id`, rendition URL fields, image dimensions, and orientation backend-owned during rename so stale browser state cannot overwrite canonical paths or identity data.
+- Preserved the existing authoritative reload behavior after rename so the visible editor state still comes from saved project JSON.
+- Added Phase 4A documentation and updated active handoff/roadmap docs.
+
+## Files
+
+```text
+local-editor/app/data_store.py
+local-editor/app/routes.py
+local-editor/static/js/api.js
+local-editor/static/js/main.js
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/PHASE4A_EDITOR_RENAME_METADATA_REFRESH_FIX.md
+PROJECT_CHANGELOG.md
+```
+
+## Validation
+
+```text
+python3 -m py_compile local-editor/app/data_store.py local-editor/app/routes.py
+node --check local-editor/static/js/api.js
+node --check local-editor/static/js/main.js
+npm ci --ignore-scripts
+npm run build
+```
+
+A direct backend rename simulation was run in a disposable project copy with temporary rendition files and confirmed that submitted metadata survives the rename while all four rendition files move to the new ID.
+
+`node scripts/validate-portfolio-image-data.mjs` was attempted but could not pass inside the thumbnail-mode chat upload because the runtime `public/images/portfolio/{display,thumb,texture,full}` files are absent from the sandbox copy. The reported errors were missing rendition files, not data-shape or code errors.
+
+## Notes
+
+- This pack does not add hide/show, bulk edits, import-review improvements, or category creation from dropdowns.
+- Next recommended Phase 4 pack: public hide/show visibility model and single-image editor controls.
+
+
+---
+
+## Changelog fragment â€” Phase 4A v2 editor rename authoritative response fix
+
+Date: 2026-05-15
+
+## Summary
+
+Replaced the first Phase 4A rename fix with a more robust version that keeps the editor UI and saved JSON aligned after renaming an image ID and its rendition files.
+
+## Details
+
+- Kept the whitelisted visible-metadata snapshot for rename requests.
+- Changed the frontend rename flow to render from the successful rename response instead of doing an immediate post-rename `/api/data` reload.
+- Added cache-busting and `cache: "no-store"` to normal `/api/data` loads.
+- Bumped the local editor template asset query from `v=44` to `v=45` so the corrected module is easier to force-load in the browser.
+- Updated the backend rename workflow to merge safe metadata before normalization while keeping ID, rendition paths, dimensions, and orientation backend-owned.
+- Updated active Phase 4 docs to mark the rename fix as corrected in Phase 4A v2.
+
+## Files
+
+```text
+local-editor/app/data_store.py
+local-editor/app/routes.py
+local-editor/static/js/api.js
+local-editor/static/js/main.js
+local-editor/templates/editor.html
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/PHASE4A_EDITOR_RENAME_METADATA_REFRESH_FIX.md
+PROJECT_CHANGELOG.md
+```
+
+## Validation
+
+```text
+python3 -m py_compile local-editor/app/data_store.py local-editor/app/routes.py
+node --check local-editor/static/js/api.js
+node --check local-editor/static/js/main.js
+npm ci --ignore-scripts
+npm run build
+node scripts/validate-portfolio-image-data.mjs
+```
+
+Additional tested behavior:
+
+- Direct backend rename simulation in a disposable project copy confirmed submitted metadata persists, all four rendition paths update, all four rendition files move, and a hero slide reference moves to the new ID.
+- Headless Chromium DOM simulation confirmed the current title and other visible metadata are collected from the editor card and the visible ID fields can align to the new ID.
+
+## Notes
+
+- This pack is still limited to the rename workflow.
+- Hide/show visibility controls remain the next recommended Phase 4 pack.
+---
+
+## 2026-05-15 â€” Phase 4B bulk editor visibility and curation controls
+
+### Changed
+- Added optional image visibility support using `isPublic: false` so images can be hidden from the public site without removing records or deleting rendition files.
+- Updated public image exports so `galleryImages` is public-filtered and `allGalleryImages` remains available for editor/internal complete-record workflows.
+- Added a single-image **Show on public website** checkbox in the Flask local editor.
+- Added bulk editor controls on the all-images and per-category image pages: select visible, clear selection, selected count, bulk show/hide, bulk category reassignment, and bulk hero add/remove.
+- Limited bulk hero add to public landscape images and automatically removed hidden images from hero slide output during save normalization.
+- Added Public/Hidden/Hero status badges to editor overview cards.
+
+### Files changed
+- `src/data/images.ts`
+- `src/app/editor/imageEditorPage.ts`
+- `local-editor/app/data_store.py`
+- `local-editor/static/js/collect.js`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/static/editor.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4B_BULK_EDITOR_VISIBILITY_CONTROLS.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `python3 -m py_compile local-editor/app/data_store.py local-editor/app/routes.py`
+- `node --check local-editor/static/js/api.js`
+- `node --check local-editor/static/js/collect.js`
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- `npm ci --ignore-scripts`
+- `npm run build`
+- Backend visibility normalization and hero-filter logic test.
+- Standalone bulk payload logic test.
+
+### Notes
+- `node scripts/validate-portfolio-image-data.mjs` still fails in the sandbox upload because the chat package does not include the full runtime rendition folders under `public/images/portfolio/{display,thumb,texture,full}`.
+- Import review improvements remain future Phase 4 work.
+
+---
+
+## 2026-05-15 â€” Phase 4C editor bulk UX and readability polish
+
+### Changed
+- Reworked Phase 4B bulk editor styling to better match the light local editor UI.
+- Replaced low-contrast `Public` / `Hidden` labels with larger `Visible on site` / `Hidden from site` status chips.
+- Added a `Homepage hero` status chip and dot indicators for faster scanning.
+- Added a hidden-state overlay on hidden thumbnails.
+- Added a selected-card visual state for bulk-selected images.
+- Disabled the bulk apply button until at least one image is selected and at least one bulk update is chosen.
+- Improved single-image visibility wording so the user understands hidden images stay in the editor but are filtered out of public outputs.
+- Bumped local editor asset query strings to `v=47`.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4C_EDITOR_BULK_UX_READABILITY_POLISH.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- `npm run build`
+- Static markup check for the new status labels, disabled apply control, and cache-bumped editor assets.
+
+### Notes
+- No public-site behavior was changed in this pack.
+- Phase 4B visibility filtering and bulk save behavior are intentionally preserved.
+
+---
+
+## 2026-05-15 â€” Phase 4E archive editor visual rehaul
+
+### Changed
+- Reworked the Flask local editor visual style around an archive-editor direction: warm paper surfaces, graphite controls, consistent cards, and cleaner status blocks.
+- Fixed the import review card layout so the toolbar spans the full card and selected images render as compact thumbnails rather than oversized previews.
+- Added a clickable import thumbnail preview with a full-size lightbox overlay.
+- Added close behavior for the import preview lightbox via Close button, backdrop click, and Escape key.
+- Removed the duplicate `Home hero eligibility` eyebrow from import review cards.
+- Bumped local editor asset query strings to `v=49`.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/static/js/dom.js`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4E_ARCHIVE_EDITOR_VISUAL_REHAUL.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/dom.js`
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- `npm run build`
+- Static import-review render check confirmed the new thumbnail lightbox trigger markup and removed duplicate hero eligibility eyebrow.
+
+### Notes
+- No public-site behavior was changed in this pack.
+- A full browser visual test could not complete in the sandbox because the execution environment blocked Chromium navigation.
+
+---
+
+## 2026-05-15 â€” Phase 4F editor import and gallery cleanup
+
+### Changed
+- Removed the editor button inset/bevel artifact that created a visible white rim inside pill buttons.
+- Simplified import review cards so they no longer expose crop/framing controls during import.
+- Kept default hidden import values for thumbnail, gallery, and hero framing so imported records remain valid.
+- Added `galleryCurationStatus` diagnostics to editor API responses.
+- Updated the gallery curation empty state so it no longer falsely claims `galleryCuration.json` is missing when the file exists.
+- Bumped local editor asset query strings to `v=50`.
+
+### Files changed
+- `local-editor/app/data_store.py`
+- `local-editor/app/routes.py`
+- `local-editor/static/editor.css`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4F_EDITOR_IMPORT_AND_GALLERY_CLEANUP.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/api.js`
+- `node --check local-editor/static/js/dom.js`
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- `python3 -m py_compile local-editor/app/data_store.py local-editor/app/routes.py local-editor/app/image_importer.py`
+- `npm run build`
+- Static render test confirmed import review no longer renders crop/framing controls while preserving hidden default fields and the import lightbox trigger.
+- Data-store diagnostic test confirmed the current source reports `galleryCuration.json` as existing with 17 loaded rows.
+
+### Notes
+- No public-site behavior was changed in this pack.
+- A true browser screenshot test could not run in the sandbox because Playwright browsers are not installed in this environment.
+
+---
+
+## 2026-05-15 â€” Phase 4G gallery editor UX professionalization
+
+### Changed
+- Reworked the Gallery editor page around an archive-room control-surface direction.
+- Added a clearer gallery summary header and a top-level `Save All Gallery Curation` action.
+- Improved gallery stats for wall-card count, map placement, artwork assignment, and visible/hidden status.
+- Reorganized Gallery filters into a clearer Wall Finder panel.
+- Reworked gallery wall cards with clearer blueprint identity, status chips, artwork assignment controls, room behavior controls, map-position readouts, and grouped actions.
+- Moved the precise artwork-ID fallback select into an advanced details block while preserving the existing save/picker logic.
+- Restyled the gallery artwork picker, preview lightbox, add-wall overlay, placement sidebar, and map controls to match the archive-editor design system.
+- Bumped local editor asset query strings to `v=51`.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4G_GALLERY_EDITOR_UX_PROFESSIONALIZATION.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- `npm run build`
+- Static Gallery render test confirmed 17 wall cards render and required data selectors for save, filters, artwork assignment, preview, add-wall, wall type, visibility, plaque, and placement behavior are still present.
+
+### Notes
+- No public-site behavior was changed in this pack.
+- No Three.js gallery runtime, wall-placement math, collision logic, plaque fallback logic, or gallery curation JSON schema was changed.
+
+---
+
+## 2026-05-15 â€” Phase 4G v2 Adobe-inspired Gallery editor correction
+
+### Changed
+- Corrected the Phase 4G Gallery editor visual treatment after user review.
+- Removed the oversized saturated green checkbox appearance from Gallery boolean controls.
+- Standardized local-editor checkboxes as compact neutral controls.
+- Made Gallery status chips more restrained and less success-color-driven.
+- Confirmed the editor uses system sans and standard system monospace only, not the VCR/pixel font.
+- Documented future drag-and-drop ordering for category-specific Images views, excluding All images.
+- Bumped local editor asset query strings to `v=52`.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4G_V2_ADOBE_INSPIRED_GALLERY_EDITOR_CORRECTION.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `npm run build`
+- Static checks confirmed compact checkbox CSS, neutral Gallery plaque controls, no editor VCR/pixel font reference, and editor asset version `v=52`.
+
+### Notes
+- No public-site behavior was changed.
+- No Three.js gallery runtime, wall-placement math, collision logic, plaque fallback logic, or gallery curation JSON schema was changed.
+- Drag-and-drop category ordering was documented as backlog only; it was not implemented in this pack.
+
+## 2026-05-15 â€” Phase 4G v3 Adobe archive editor CSS overhaul
+
+- Reworked the local editor visual system with a CSS-forward Adobe/archive-editor direction.
+- Shifted the editor from warm webpage-like surfaces to a neutral gray professional workspace.
+- Converted the header into a compact command area and navigation into software-style tabs.
+- Restyled buttons, fields, panels, status chips, image overview cards, import review cards, Gallery wall cards, overlays, and utility panels with a more compact production-tool treatment.
+- Kept the editor technical behavior unchanged: no JavaScript behavior, data schema, public-site styling, Three.js runtime, gallery map placement, collision logic, plaque fallback, import behavior, or bulk/hide-show behavior was changed.
+- Confirmed the editor still avoids the VCR/pixel font; technical readouts use only a normal system monospace stack.
+- Bumped the local editor asset version to `v=53`.
+
+
+---
+
+## 2026-05-15 â€” Phase 4G v4 editor visual correction and dark mode
+
+### Changed
+- Corrected the Phase 4G v3 CSS overhaul after user review.
+- Fixed Wall Finder layout overlap by separating heading copy from the filter-control grid.
+- Removed decorative trim/baseboard/floor/label elements from gallery wall-preview thumbnails.
+- Replaced the large `Select Image` overlay with a compact top-left selection square.
+- Softened editor buttons away from the rigid rectangle treatment while keeping them compact and professional.
+- Added a local light/dark editor theme toggle in the command header.
+- Added dark-mode CSS variables and contrast overrides for panels, forms, cards, overlays, gallery previews, and map surfaces.
+- Bumped local editor asset query strings to `v=54`.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/static/js/dom.js`
+- `local-editor/static/js/main.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4G_V4_EDITOR_VISUAL_CORRECTION_DARK_MODE.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/dom.js`
+- `node --check local-editor/static/js/render.js`
+- CSS brace-balance check
+- `npm ci --ignore-scripts`
+- `npm run build`
+
+### Notes
+- No public-site behavior or styling was changed.
+- No Three.js runtime, gallery schema, wall-placement math, collision logic, plaque fallback, import behavior, bulk behavior, or save behavior was changed.
+- The only new JavaScript behavior is the local editor theme toggle, stored in browser `localStorage`.
+
+---
+
+## 2026-05-15 â€” Phase 4G v5 dark-mode contrast and selector correction
+
+### Changed
+- Corrected the Phase 4G v4 dark-mode pass after user review.
+- Increased dark-mode contrast across editor workspace, panels, navigation, category tabs, cards, controls, labels, status areas, badges, and gallery preview surfaces.
+- Reworked the bulk image selector so it appears as one coherent selectable square instead of a custom square with a nested native checkbox shape.
+- Preserved the existing technical behavior and accessible checkbox input.
+- Kept gallery wall-preview trim/baseboard/floor elements hidden.
+- Bumped local editor asset query strings to `v=55`.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4G_V5_DARK_MODE_CONTRAST_AND_SELECTOR_FIX.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- CSS brace-balance check
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No public-site styling or behavior was changed.
+- No editor JavaScript behavior was changed.
+- No image/gallery/category data or gallery runtime logic was changed.
+
+## 2026-05-15 â€” Phase 4G v6 gallery curation stabilization
+
+- Built a narrow stabilization pack after the Gallery curation page regressed during the Phase 4G visual editor passes.
+- Preserved `galleryRoom` in frontend editor state when backend responses include it.
+- Re-shipped the full set of local editor files involved in Gallery curation rendering, collection, API calls, Flask route data, and cache loading to avoid stale mixed-file states.
+- Bumped local editor cache query strings to `v=56`.
+- Did not change public-site behavior, Three.js runtime behavior, gallery placement math, collision logic, plaque fallback logic, or the gallery curation schema.
+
+
+
+---
+
+## 2026-05-15 â€” Phase 4H-I-J combined editor functionality pack
+
+### Changed
+- Added drag-and-drop image ordering on category-specific Images pages while keeping the All images view non-draggable.
+- Kept existing Top / Up / Down category-order buttons and Save Category Order behavior.
+- Added a header saved/unsaved indicator and clearer dirty-state tracking.
+- Added confirmation before route changes, Reload Data, or Clear Import Review discards unsaved/pending editor work.
+- Hardened import validation so duplicate import IDs, existing image IDs, invalid ID formatting, unsupported extensions, and existing rendition-file collisions are rejected before backend writes begin.
+- Added duplicate-filename warnings to the import review.
+- Added backend cleanup for newly created import files if optimization or JSON validation fails mid-import.
+- Bumped local editor asset query strings to `v=57`.
+
+### Files changed
+- `local-editor/app/image_importer.py`
+- `local-editor/static/editor.css`
+- `local-editor/static/js/api.js`
+- `local-editor/static/js/collect.js`
+- `local-editor/static/js/dom.js`
+- `local-editor/static/js/importValidation.js`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4H_I_J_EDITOR_FUNCTIONALITY_PACK.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- `node --check local-editor/static/js/collect.js`
+- `node --check local-editor/static/js/api.js`
+- `node --check local-editor/static/js/importValidation.js`
+- `python3 -m py_compile local-editor/app/image_importer.py local-editor/app/data_store.py local-editor/app/routes.py`
+- CSS brace-balance check
+- `npm run build`
+
+### Notes
+- No public-site code or styling was changed.
+- No Three.js runtime, gallery curation schema, wall placement, collision, or plaque fallback behavior was changed.
+- This pack does not implement true backend-streamed per-file import progress.
+
+## 2026-05-16 â€” Phase 4H-I-J v2 category drag smoothing
+
+### Changed
+- Replaced the handle-only category image drag interaction with direct card dragging on category-specific Images pages.
+- Removed the visible drag-handle button from reorder cards.
+- Kept buttons, checkboxes, selects, labels, and explicit no-drag regions interactive so they do not start a card drag.
+- Replaced the native HTML5 drag/drop category reordering path with pointer-event handling and a row-aware grid insertion calculation.
+- Updated category-order helper copy to describe card dragging instead of handle dragging.
+- Bumped local editor asset query strings to `v=58`.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4H_I_J_V2_CATEGORY_DRAG_SMOOTHING.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- CSS brace-balance check
+- `npm ci --ignore-scripts`
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No public-site code or styling was changed.
+- No data schema, import behavior, dirty-state behavior, gallery curation behavior, Three.js runtime behavior, wall placement, collision, or plaque fallback behavior was changed.
+
+
+
+---
+
+## 2026-05-16 â€” Phase 4H-I-J v4 category drag interaction refinement
+
+### Changed
+- Refined category-specific image drag ordering so the drag can start from the photo preview without triggering native browser image dragging.
+- Added a short hold threshold before custom drag activation so quick photo-preview clicks still open the individual image editor page.
+- Kept the lifted ghost-card preview and neutral placeholder behavior from v3.
+- Changed placeholder placement to calculate against real category cards only, preventing the extra empty side cell/offset behavior from the previous dynamic drag pass.
+- Matched placeholder height more closely to the lifted card.
+- Bumped local editor asset query strings to `v=60`.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4H_I_J_V4_CATEGORY_DRAG_INTERACTION_REFINEMENT.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- CSS brace-balance check
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No public-site code or styling was changed.
+- No image data schema, import behavior, bulk editor behavior, gallery curation behavior, Three.js runtime behavior, wall placement, collision, or plaque fallback behavior was changed.
+
+---
+
+## 2026-05-16 â€” Phase 4H-I-J v5 category drag placeholder correction
+
+### Changed
+- Corrected the remaining category drag placeholder offset issue by removing the placeholder before measuring CSS Grid card positions, then reinserting it after calculating the intended insertion point.
+- Kept placeholder placement based on real category cards only, preventing the visual extra blank card one position left or right of the intended drop location.
+- Delayed pointer capture until the custom drag actually activates, making short-click image preview navigation more reliable.
+- Kept the mouse cursor normal during hover and short-click states; the grabbing cursor now appears only while the drag is active.
+- Added window-level pointerup/pointercancel cleanup for armed drag states.
+- Updated the category ordering help text to describe short-click versus press-and-hold behavior.
+- Bumped local editor asset query strings to `v=61`.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4H_I_J_V5_CATEGORY_DRAG_PLACEHOLDER_CORRECTION.md`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- CSS brace-balance check
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No public-site code or styling was changed.
+- No image data schema, import behavior, bulk editor behavior, gallery curation behavior, Three.js runtime behavior, wall placement, collision, or plaque fallback behavior was changed.
+---
+
+## 2026-05-16 â€” Phase 4H-I-J v6 category drag single-placeholder fix
+
+### Changed
+- Reworked category-specific image drag ordering so the source card itself becomes the single grid placeholder during active drag.
+- Kept the floating ghost-card preview, but removed the separate placeholder-node model that could create an extra adjacent blank cell in CSS Grid.
+- Added window-level pointermove handling so live placeholder movement continues even when the pointer leaves the editor list area.
+- Kept the mouse cursor normal until drag activation.
+- Bumped local editor asset query strings to `v=62`.
+- Moved this pack's notes and manifest into `docs/` instead of the project root, and added a PowerShell helper to move older root-level pack docs into docs folders.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4H_I_J_V6_CATEGORY_DRAG_SINGLE_PLACEHOLDER_FIX.md`
+- `docs/PACK_NOTES_PHASE4H_I_J_V6.md`
+- `docs/PACK_MANIFEST_PHASE4H_I_J_V6.txt`
+- `scripts/Move-PackDocsIntoDocs.ps1`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- CSS brace-balance check
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No public-site code or styling was changed.
+- No image data schema, import behavior, bulk editor behavior, gallery curation behavior, Three.js runtime behavior, wall placement, collision, or plaque fallback behavior was changed.
+
+
+---
+
+## 2026-05-16 â€” Phase 4H-I-J v7 category drag pacing refinement
+
+### Changed
+- Refined category-specific image drag ordering after v6 fixed the single-placeholder behavior.
+- Added direction-aware insertion buffering so moving a dragged card to the right of another card feels less abrupt and closer to the leftward pacing.
+- Kept the source card as the single live placeholder and preserved the floating ghost-card preview.
+- Kept pointer movement through card gaps from immediately advancing the placeholder.
+- Bumped local editor asset query strings to `v=63`.
+
+### Files changed
+- `local-editor/static/js/main.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4H_I_J_V7_CATEGORY_DRAG_PACING.md`
+- `docs/PACK_NOTES_PHASE4H_I_J_V7.md`
+- `docs/PACK_MANIFEST_PHASE4H_I_J_V7.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- CSS brace-balance check
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No public-site code or styling was changed.
+- No image data schema, import behavior, gallery curation behavior, Three.js runtime behavior, wall placement, collision, or plaque fallback behavior was changed.
+
+---
+
+## 2026-05-16 â€” Phase 4H-I-J v8 category drag left-threshold tuning
+
+### Changed
+- Refined category-specific image drag ordering after v7 pacing testing.
+- Reduced the sensitivity for moving the placeholder to the left side of a neighboring card by requiring the pointer to move farther into the card's left side before the placeholder crosses.
+- Preserved the v6 single-placeholder model, v7 rightward pacing buffer, floating ghost preview, short-click image navigation, and non-draggable All Images view.
+- Bumped local editor asset query strings to `v=64`.
+
+### Files changed
+- `local-editor/static/js/main.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4H_I_J_V8_CATEGORY_DRAG_LEFT_THRESHOLD.md`
+- `docs/PACK_NOTES_PHASE4H_I_J_V8.md`
+- `docs/PACK_MANIFEST_PHASE4H_I_J_V8.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- CSS brace-balance check
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No public-site code or styling was changed.
+- No image data schema, import behavior, gallery curation behavior, Three.js runtime behavior, wall placement, collision, or plaque fallback behavior was changed.
+---
+
+## 2026-05-16 â€” Phase 4H-I-J v9 category drag symmetric threshold tuning
+
+### Changed
+- Tuned category-specific image drag ordering after v8 testing showed that right-side placement still felt more sensitive than left-side placement.
+- Moved category drag before/after thresholds closer to the target card midpoint so the placeholder does not settle to the right side of a card after only a small overlap.
+- Preserved the v6 single-placeholder model, floating ghost preview, press/hold drag activation, short-click image navigation, non-draggable All Images view, and existing save behavior.
+- Bumped local editor asset query strings to `v=65`.
+
+### Files changed
+- `local-editor/static/js/main.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE4H_I_J_V9_CATEGORY_DRAG_SYMMETRIC_THRESHOLD.md`
+- `docs/PACK_NOTES_PHASE4H_I_J_V9.md`
+- `docs/PACK_MANIFEST_PHASE4H_I_J_V9.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No public-site code or styling was changed.
+- No image data schema, import behavior, gallery curation behavior, Three.js runtime behavior, wall placement, collision, or plaque fallback behavior was changed.
+
+
+---
+
+## 2026-05-16 â€” Phase 4K non-gallery editor closeout
+
+### Changed
+- Added a non-gallery editor closeout pass after the Phase 4H-I-J v9 category drag threshold was accepted.
+- Added a Categories page summary strip for category count, total images, visible images, hidden images, and hero slide count.
+- Added per-category usage chips for total, visible, hidden, and hero target counts.
+- Added explicit category reassignment targets for category removal.
+- Blocked removal of the final remaining category.
+- Added duplicate category ID preflight before saving category settings.
+- Updated the Add Category flow so newly added category IDs are unique.
+- Improved Backups page restore clarity with a safety toolbar and restore readiness labels.
+- Added unsaved-change protection before backup restore.
+- Moved pack notes and manifests into `docs/pack-notes/` and `docs/pack-manifests/` inside the working tree.
+- Bumped local editor asset query strings to `v=66`.
+
+### Files changed
+- `local-editor/static/editor.css`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/NEXT_CHAT_STARTER_PROMPT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE4K_NON_GALLERY_EDITOR_CLOSEOUT.md`
+- `docs/pack-notes/PACK_NOTES_PHASE4K.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE4K.txt`
+- `scripts/Move-PackDocsIntoDocs.ps1`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- CSS brace-balance check
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No gallery curation behavior, public-site behavior, Three.js runtime behavior, wall placement, collision, plaque fallback, or import writing behavior was changed.
+
+## 2026-05-16 â€” Phase 5A About/contact separate image pipeline
+
+- Started Phase 5 About/contact redesign.
+- Added `src/data/aboutPhotos.json` and `src/data/aboutPhotos.ts`.
+- Reworked the public About page into an editorial placeholder structure with cascading About images.
+- Seeded temporary About images from current portfolio portrait/editorial records.
+- Added a local editor About tab for About photo import, ordering, active/inactive state, and metadata edits.
+- Added separate About-native import output folders under `public/images/about/{display,thumb,full}` and source storage under `source-images/about-editor-imports/`.
+- Added backend `/api/about-photos/import` and About photo save/load/backup support.
+- Kept final About copy as placeholder text because the user wants to write final public copy.
+
+## 2026-05-16 â€” Phase 5B About vertical layout and portfolio-reference action
+
+### Changed
+- Reworked the public About/contact page into a taller editorial layout based on the user mockup.
+- Added a top copy block beside an overlapping About photo cluster, a full-width copy band, and a lower split photo/copy section.
+- Added low-opacity floating About photos and subtle scroll-linked movement for the About page.
+- Added an **Add to About** action panel on normal portfolio image edit pages in the local editor.
+- The action creates a `sourceType: "portfolio-reference"` About photo record that points at existing portfolio rendition paths.
+- Kept native About imports separate under `public/images/about/`.
+- Bumped local editor asset query strings to `v=68`.
+
+### Files changed
+- `src/app/sitePages.ts`
+- `src/app/siteInteractionsController.ts`
+- `src/styles/global.css`
+- `local-editor/static/editor.css`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE5B_ABOUT_VERTICAL_LAYOUT_AND_PORTFOLIO_REFERENCE.md`
+- `docs/pack-notes/PACK_NOTES_PHASE5B.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE5B.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- `node --check local-editor/static/js/collect.js`
+- `python3 -m py_compile local-editor/app/data_store.py local-editor/app/routes.py local-editor/app/about_importer.py`
+- CSS brace-balance checks
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No gallery curation behavior, public portfolio behavior, Three.js runtime behavior, portfolio import writing behavior, wall placement, collision, or plaque fallback behavior was changed.
+- Public About copy remains placeholder-only.
+
+
+## 2026-05-16 â€” Phase 5C About three-layer collage controls
+
+### Changed
+- Refined the public About/contact page into a three-layer image model based on the user's updated mockup.
+- Added About photo `placementRole` support for `upper-collage`, `lower-collage`, `background-float`, and `unused`.
+- Updated the public About page so the upper collage renders only two foreground photos.
+- Updated the lower About collage to use its own ordered photo group.
+- Updated transparent background float photos to use a dedicated placement group and subtle scroll-linked horizontal/vertical drift.
+- Added About placement controls to existing About photo cards in the local editor.
+- Added default About placement and per-card placement controls to About import review.
+- Made normal portfolio image **Add to About** records default to `lower-collage`.
+- Added temporary portfolio-reference About photo records to populate the refined layout for visual testing.
+- Bumped local editor asset query strings to `v=69`.
+
+### Files changed
+- `src/app/sitePages.ts`
+- `src/app/siteInteractionsController.ts`
+- `src/data/aboutPhotos.json`
+- `src/data/aboutPhotos.ts`
+- `src/styles/global.css`
+- `local-editor/app/about_importer.py`
+- `local-editor/app/data_store.py`
+- `local-editor/static/js/collect.js`
+- `local-editor/static/js/dom.js`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE5C_ABOUT_THREE_LAYER_COLLAGE_CONTROLS.md`
+- `docs/pack-notes/PACK_NOTES_PHASE5C.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE5C.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- `node --check local-editor/static/js/collect.js`
+- `node --check local-editor/static/js/dom.js`
+- `python3 -m py_compile local-editor/app/data_store.py local-editor/app/about_importer.py`
+- CSS brace-balance checks
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No gallery curation behavior, public portfolio behavior, Three.js runtime behavior, portfolio import writing behavior, wall placement, collision, or plaque fallback behavior was changed.
+- Public About copy remains placeholder-only.
+
+## Phase 5D â€” About collage and editor section refinement â€” 2026-05-16
+
+### Summary
+- Enlarged transparent About background-float images so they read as visible atmospheric page elements.
+- Reworked the upper About collage into one large base photo with one smaller centered photo stacked on top.
+- Removed foreground About collage hyperlinks so upper/lower About photos no longer open source image files in a new tab.
+- Updated About photo rendering so inactive records are excluded from public foreground/background About image sets.
+- Broke the About editor photo list into clear sections for Upper collage, Lower collage, Background floats, and Unused / staged records.
+- Updated About photo Top/Up/Down controls to move within the current section.
+- Bumped local editor cache strings to `v=70`.
+
+### Files changed
+- `src/app/sitePages.ts`
+- `src/styles/global.css`
+- `local-editor/static/editor.css`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/templates/editor.html`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE5D_ABOUT_COLLAGE_AND_EDITOR_SECTION_REFINEMENT.md`
+- `docs/pack-notes/PACK_NOTES_PHASE5D.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE5D.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `node --check local-editor/static/js/main.js`
+- `node --check local-editor/static/js/render.js`
+- CSS brace-balance checks
+- `npm ci --ignore-scripts`
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No gallery curation behavior, public portfolio behavior, Three.js runtime behavior, portfolio import writing behavior, wall placement, collision, or plaque fallback behavior was changed.
+- Final About copy remains placeholder-only.
+
+## Phase 5E â€” About background-float positioning refinement â€” 2026-05-16
+
+### Summary
+- Repositioned the public About/contact page background-float images so most of them intentionally spill 20-30% past the browser viewport edge.
+- Kept one background float slightly off-center toward the middle of the page for atmospheric depth.
+- Preserved the Phase 5D foreground upper/lower collage behavior.
+- Preserved About editor controls and About image data schema.
+
+### Files changed
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE5E_ABOUT_BACKGROUND_FLOAT_POSITIONING.md`
+- `docs/pack-notes/PACK_NOTES_PHASE5E.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE5E.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- CSS brace-balance check
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No editor behavior, About data model, gallery curation behavior, public portfolio behavior, Three.js runtime behavior, portfolio import behavior, wall placement, collision, or plaque fallback behavior was changed.
+
+## Phase 5F â€” About background-float viewport breakout â€” 2026-05-16
+
+### Summary
+- Moved the public About/contact background-float layer outside the centered About `main` element so it can span the full browser/page shell width.
+- Updated About scroll-motion targeting so background floats still drift after moving outside `.modern-about-page`.
+- Added viewport-level CSS positioning for edge-spilling floats and preserved one middle/off-center float.
+- Added horizontal overflow clipping at the About site shell to prevent sideways scrolling from oversized atmospheric images.
+
+### Files changed
+- `src/app/sitePages.ts`
+- `src/app/siteInteractionsController.ts`
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE5F_ABOUT_FLOAT_VIEWPORT_BREAKOUT.md`
+- `docs/pack-notes/PACK_NOTES_PHASE5F.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE5F.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `npm ci --ignore-scripts`
+- CSS brace-balance check
+- `npm run build`
+- Static About DOM/motion selector checks
+- `unzip -t`
+
+### Notes
+- A headless Chromium visual check was attempted, but local/file navigation was blocked in the sandbox.
+- No editor behavior, About data model, foreground collage behavior, gallery curation behavior, public portfolio behavior, Three.js runtime behavior, portfolio import behavior, wall placement, collision, or plaque fallback behavior was changed.
+
+## Phase 5G â€” About lower-collage frame and bottom float margin â€” 2026-05-16
+
+### Summary
+- Removed the visible rectangular outline/background from the public About/contact lower-collage container.
+- Preserved individual foreground photo frames, captions, About placement roles, and About editor behavior.
+- Raised the two lowest background-float images to keep visible margin above the bottom edge of the page, including after scroll-linked drift.
+- Preserved Phase 5F's viewport-wide background-float layer and horizontal edge-spill behavior.
+
+### Files changed
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE5G_ABOUT_LOWER_COLLAGE_AND_BOTTOM_FLOAT_MARGIN.md`
+- `docs/pack-notes/PACK_NOTES_PHASE5G.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE5G.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- CSS brace-balance check
+- `npm run build`
+- `unzip -t`
+
+### Notes
+- No editor behavior, About data model, gallery curation behavior, public portfolio behavior, Three.js runtime behavior, portfolio import behavior, wall placement, collision, or plaque fallback behavior was changed.
+
+## Phase 5H â€” About background motion refinement â€” 2026-05-16
+
+### Summary
+- Reduced the public About/contact background-float scroll motion so the photos feel more like subtle page atmosphere.
+- Removed the sine-wave horizontal wobble from the About scroll-motion controller.
+- Reduced background-float movement speeds and tightened the maximum transform offsets.
+- Preserved the Phase 5F viewport-wide float placement and the Phase 5G lower-collage/bottom-margin correction.
+
+### Files changed
+- `src/app/sitePages.ts`
+- `src/app/siteInteractionsController.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE5H_ABOUT_BACKGROUND_MOTION_REFINEMENT.md`
+- `docs/pack-notes/PACK_NOTES_PHASE5H.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE5H.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+- `npm run build`
+- Static source checks for reduced About motion constants and removed sine drift
+- `unzip -t`
+
+### Notes
+- No editor behavior, About data model, foreground collage behavior, gallery curation behavior, public portfolio behavior, Three.js runtime behavior, portfolio import behavior, wall placement, collision, or plaque fallback behavior was changed.
+
+## Phase 5I â€” About Copy Editor â€” 2026-05-16
+
+### Summary
+- Added `src/data/aboutCopy.json` and `src/data/aboutCopy.ts` for data-backed About/contact copy.
+- Updated the public About/contact page to render copy from the new About copy data layer instead of hardcoded placeholder strings.
+- Added a structured About Copy section to the local editor About tab.
+- Updated Flask editor load/save/backup/restore flows to include `aboutCopy.json`.
+- Added optional About contact links and minimal public/editor styling.
+- Bumped local editor assets to `v=71`.
+
+### Validation
+- Python syntax check for edited Flask modules.
+- JavaScript syntax check for edited local-editor modules.
+- JSON parse check for `aboutCopy.json`.
+- CSS brace-balance checks.
+- `npm run build`.
+- `unzip -t`.
+
+### Notes
+- This pack preserves the user's copy-authorship rule. Existing placeholder copy was moved into editable data; no final About copy was generated.
+- Final About image curation and gallery curation remain deferred until closer to launch.
+
+---
+
+## 2026-05-16 â€” Phase 5J About editor page split
+
+### Changed
+- Split the local editor About workflow into two routes: `#/about` for copy and `#/about/photos` for image import/curation.
+- Kept the main About nav item pointed at the copy editor by default.
+- Added an About Photos navigation item and cross-links between the two About editor pages.
+- Preserved the existing About copy and About photo data schemas.
+- Added documentation for the route/presentation split.
+
+### Files changed
+- `local-editor/templates/editor.html`
+- `local-editor/static/js/main.js`
+- `local-editor/static/js/render.js`
+- `local-editor/static/editor.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE5J_ABOUT_EDITOR_PAGE_SPLIT.md`
+- `PROJECT_CHANGELOG.md`
+
+### Notes
+- `#/about` remains the default route when clicking About in the editor.
+- `#/about/photos` is a presentation split only; `aboutPhotos.json` and native About imports remain unchanged.
+
+## 2026-05-16 â€” Phase 5K About responsive/accessibility closeout
+
+### Summary
+
+- Closed Phase 5 About/contact redesign.
+- Added responsive safeguards for tablet/mobile About page layouts.
+- Reduced decorative About float/collage load on very narrow screens for readability.
+- Added wrapping safeguards for long About copy, email addresses, and optional contact links.
+- Added visible keyboard focus styling for About contact links.
+- Added stronger reduced-motion handling for About parallax/collage elements.
+- Added semantic section labels through `aria-labelledby` relationships.
+- Hardened data-backed contact email/link rendering.
+- Changed the upper About collage fallback to use active About records instead of inactive raw records.
+- Added Phase 5 closeout documentation.
+
+### Files changed
+
+- `src/app/sitePages.ts`
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE5_CLOSEOUT.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/PHASE5K_ABOUT_RESPONSIVE_ACCESSIBILITY_CLOSEOUT.md`
+- `docs/pack-notes/PACK_NOTES_PHASE5K.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE5K.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Notes
+
+- Final About copy remains user-authored and deferred until closer to launch.
+- Final About image curation and final gallery curation remain pre-launch tasks.
+- Next recommended phase is Phase 6 mobile 3D gallery controls.
+
+## 2026-05-16 â€” Phase 6A Mobile gallery touch controls
+
+### Summary
+
+- Started Phase 6 mobile 3D gallery controls.
+- Removed the mobile/touch-device desktop-only fallback path for the public virtual gallery.
+- Added desktop/touch input-mode selection when the gallery opens.
+- Added a restrained touch-control layer with a left thumb movement pad.
+- Added analog touch movement support to the existing collision-aware movement controller.
+- Added touch drag-to-look support to the gallery look controller while preserving desktop pointer-lock mouse look.
+- Exposed touch movement methods from the Three.js `GalleryScene` wrapper.
+- Added touch-mode CSS for the movement pad, drag-to-look hint, canvas touch behavior, and artwork info panel placement.
+- Added Phase 6 active handoff and Phase 6A implementation docs.
+
+### Files changed
+
+- `src/app/galleryController.ts`
+- `src/app/renderSite.ts`
+- `src/gallery/GalleryScene.ts`
+- `src/gallery/controls/lookController.ts`
+- `src/gallery/controls/movementController.ts`
+- `src/styles/global.css`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE6_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE6A_MOBILE_GALLERY_TOUCH_CONTROLS.md`
+- `docs/pack-notes/PACK_NOTES_PHASE6A.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE6A.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- CSS brace-balance check
+- Static source checks for the Phase 6A touch-control hooks
+- `unzip -t`
+
+### Notes
+
+- This is the first mobile-control baseline, not final Phase 6 closeout.
+- Real-device phone/tablet testing is still needed to tune movement sensitivity, look sensitivity, safe-area placement, and info-panel/control overlap.
+- No gallery curation data, wall placement, collision geometry, plaque fallback, image texture loading, lighting, or local editor behavior was changed.

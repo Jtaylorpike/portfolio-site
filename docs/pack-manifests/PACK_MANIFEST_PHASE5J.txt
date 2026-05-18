@@ -1,0 +1,13 @@
+TaylorPikePortfolio-Phase5J-About-Editor-Page-Split-Pack.zip
+
+local-editor/templates/editor.html
+local-editor/static/js/main.js
+local-editor/static/js/render.js
+local-editor/static/editor.css
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/PHASE5J_ABOUT_EDITOR_PAGE_SPLIT.md
+docs/pack-notes/PACK_NOTES_PHASE5J.md
+docs/pack-manifests/PACK_MANIFEST_PHASE5J.txt
+PROJECT_CHANGELOG.md

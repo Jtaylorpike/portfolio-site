@@ -30,6 +30,16 @@ export function renderSite(app: HTMLElement) {
 
       <div class="gallery-crosshair" aria-hidden="true"></div>
 
+      <div class="gallery-touch-controls" id="galleryTouchControls" aria-hidden="true">
+        <div class="gallery-touch-look-hint" aria-hidden="true">Drag anywhere to look</div>
+        <div class="gallery-touch-move" id="galleryTouchMove" aria-label="Move through gallery" role="application">
+          <span class="gallery-touch-move-label">Move</span>
+          <span class="gallery-touch-move-base" aria-hidden="true">
+            <span class="gallery-touch-move-knob" id="galleryTouchMoveKnob"></span>
+          </span>
+        </div>
+      </div>
+
       <aside class="gallery-info-panel" id="galleryInfoPanel" aria-live="polite">
         <p class="eyebrow" id="galleryInfoMeta"></p>
         <h2 id="galleryInfoTitle"></h2>

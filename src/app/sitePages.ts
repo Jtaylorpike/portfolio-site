@@ -6,6 +6,8 @@
 // attaches click, keyboard, carousel, and lightbox behavior.
 
 import { galleryImages, type GalleryImage } from '../data/images';
+import { aboutPhotos, type AboutPhoto } from '../data/aboutPhotos';
+import { aboutCopy, type AboutCopyContactLink } from '../data/aboutCopy';
 import { heroSlides } from '../data/heroSlides';
 import { getCategoryLabel, portfolioCategories } from '../data/categories';
 import {
@@ -489,37 +491,237 @@ export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = '
   `;
 }
 
+
+function getAboutPhotoImageSource(photo: AboutPhoto): string {
+  return photo.thumbSrc ?? photo.src;
+}
+
+function getAboutPhotoFullSource(photo: AboutPhoto): string {
+  return photo.fullSrc ?? photo.src;
+}
+
+function getAboutPhotoAlt(photo: AboutPhoto): string {
+  return photo.alt?.trim() || photo.title?.trim() || 'About page image';
+}
+
+function getAboutPhotoMeta(photo: AboutPhoto): string {
+  return photo.location?.trim() || photo.year?.trim() || 'About image';
+}
+
+function getSafeEmailAddress(email: string): string {
+  return email.trim().replace(/[<>\s"']/g, '');
+}
+
+function getSafeExternalHref(url: string): string {
+  const trimmedUrl = url.trim();
+
+  if (!trimmedUrl) {
+    return '';
+  }
+
+  if (/^(https?:|mailto:|tel:)/i.test(trimmedUrl)) {
+    return trimmedUrl;
+  }
+
+  if (/^[a-z0-9.-]+\.[a-z]{2,}([/?#].*)?$/i.test(trimmedUrl)) {
+    return `https://${trimmedUrl}`;
+  }
+
+  return '';
+}
+
+function getAboutPlacementPhotoSet(placementRole: NonNullable<AboutPhoto['placementRole']>): AboutPhoto[] {
+  return aboutPhotos.filter((photo) => photo.isActive !== false && photo.placementRole === placementRole);
+}
+
+function getFallbackAboutPhotos(excludedIds: Set<string>, limit: number): AboutPhoto[] {
+  return aboutPhotos.filter((photo) => photo.isActive !== false && !excludedIds.has(photo.id)).slice(0, limit);
+}
+
+function renderAboutFigure(photo: AboutPhoto, index: number, className: string, motionSpeed = 0): string {
+  const imageSource = getAboutPhotoImageSource(photo);
+  const motionAttribute = motionSpeed ? ` data-about-float data-about-float-speed="${motionSpeed}"` : '';
+
+  return `
+    <figure class="${className}"${motionAttribute}>
+      <img
+        src="${escapeHtml(imageSource)}"
+        alt="${escapeHtml(getAboutPhotoAlt(photo))}"
+        loading="${index === 0 ? 'eager' : 'lazy'}"
+        decoding="async"
+      />
+      <figcaption>
+        <span>${formatTwoDigitNumber(index)}</span>
+        <strong>${escapeHtml(photo.title)}</strong>
+        <small>${escapeHtml(getAboutPhotoMeta(photo))}</small>
+      </figcaption>
+    </figure>
+  `;
+}
+
+
+function renderAboutParagraphs(paragraphs: string[]): string {
+  return paragraphs
+    .filter((paragraph) => paragraph.trim())
+    .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+    .join('');
+}
+
+function renderAboutContactLinks(links: AboutCopyContactLink[]): string {
+  const safeLinks = links
+    .map((link) => ({
+      label: link.label.trim(),
+      href: getSafeExternalHref(link.url)
+    }))
+    .filter((link) => link.label && link.href);
+
+  if (!safeLinks.length) {
+    return '';
+  }
+
+  return `
+    <div class="about-contact-links" aria-label="Additional contact links">
+      ${safeLinks.map((link) => `
+        <a href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(link.label)} in a new tab">${escapeHtml(link.label)}</a>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderAboutHeroPhotoCluster(): string {
+  const upperPhotos = getAboutPlacementPhotoSet('upper-collage');
+  const selectedPhotos = upperPhotos.length >= 2 ? upperPhotos.slice(0, 2) : getFallbackAboutPhotos(new Set(), 2);
+
+  if (!selectedPhotos.length) {
+    return `
+      <div class="about-photo-cluster is-empty" aria-label="About page photo placeholders">
+        <div class="about-photo-frame about-photo-placeholder">
+          <span>Upper collage placeholders</span>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="about-photo-cluster about-upper-collage" aria-label="About page upper image collage">
+      ${selectedPhotos.slice(0, 2).map((photo: AboutPhoto, index: number) => (
+        renderAboutFigure(photo, index, `about-photo-frame about-photo-frame-${index + 1}`, 0.014 + index * 0.008)
+      )).join('')}
+    </div>
+  `;
+}
+
+function renderAboutSecondaryPhotoStack(): string {
+  const upperIds = new Set(getAboutPlacementPhotoSet('upper-collage').slice(0, 2).map((photo) => photo.id));
+  const lowerPhotos = getAboutPlacementPhotoSet('lower-collage');
+  const selectedPhotos = lowerPhotos.length ? lowerPhotos : getFallbackAboutPhotos(upperIds, 5);
+
+  if (!selectedPhotos.length) {
+    return `
+      <div class="about-secondary-photo-stack is-empty" aria-label="About page secondary photo placeholder">
+        <div class="about-photo-frame about-photo-placeholder"><span>Lower collage images</span></div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="about-secondary-photo-stack about-lower-collage" aria-label="About page lower image collage">
+      ${selectedPhotos.slice(0, 6).map((photo: AboutPhoto, index: number) => (
+        renderAboutFigure(photo, index + 2, `about-photo-frame about-lower-photo about-lower-photo-${index + 1}`, 0.012 + index * 0.006)
+      )).join('')}
+    </div>
+  `;
+}
+
+function renderAboutFloatingPhotos(): string {
+  const usedForegroundIds = new Set([
+    ...getAboutPlacementPhotoSet('upper-collage').slice(0, 2).map((photo) => photo.id),
+    ...getAboutPlacementPhotoSet('lower-collage').slice(0, 6).map((photo) => photo.id)
+  ]);
+  const backgroundPhotos = getAboutPlacementPhotoSet('background-float');
+  const floatingPhotos = backgroundPhotos.length ? backgroundPhotos : getFallbackAboutPhotos(usedForegroundIds, 7);
+
+  if (!floatingPhotos.length) {
+    return '';
+  }
+
+  return `
+    <div class="about-floating-photos" aria-hidden="true">
+      ${floatingPhotos.slice(0, 8).map((photo: AboutPhoto, index: number) => {
+        // Keep the background atmosphere nearly static. Earlier Phase 5 passes
+        // used more visible scroll-linked drifting; this keeps only a slow,
+        // shallow parallax shift so the photos feel embedded in the page.
+        const ySpeed = 0.004 + index * 0.0012;
+        const xSpeed = index % 2 === 0 ? 0.0012 + index * 0.00035 : -0.0012 - index * 0.00035;
+        return `
+          <div
+            class="about-floating-photo about-floating-photo-${index + 1}"
+            data-about-float
+            data-about-float-speed="${ySpeed.toFixed(3)}"
+            data-about-float-x-speed="${xSpeed.toFixed(3)}"
+          >
+            <img src="${escapeHtml(getAboutPhotoImageSource(photo))}" alt="" loading="lazy" decoding="async" />
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
 // Builds the about/contact page.
 export function renderAboutPage(): string {
+  const safeContactEmail = getSafeEmailAddress(aboutCopy.contact.email);
+  const contactEmailHref = safeContactEmail ? `mailto:${encodeURI(safeContactEmail)}` : '';
+  const contactEmailLink = safeContactEmail
+    ? `<a class="about-contact-email" href="${escapeHtml(contactEmailHref)}" aria-label="Email Taylor Pike at ${escapeHtml(safeContactEmail)}">${escapeHtml(safeContactEmail)}</a>`
+    : '';
+
   return `
     <div class="modern-site" data-page="about">
       ${renderTopNav('about')}
+      ${renderAboutFloatingPhotos()}
 
-      <main id="main-content" class="modern-main modern-about-page" tabindex="-1">
-        <section class="modern-about-content">
-          <p class="eyebrow">About</p>
-          <h1>Photography started for me as a way to pay attention to the places I was already drawn to.</h1>
+      <main id="main-content" class="modern-main modern-about-page about-vertical-page" tabindex="-1">
+        <section class="about-vertical-hero" aria-labelledby="about-page-title">
+          <article class="about-copy-block about-copy-block-primary" data-about-float data-about-float-speed="-0.012">
+            <p class="eyebrow">${escapeHtml(aboutCopy.hero.eyebrow)}</p>
+            <h1 id="about-page-title">${escapeHtml(aboutCopy.hero.headline)}</h1>
+            <p class="about-page-kicker">${escapeHtml(aboutCopy.hero.intro)}</p>
+          </article>
 
-          <div class="modern-about-copy">
-            <p>
-              I grew up in the Piedmont forests of North Carolina, and that is probably where my interest in photography really started. I liked being outside and noticing things that other people might walk past. Later, I moved to Boone and my life became much more centered around climbing, the mountains, and the people I met through that community.
-            </p>
+          ${renderAboutHeroPhotoCluster()}
+        </section>
 
-            <p>
-              I studied Commercial Photography at Appalachian State, where I learned the technical side of image making, color, lighting, printing, editing, and how photography fits into real business needs. Since then I have lived in Ashland, Oregon; Wilmington, North Carolina; Asheville, North Carolina; and now Doylestown, Pennsylvania. Each place has changed what I photograph a little bit.
-            </p>
+        <section class="about-wide-copy-block" aria-labelledby="about-main-copy-title">
+          <div>
+            <p class="eyebrow">${escapeHtml(aboutCopy.about.eyebrow)}</p>
+            <h2 id="about-main-copy-title">${escapeHtml(aboutCopy.about.heading)}</h2>
+          </div>
+          <div class="about-wide-copy-columns">
+            ${renderAboutParagraphs(aboutCopy.about.paragraphs)}
+          </div>
+        </section>
 
-            <p>
-              This portfolio is also a web project. I wanted to build something that could function as a normal photography website while also giving people the option to move through the work in a virtual gallery. The virtual side is not meant to be a full game. It borrows simple movement and controls from games because that makes the space easier to understand.
-            </p>
+        <section class="about-split-section" aria-labelledby="about-project-title">
+          ${renderAboutSecondaryPhotoStack()}
 
-            <div class="about-contact-card">
-              <p class="eyebrow">Contact</p>
-              <p>
-                I am open to commercial work, climbing projects, portraits, product photography, brand work, and other creative projects that make sense.
-              </p>
-              <a href="mailto:jtaylorpike@gmail.com">jtaylorpike@gmail.com</a>
-            </div>
+          <article class="about-copy-block about-copy-block-secondary" data-about-float data-about-float-speed="-0.008">
+            <p class="eyebrow">${escapeHtml(aboutCopy.project.eyebrow)}</p>
+            <h2 id="about-project-title">${escapeHtml(aboutCopy.project.heading)}</h2>
+            ${renderAboutParagraphs(aboutCopy.project.paragraphs)}
+          </article>
+        </section>
+
+        <section class="about-contact-section" aria-labelledby="about-contact-title">
+          <div>
+            <p class="eyebrow">${escapeHtml(aboutCopy.contact.eyebrow)}</p>
+            <h2 id="about-contact-title">${escapeHtml(aboutCopy.contact.headline)}</h2>
+          </div>
+
+          <div class="about-contact-card">
+            <p>${escapeHtml(aboutCopy.contact.body)}</p>
+            ${contactEmailLink}
+            ${renderAboutContactLinks(aboutCopy.contact.links)}
           </div>
         </section>
       </main>

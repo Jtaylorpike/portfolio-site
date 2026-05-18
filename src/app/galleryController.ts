@@ -6,26 +6,33 @@
 // - showing the loading screen
 // - preloading Three.js textures
 // - updating the artwork info panel
-// - blocking the virtual gallery on mobile/touch devices
-// - showing a mobile fallback message
-// - dismissing the controls card once the viewer has used the core inputs
+// - selecting desktop or touch input mode
+// - binding the mobile/touch movement control surface
+// - dismissing the controls card once the viewer has used the core desktop inputs
 
 import { galleryArtworks, type GalleryArtwork } from '../gallery/artwork/galleryLayout';
 
+type GalleryInputMode = 'desktop' | 'touch';
+
 type GallerySceneInstance = {
   destroy: () => void;
+  setTouchMovement: (localX: number, localZ: number) => void;
+  clearTouchMovement: () => void;
 };
 
 let activeGallery: GallerySceneInstance | null = null;
+let activeGalleryInputMode: GalleryInputMode = 'desktop';
 let galleryPreloadPromise: Promise<void> | null = null;
 let isGalleryOpening = false;
 let hasMovedMouseInGallery = false;
 let galleryInputListenersBound = false;
+let touchMovePointerId: number | null = null;
+let touchControlsBound = false;
 let controlCardDismissTimeout: number | null = null;
 
 const usedMovementDirections = new Set<string>();
 
-const mobileGalleryQuery = window.matchMedia(
+const touchGalleryQuery = window.matchMedia(
   '(hover: none), (pointer: coarse), (max-width: 860px)'
 );
 
@@ -40,8 +47,8 @@ const movementDirectionByCode = new Map<string, string>([
   ['ArrowRight', 'right']
 ]);
 
-function shouldUseMobileFallback() {
-  return mobileGalleryQuery.matches;
+function getGalleryInputMode(): GalleryInputMode {
+  return touchGalleryQuery.matches ? 'touch' : 'desktop';
 }
 
 function waitForNextFrame() {
@@ -60,61 +67,14 @@ function preloadGalleryImages() {
   return galleryPreloadPromise;
 }
 
-function showMobileFallbackMessage() {
-  const existingNotice = document.querySelector('.mobile-gallery-fallback');
-
-  if (existingNotice) {
-    existingNotice.remove();
-  }
-
-  const notice = document.createElement('div');
-
-  notice.className = 'mobile-gallery-fallback';
-  notice.innerHTML = `
-    <div class="mobile-gallery-fallback-card" role="dialog" aria-modal="true" aria-labelledby="mobileGalleryFallbackTitle">
-      <p class="eyebrow">Virtual Gallery</p>
-      <h2 id="mobileGalleryFallbackTitle">This part is desktop-only for now.</h2>
-      <p>
-        The virtual gallery uses mouse-look and keyboard movement, so it is currently built for a laptop or desktop. The traditional portfolio still works on mobile.
-      </p>
-      <button class="button primary" type="button" data-mobile-gallery-close>Back to portfolio</button>
-    </div>
-  `;
-
-  document.body.appendChild(notice);
-  document.body.classList.add('gallery-fallback-is-open');
-
-  const closeButton = notice.querySelector<HTMLButtonElement>('[data-mobile-gallery-close]');
-
-  function closeNotice() {
-    document.removeEventListener('keydown', handleKeyDown);
-    document.body.classList.remove('gallery-fallback-is-open');
-    notice.remove();
-  }
-
-  function handleKeyDown(event: KeyboardEvent) {
-    if (event.code === 'Escape') {
-      closeNotice();
-    }
-  }
-
-  notice.addEventListener('click', (event) => {
-    if (event.target === notice) {
-      closeNotice();
-    }
-  });
-
-  closeButton?.addEventListener('click', closeNotice);
-  document.addEventListener('keydown', handleKeyDown);
-
-  closeButton?.focus();
-}
-
 export function setupGalleryController() {
   const galleryOverlay = document.querySelector<HTMLDivElement>('#galleryOverlay');
   const galleryCanvas = document.querySelector<HTMLDivElement>('#galleryCanvas');
   const galleryLoading = document.querySelector<HTMLDivElement>('#galleryLoading');
   const galleryControlCard = document.querySelector<HTMLElement>('#galleryControlCard');
+  const galleryTouchControls = document.querySelector<HTMLElement>('#galleryTouchControls');
+  const galleryTouchMove = document.querySelector<HTMLElement>('#galleryTouchMove');
+  const galleryTouchMoveKnob = document.querySelector<HTMLElement>('#galleryTouchMoveKnob');
 
   const closeGalleryButton = document.querySelector<HTMLButtonElement>('#closeGalleryButton');
 
@@ -135,7 +95,7 @@ export function setupGalleryController() {
   }
 
   function updateControlCardVisibility() {
-    if (!galleryControlCard) {
+    if (!galleryControlCard || activeGalleryInputMode === 'touch') {
       return;
     }
 
@@ -169,7 +129,7 @@ export function setupGalleryController() {
   }
 
   function handleGalleryMouseMove() {
-    if (!activeGallery) {
+    if (!activeGallery || activeGalleryInputMode === 'touch') {
       return;
     }
 
@@ -210,6 +170,122 @@ export function setupGalleryController() {
     galleryInputListenersBound = false;
   }
 
+  function setTouchControlsVisible(isVisible: boolean) {
+    galleryTouchControls?.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
+    document.body.classList.toggle('gallery-touch-enabled', isVisible);
+  }
+
+  function getTouchMoveVector(event: PointerEvent) {
+    if (!galleryTouchMove) {
+      return { localX: 0, localZ: 0, knobX: 0, knobY: 0 };
+    }
+
+    const rect = galleryTouchMove.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const radius = Math.max(1, Math.min(rect.width, rect.height) * 0.36);
+    const rawX = event.clientX - centerX;
+    const rawY = event.clientY - centerY;
+    const distance = Math.hypot(rawX, rawY);
+    const scale = distance > radius ? radius / distance : 1;
+    const knobX = rawX * scale;
+    const knobY = rawY * scale;
+
+    return {
+      localX: knobX / radius,
+      localZ: knobY / radius,
+      knobX,
+      knobY
+    };
+  }
+
+  function updateTouchMove(event: PointerEvent) {
+    if (!activeGallery || activeGalleryInputMode !== 'touch') {
+      return;
+    }
+
+    const vector = getTouchMoveVector(event);
+
+    activeGallery.setTouchMovement(vector.localX, vector.localZ);
+    galleryTouchMoveKnob?.style.setProperty('--gallery-touch-knob-x', `${vector.knobX}px`);
+    galleryTouchMoveKnob?.style.setProperty('--gallery-touch-knob-y', `${vector.knobY}px`);
+  }
+
+  function clearTouchMove() {
+    activeGallery?.clearTouchMovement();
+    galleryTouchMoveKnob?.style.setProperty('--gallery-touch-knob-x', '0px');
+    galleryTouchMoveKnob?.style.setProperty('--gallery-touch-knob-y', '0px');
+  }
+
+  function handleTouchMoveStart(event: PointerEvent) {
+    if (activeGalleryInputMode !== 'touch' || event.pointerType === 'mouse' || touchMovePointerId !== null) {
+      return;
+    }
+
+    touchMovePointerId = event.pointerId;
+    galleryTouchMove?.setPointerCapture(event.pointerId);
+    galleryTouchMove?.classList.add('is-active');
+    updateTouchMove(event);
+    event.preventDefault();
+  }
+
+  function handleTouchMoveChange(event: PointerEvent) {
+    if (event.pointerId !== touchMovePointerId) {
+      return;
+    }
+
+    updateTouchMove(event);
+    event.preventDefault();
+  }
+
+  function handleTouchMoveEnd(event: PointerEvent) {
+    if (event.pointerId !== touchMovePointerId) {
+      return;
+    }
+
+    if (galleryTouchMove?.hasPointerCapture(event.pointerId)) {
+      galleryTouchMove.releasePointerCapture(event.pointerId);
+    }
+
+    touchMovePointerId = null;
+    galleryTouchMove?.classList.remove('is-active');
+    clearTouchMove();
+    event.preventDefault();
+  }
+
+  function bindTouchControls() {
+    if (touchControlsBound || !galleryTouchMove) {
+      return;
+    }
+
+    galleryTouchMove.addEventListener('pointerdown', handleTouchMoveStart);
+    galleryTouchMove.addEventListener('pointermove', handleTouchMoveChange);
+    galleryTouchMove.addEventListener('pointerup', handleTouchMoveEnd);
+    galleryTouchMove.addEventListener('pointercancel', handleTouchMoveEnd);
+    galleryTouchMove.addEventListener('lostpointercapture', handleTouchMoveEnd);
+    touchControlsBound = true;
+  }
+
+  function unbindTouchControls() {
+    if (!touchControlsBound || !galleryTouchMove) {
+      return;
+    }
+
+    galleryTouchMove.removeEventListener('pointerdown', handleTouchMoveStart);
+    galleryTouchMove.removeEventListener('pointermove', handleTouchMoveChange);
+    galleryTouchMove.removeEventListener('pointerup', handleTouchMoveEnd);
+    galleryTouchMove.removeEventListener('pointercancel', handleTouchMoveEnd);
+    galleryTouchMove.removeEventListener('lostpointercapture', handleTouchMoveEnd);
+    touchControlsBound = false;
+  }
+
+  function resetTouchControls() {
+    touchMovePointerId = null;
+    galleryTouchMove?.classList.remove('is-active');
+    clearTouchMove();
+    setTouchControlsVisible(false);
+  }
+
   function showArtworkInfo(artwork: GalleryArtwork) {
     if (!galleryInfoPanel || !galleryInfoMeta || !galleryInfoTitle || !galleryInfoNote) {
       return;
@@ -236,11 +312,6 @@ export function setupGalleryController() {
   }
 
   async function openGallery() {
-    if (shouldUseMobileFallback()) {
-      showMobileFallbackMessage();
-      return;
-    }
-
     if (!galleryOverlay || !galleryCanvas) {
       return;
     }
@@ -250,10 +321,12 @@ export function setupGalleryController() {
     }
 
     isGalleryOpening = true;
+    activeGalleryInputMode = getGalleryInputMode();
 
     galleryOverlay.classList.add('is-active');
     galleryOverlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('gallery-is-open');
+    setTouchControlsVisible(activeGalleryInputMode === 'touch');
 
     resetControlCardState();
     clearArtworkInfo();
@@ -271,10 +344,15 @@ export function setupGalleryController() {
         container: galleryCanvas,
         onExit: closeGallery,
         onArtworkFocus: showArtworkInfo,
-        onArtworkClear: clearArtworkInfo
+        onArtworkClear: clearArtworkInfo,
+        inputMode: activeGalleryInputMode
       });
 
       bindGalleryInputListeners();
+
+      if (activeGalleryInputMode === 'touch') {
+        bindTouchControls();
+      }
 
       await waitForNextFrame();
 
@@ -301,12 +379,15 @@ export function setupGalleryController() {
     }
 
     unbindGalleryInputListeners();
+    unbindTouchControls();
+    resetTouchControls();
     resetControlCardState();
     clearArtworkInfo();
 
     galleryOverlay.classList.remove('is-active');
     galleryOverlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('gallery-is-open');
+    activeGalleryInputMode = 'desktop';
   }
 
   document.addEventListener('click', (event) => {

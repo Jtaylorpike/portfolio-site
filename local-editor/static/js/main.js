@@ -3,6 +3,7 @@
 
 import {
   importReviewedImagesApi,
+  importReviewedAboutPhotosApi,
   listBackupsApi,
   loadDataApi,
   renameImageIdApi,
@@ -13,10 +14,19 @@ import {
   saveImageUpdatesApi
 } from "./api.js";
 import { elements } from "./dom.js";
-import { collectEditorData, collectGalleryCuration, collectGalleryCurationCard, collectImportReviewRecords } from "./collect.js";
+import {
+  collectCategories,
+  collectEditorData,
+  collectGalleryCuration,
+  collectGalleryCurationCard,
+  collectImportReviewRecords,
+  collectAboutImportReviewRecords,
+  getFieldValue
+} from "./collect.js";
 import {
   renderAll,
   renderImportReview,
+  renderAboutImportReview,
   updateFramingControl,
   updateGallerySizeControl
 } from "./render.js";
@@ -51,19 +61,51 @@ import {
   rotateGalleryWallDegrees
 } from "./galleryGrid.js";
 
-const VALID_PAGE_ROUTES = new Set(["images", "import", "gallery", "categories", "backups"]);
+const VALID_PAGE_ROUTES = new Set(["images", "import", "gallery", "about", "about-photos", "categories", "backups"]);
 const VALID_CROP_MODES = new Set(["hero", "gallery"]);
+
+const EDITOR_THEME_STORAGE_KEY = "taylor-pike-editor-theme";
+
+function getCurrentEditorTheme() {
+  return document.documentElement.dataset.editorTheme === "dark" ? "dark" : "light";
+}
+
+function updateThemeToggleButton(theme = getCurrentEditorTheme()) {
+  if (!elements.themeToggleButton) {
+    return;
+  }
+
+  const isDark = theme === "dark";
+  elements.themeToggleButton.textContent = isDark ? "Light Mode" : "Dark Mode";
+  elements.themeToggleButton.setAttribute("aria-pressed", String(isDark));
+}
+
+function setEditorTheme(theme) {
+  const nextTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.editorTheme = nextTheme;
+  window.localStorage?.setItem(EDITOR_THEME_STORAGE_KEY, nextTheme);
+  updateThemeToggleButton(nextTheme);
+}
 
 let state = {
   categories: [],
   images: [],
   heroSlides: [],
   galleryCuration: [],
+  galleryCurationStatus: {},
+  galleryRoom: {},
+  aboutPhotos: [],
+  aboutCopy: {},
   backups: []
 };
 
 let pendingImportItems = [];
+let pendingAboutImportItems = [];
 let hasUnsavedChanges = false;
+let lastConfirmedHash = window.location.hash || "#/images";
+let isRestoringHash = false;
+let activeCategoryOrderDrag = null;
+let suppressNextCategoryOrderClick = false;
 let activeGalleryWallDrag = null;
 let activeGallerySelectedWallId = null;
 let galleryTransparentDragImage = null;
@@ -135,6 +177,12 @@ function setDirtyState(isDirty, message = null) {
 
   if (elements.saveButton) {
     elements.saveButton.textContent = isDirty ? "Save Changes *" : "Save Changes";
+    elements.saveButton.dataset.dirtyAction = isDirty ? "true" : "false";
+  }
+
+  if (elements.dirtyIndicator) {
+    elements.dirtyIndicator.textContent = isDirty ? "Unsaved changes" : "Saved";
+    elements.dirtyIndicator.dataset.dirtyState = isDirty ? "dirty" : "saved";
   }
 
   if (message) {
@@ -142,11 +190,242 @@ function setDirtyState(isDirty, message = null) {
   }
 }
 
-// Updates the import workflow message shown below the import controls.
-function setImportSummary(message) {
-  elements.importSummary.textContent = message;
+function confirmDiscardUnsavedChanges(actionLabel = "continue") {
+  if (!hasUnsavedChanges) {
+    return true;
+  }
+
+  return confirm(`You have unsaved editor changes. Discard them and ${actionLabel}?`);
 }
 
+// Updates the import workflow message shown below the import controls.
+function setImportSummary(message) {
+  if (elements.importSummary) {
+    elements.importSummary.textContent = message;
+  }
+}
+
+function getPendingImportCountLabel(count = pendingImportItems.length) {
+  return `${count} photo${count === 1 ? "" : "s"}`;
+}
+
+function updateImportReviewControls() {
+  if (!elements.saveReviewedImportButton) {
+    return;
+  }
+
+  const count = pendingImportItems.length;
+  elements.saveReviewedImportButton.textContent = count ? `Import ${getPendingImportCountLabel(count)}` : "Import 0 photos";
+
+  if (!count) {
+    elements.saveReviewedImportButton.disabled = true;
+  }
+}
+
+function resetImportProgress() {
+  if (elements.importProgress) {
+    elements.importProgress.hidden = true;
+  }
+
+  if (elements.importProgressBar) {
+    elements.importProgressBar.style.width = "0%";
+  }
+
+  if (elements.importProgressPercent) {
+    elements.importProgressPercent.textContent = "0%";
+  }
+
+  if (elements.importProgressLabel) {
+    elements.importProgressLabel.textContent = "Import progress";
+  }
+
+  if (elements.importProgressLog) {
+    elements.importProgressLog.innerHTML = "";
+  }
+}
+
+function setImportProgress(percent, label) {
+  const safePercent = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+
+  if (elements.importProgress) {
+    elements.importProgress.hidden = false;
+  }
+
+  if (elements.importProgressBar) {
+    elements.importProgressBar.style.width = `${safePercent}%`;
+  }
+
+  if (elements.importProgressPercent) {
+    elements.importProgressPercent.textContent = `${safePercent}%`;
+  }
+
+  if (elements.importProgressLabel && label) {
+    elements.importProgressLabel.textContent = label;
+  }
+}
+
+function appendImportProgressLog(message) {
+  if (!elements.importProgressLog) {
+    return;
+  }
+
+  const item = document.createElement("li");
+  item.textContent = message;
+  elements.importProgressLog.appendChild(item);
+  item.scrollIntoView({ block: "nearest" });
+}
+
+function getImportPreviewMeta(item) {
+  const orientation = item?.imageOrientation || "unknown orientation";
+  const width = item?.imageWidth || "—";
+  const height = item?.imageHeight || "—";
+  const aspect = Number(item?.imageAspectRatio) > 0 ? Number(item.imageAspectRatio).toFixed(3) : "—";
+
+  return `${orientation} / ${width} × ${height} / aspect ${aspect}`;
+}
+
+function openImportLightbox(index) {
+  syncPendingImportItemsFromReview();
+
+  const item = pendingImportItems[index];
+
+  if (!item || !elements.importLightbox) {
+    return;
+  }
+
+  if (elements.importLightboxImage) {
+    elements.importLightboxImage.src = item.previewUrl || "";
+    elements.importLightboxImage.alt = item.alt || item.title || "Import preview";
+  }
+
+  if (elements.importLightboxTitle) {
+    elements.importLightboxTitle.textContent = item.title || item.id || `Review item ${index + 1}`;
+  }
+
+  if (elements.importLightboxMeta) {
+    elements.importLightboxMeta.textContent = getImportPreviewMeta(item);
+  }
+
+  elements.importLightbox.hidden = false;
+  document.body.dataset.importLightboxOpen = "true";
+  elements.importLightbox.querySelector("[data-import-lightbox-close]")?.focus();
+}
+
+function closeImportLightbox() {
+  if (!elements.importLightbox) {
+    return;
+  }
+
+  elements.importLightbox.hidden = true;
+  document.body.dataset.importLightboxOpen = "false";
+
+  if (elements.importLightboxImage) {
+    elements.importLightboxImage.removeAttribute("src");
+    elements.importLightboxImage.alt = "";
+  }
+}
+
+function makeUniqueCategoryId(label) {
+  const baseId = slugify(label) || "category";
+  const usedIds = new Set(state.categories.map((category) => category.id));
+
+  if (!usedIds.has(baseId)) {
+    return baseId;
+  }
+
+  let count = 2;
+  let nextId = `${baseId}-${count}`;
+
+  while (usedIds.has(nextId)) {
+    count += 1;
+    nextId = `${baseId}-${count}`;
+  }
+
+  return nextId;
+}
+
+function getCategoryUsageStats(categoryId) {
+  const images = state.images.filter((image) => image.category === categoryId);
+  const total = images.length;
+  const hidden = images.filter((image) => image.isPublic === false).length;
+  const visible = total - hidden;
+  const hero = state.heroSlides.filter((slide) => slide.targetCategory === categoryId).length;
+
+  return { total, visible, hidden, hero };
+}
+
+function validateCategoryDrafts(categories) {
+  if (!categories.length) {
+    throw new Error("At least one category is required.");
+  }
+
+  const ids = categories.map((category) => category.id);
+  const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+
+  if (duplicateIds.length) {
+    throw new Error(`Duplicate category ID${duplicateIds.length === 1 ? "" : "s"}: ${duplicateIds.join(", ")}. Edit the category IDs before saving.`);
+  }
+
+  const emptyLabel = categories.find((category) => !String(category.label ?? "").trim());
+
+  if (emptyLabel) {
+    throw new Error("Every category needs a display label before saving.");
+  }
+}
+
+function getCategoryReassignTarget(row, categoryId) {
+  const selectedTarget = row?.querySelector("[data-category-reassign]")?.value;
+
+  if (selectedTarget && selectedTarget !== categoryId && state.categories.some((category) => category.id === selectedTarget)) {
+    return selectedTarget;
+  }
+
+  return state.categories.find((category) => category.id !== categoryId)?.id ?? "personal";
+}
+
+function createImportCategory(selectCategoryId = true) {
+  const label = prompt("New category name:");
+  const cleanLabel = String(label ?? "").trim();
+
+  if (!cleanLabel) {
+    return null;
+  }
+
+  const existingCategory = state.categories.find((category) => {
+    return category.label.trim().toLowerCase() === cleanLabel.toLowerCase();
+  });
+
+  const nextCategory = existingCategory ?? {
+    id: makeUniqueCategoryId(cleanLabel),
+    label: cleanLabel
+  };
+
+  if (!existingCategory) {
+    state = {
+      ...state,
+      categories: [...state.categories, nextCategory]
+    };
+  }
+
+  syncPendingImportItemsFromReview();
+  renderAll(state, elements, getCurrentRoute());
+
+  if (selectCategoryId && elements.importCategory) {
+    elements.importCategory.value = nextCategory.id;
+  }
+
+  pendingImportItems = pendingImportItems.map((item) => ({
+    ...item,
+    category: item.category || nextCategory.id
+  }));
+
+  renderImportReview(state, elements, pendingImportItems);
+  updateImportReviewValidation();
+  updateImportReviewControls();
+  setDirtyState(true, `Added category "${nextCategory.label}" for this import. It will be saved when the reviewed import is imported.`);
+
+  return nextCategory;
+}
 
 // Reads image dimensions in the browser before the backend import runs.
 // This lets the review UI block bad hero/gallery values before Flask validation.
@@ -182,6 +461,389 @@ function readImportImageMetadata(file) {
 
     image.src = previewUrl;
   });
+}
+
+
+function updateAboutImportSummary(message) {
+  if (elements.aboutImportSummary) {
+    elements.aboutImportSummary.textContent = message;
+  }
+}
+
+function getPendingAboutImportCountLabel(count = pendingAboutImportItems.length) {
+  return `${count} About photo${count === 1 ? "" : "s"}`;
+}
+
+function updateAboutImportReviewControls() {
+  if (!elements.saveReviewedAboutImportButton) {
+    return;
+  }
+
+  const count = pendingAboutImportItems.length;
+  elements.saveReviewedAboutImportButton.textContent = count ? `Import ${getPendingAboutImportCountLabel(count)}` : "Import 0 About photos";
+  elements.saveReviewedAboutImportButton.disabled = !count;
+}
+
+function resetAboutImportProgress() {
+  if (!elements.aboutImportProgress) {
+    return;
+  }
+
+  elements.aboutImportProgress.hidden = true;
+  elements.aboutImportProgressBar.style.width = "0%";
+  elements.aboutImportProgressPercent.textContent = "0%";
+  elements.aboutImportProgressLabel.textContent = "About import progress";
+
+  const log = document.querySelector("#aboutImportProgressLog");
+
+  if (log) {
+    log.innerHTML = "";
+  }
+}
+
+function setAboutImportProgress(percent, label) {
+  if (!elements.aboutImportProgress) {
+    return;
+  }
+
+  const safePercent = Math.max(0, Math.min(100, Math.round(percent)));
+  elements.aboutImportProgress.hidden = false;
+  elements.aboutImportProgressBar.style.width = `${safePercent}%`;
+  elements.aboutImportProgressPercent.textContent = `${safePercent}%`;
+  elements.aboutImportProgressLabel.textContent = label;
+}
+
+function appendAboutImportProgressLog(message) {
+  const log = document.querySelector("#aboutImportProgressLog");
+
+  if (!log) {
+    return;
+  }
+
+  const item = document.createElement("li");
+  item.textContent = message;
+  log.appendChild(item);
+}
+
+function syncPendingAboutImportItemsFromReview() {
+  if (!pendingAboutImportItems.length) {
+    return;
+  }
+
+  const records = collectAboutImportReviewRecords();
+
+  pendingAboutImportItems = pendingAboutImportItems.map((item, index) => ({
+    ...item,
+    ...(records[index] ?? {})
+  }));
+}
+
+function clearPendingAboutImportItems() {
+  pendingAboutImportItems.forEach((item) => {
+    URL.revokeObjectURL(item.previewUrl);
+  });
+
+  pendingAboutImportItems = [];
+
+  if (elements.aboutImportReview) {
+    elements.aboutImportReview.classList.remove("is-active");
+  }
+
+  if (elements.aboutImportReviewList) {
+    elements.aboutImportReviewList.innerHTML = "";
+  }
+
+  updateAboutImportSummary("");
+  resetAboutImportProgress();
+  updateAboutImportReviewControls();
+}
+
+async function prepareAboutImportReview() {
+  state = collectEditorData(state);
+
+  if (!elements.aboutImportFiles?.files.length) {
+    updateAboutImportSummary("Choose at least one About image file first.");
+    setStatus("Choose at least one About image before preparing an import.", "warning");
+    return;
+  }
+
+  clearPendingAboutImportItems();
+  setStatus("Reading About image dimensions...", "neutral");
+
+  const year = elements.aboutImportYear.value.trim();
+  const location = elements.aboutImportLocation.value.trim();
+  const placementRole = elements.aboutImportPlacementRole?.value || "lower-collage";
+  const note = elements.aboutImportNote.value.trim();
+  const altPrefix = elements.aboutImportAltPrefix.value.trim() || "About page photograph by Taylor Pike";
+  const usedIds = new Set((state.aboutPhotos ?? []).map((photo) => photo.id));
+  const files = Array.from(elements.aboutImportFiles.files);
+
+  pendingAboutImportItems = await Promise.all(files.map(async (file) => {
+    const title = titleFromFilename(file.name);
+    const baseId = makeImageIdFromTitle(title);
+    const id = makeUniqueImageId(baseId, usedIds);
+
+    usedIds.add(id);
+
+    const metadata = await readImportImageMetadata(file);
+
+    return {
+      file,
+      previewUrl: URL.createObjectURL(file),
+      originalFilename: file.name,
+      id,
+      title,
+      year,
+      location,
+      placementRole,
+      note,
+      alt: `${altPrefix}: ${title}`,
+      ...metadata
+    };
+  }));
+
+  if (elements.aboutImportReview) {
+    elements.aboutImportReview.classList.add("is-active");
+  }
+
+  renderAboutImportReview(elements, pendingAboutImportItems);
+  updateAboutImportReviewControls();
+  resetAboutImportProgress();
+  setDirtyState(true, `Prepared ${pendingAboutImportItems.length} About photos for review. Import them to write files into public/images/about/.`);
+}
+
+function removePendingAboutImportItem(index) {
+  if (index < 0 || index >= pendingAboutImportItems.length) {
+    return;
+  }
+
+  syncPendingAboutImportItemsFromReview();
+  const [removedItem] = pendingAboutImportItems.splice(index, 1);
+
+  if (removedItem?.previewUrl) {
+    URL.revokeObjectURL(removedItem.previewUrl);
+  }
+
+  renderAboutImportReview(elements, pendingAboutImportItems);
+  updateAboutImportReviewControls();
+
+  if (!pendingAboutImportItems.length) {
+    clearPendingAboutImportItems();
+    setDirtyState(false, "About import review cleared.");
+    return;
+  }
+
+  setDirtyState(true, `Removed one About photo from the import review. ${pendingAboutImportItems.length} remain.`);
+}
+
+async function saveReviewedAboutImport() {
+  if (!pendingAboutImportItems.length) {
+    updateAboutImportSummary("Prepare an About import first.");
+    return;
+  }
+
+  syncPendingAboutImportItemsFromReview();
+
+  const formData = new FormData();
+  const records = collectAboutImportReviewRecords();
+
+  setStatus(`Importing ${getPendingAboutImportCountLabel(pendingAboutImportItems.length)}...`, "neutral");
+  updateAboutImportSummary("Uploading About images to the local editor...");
+  resetAboutImportProgress();
+  setAboutImportProgress(5, "Preparing About upload package");
+  appendAboutImportProgressLog(`Queued ${getPendingAboutImportCountLabel(pendingAboutImportItems.length)}.`);
+
+  if (elements.saveReviewedAboutImportButton) {
+    elements.saveReviewedAboutImportButton.disabled = true;
+  }
+
+  pendingAboutImportItems.forEach((item) => {
+    formData.append("images", item.file);
+  });
+
+  formData.append("records", JSON.stringify(records));
+
+  let didMarkBackendProcessing = false;
+
+  const result = await importReviewedAboutPhotosApi(formData, {
+    onUploadProgress: ({ percent }) => {
+      const uploadPercent = 5 + Math.round(percent * 0.45);
+      setAboutImportProgress(uploadPercent, `Uploading About files (${percent}%)`);
+
+      if (percent >= 100 && !didMarkBackendProcessing) {
+        didMarkBackendProcessing = true;
+        setAboutImportProgress(62, "Creating About WebP renditions and saving JSON");
+        appendAboutImportProgressLog("Upload complete. Backend is creating About renditions.");
+      }
+    }
+  });
+
+  setAboutImportProgress(92, "Finalizing About records");
+  applyLoadedState({ ...state, ...result });
+  setAboutImportProgress(100, "About import complete");
+  appendAboutImportProgressLog(`Imported ${result.importedAboutPhotos?.length ?? 0} About photo${(result.importedAboutPhotos?.length ?? 0) === 1 ? "" : "s"}.`);
+
+  elements.aboutImportFiles.value = "";
+  clearPendingAboutImportItems();
+  window.location.hash = "#/about";
+  setDirtyState(false);
+  setStatus(`Imported ${result.importedAboutPhotos?.length ?? 0} About photos.${getBackupStatusText(result)}`, "success");
+}
+
+function moveAboutPhotoCard(card, direction) {
+  const list = card?.closest("[data-about-photo-section-list]") ?? card?.closest("[data-about-photo-list]");
+
+  if (!card || !list) {
+    return;
+  }
+
+  if (direction === "top") {
+    list.prepend(card);
+    setDirtyState(true, "Moved About photo to top. Click Save Changes to preserve it.");
+    return;
+  }
+
+  if (direction === "up") {
+    const previous = card.previousElementSibling;
+
+    if (previous) {
+      list.insertBefore(card, previous);
+      setDirtyState(true, "Moved About photo up. Click Save Changes to preserve it.");
+    }
+
+    return;
+  }
+
+  if (direction === "down") {
+    const next = card.nextElementSibling;
+
+    if (next) {
+      list.insertBefore(next, card);
+      setDirtyState(true, "Moved About photo down. Click Save Changes to preserve it.");
+    }
+  }
+}
+
+function removeAboutPhotoCard(card) {
+  if (!card) {
+    return;
+  }
+
+  const title = card.querySelector('[data-field="title"]')?.value || card.dataset.aboutPhotoId || "this About photo";
+
+  if (!confirm(`Remove ${title} from aboutPhotos.json? This does not delete image files from disk.`)) {
+    return;
+  }
+
+  card.remove();
+  setDirtyState(true, "Removed About photo record. Click Save Changes to preserve it.");
+}
+
+function makeUniqueAboutPhotoId(baseId) {
+  const usedIds = new Set((state.aboutPhotos ?? []).map((photo) => photo.id).filter(Boolean));
+  const base = slugify(baseId || "about-photo") || "about-photo";
+  let nextId = base;
+  let suffix = 2;
+
+  while (usedIds.has(nextId)) {
+    nextId = `${base}-${suffix}`;
+    suffix += 1;
+  }
+
+  return nextId;
+}
+
+function getPortfolioImageReferenceFromCard(card, fallbackImage) {
+  const getValue = (field, fallback = "") => {
+    const value = card ? getFieldValue(card, field) : "";
+    return value || fallback || "";
+  };
+
+  const imageId = getValue("id", fallbackImage?.id);
+  const title = getValue("title", fallbackImage?.title || imageId);
+
+  return {
+    sourceImageId: imageId,
+    title,
+    year: getValue("year", fallbackImage?.year),
+    location: getValue("location", fallbackImage?.location),
+    note: `Portfolio reference added from ${title}.`,
+    src: getValue("src", fallbackImage?.src),
+    thumbSrc: getValue("thumbSrc", fallbackImage?.thumbSrc || fallbackImage?.src),
+    fullSrc: getValue("fullSrc", fallbackImage?.fullSrc || fallbackImage?.src),
+    alt: getValue("alt", fallbackImage?.alt || title),
+    imageWidth: getValue("imageWidth", fallbackImage?.imageWidth),
+    imageHeight: getValue("imageHeight", fallbackImage?.imageHeight),
+    imageAspectRatio: getValue("imageAspectRatio", fallbackImage?.imageAspectRatio),
+    imageOrientation: getValue("imageOrientation", fallbackImage?.imageOrientation)
+  };
+}
+
+function addPortfolioImageToAbout(imageId, triggerButton) {
+  const card = triggerButton?.closest("[data-image-card]");
+  const fallbackImage = state.images.find((image) => image.id === imageId) ?? null;
+  const reference = getPortfolioImageReferenceFromCard(card, fallbackImage);
+
+  if (!reference.sourceImageId || !reference.src) {
+    setStatus("Could not add this image to About photos because the image record is missing an ID or display source.", "error");
+    return;
+  }
+
+  const alreadyAdded = (state.aboutPhotos ?? []).some((photo) => (
+    photo.sourceType === "portfolio-reference" && photo.sourceImageId === reference.sourceImageId
+  ));
+
+  if (alreadyAdded) {
+    setStatus("This image is already present in the About photo list.", "warning");
+    return;
+  }
+
+  const aboutPhoto = {
+    id: makeUniqueAboutPhotoId(`about-${reference.sourceImageId}`),
+    title: reference.title,
+    year: reference.year,
+    location: reference.location,
+    note: reference.note,
+    src: reference.src,
+    thumbSrc: reference.thumbSrc,
+    fullSrc: reference.fullSrc,
+    alt: reference.alt,
+    imageWidth: reference.imageWidth,
+    imageHeight: reference.imageHeight,
+    imageAspectRatio: reference.imageAspectRatio,
+    imageOrientation: reference.imageOrientation,
+    isActive: true,
+    placementRole: "lower-collage",
+    sourceType: "portfolio-reference",
+    sourceImageId: reference.sourceImageId
+  };
+
+  state.aboutPhotos = [...(state.aboutPhotos ?? []), aboutPhoto];
+
+  if (triggerButton) {
+    triggerButton.disabled = true;
+    triggerButton.textContent = "Added";
+  }
+
+  const panel = card?.querySelector("[data-image-to-about-panel]");
+  const heading = panel?.querySelector("strong");
+  const summary = panel?.querySelector("span");
+  const countLabel = panel?.querySelector("small");
+
+  if (heading) {
+    heading.textContent = "Already added to About photos";
+  }
+
+  if (summary) {
+    summary.textContent = "This portfolio image now has a reference record in the separate About photo list.";
+  }
+
+  if (countLabel) {
+    countLabel.textContent = `${state.aboutPhotos.length} About records`;
+  }
+
+  setDirtyState(true, "Added this portfolio image to About photos. Click Save Changes to preserve it.");
+  setStatus("Added portfolio image reference to the About photo list.", "success");
 }
 
 // Keeps the pending file list but updates metadata values after the user edits the review cards.
@@ -295,6 +957,7 @@ function getImageDetailHash(imageId) {
 function replaceEditorHash(hash) {
   const nextUrl = `${window.location.pathname}${window.location.search}${hash}`;
   window.history.replaceState(null, "", nextUrl);
+  lastConfirmedHash = hash;
 }
 
 function getVisibleImageIdentityId() {
@@ -324,20 +987,49 @@ function isVisibleImageRouteSynced(imageId) {
   );
 }
 
-async function loadAuthoritativeStateForImage(imageId, renameResult) {
-  const latestState = await loadDataApi();
-  const updatedImage = latestState.images?.find((image) => image.id === imageId);
+function getAuthoritativeRenameState(imageId, renameResult) {
+  const updatedImage = renameResult.images?.find((image) => image.id === imageId) ?? renameResult.updatedImage;
 
-  if (!updatedImage) {
-    throw new Error(`Rename completed, but ${imageId} was not found after reloading editor data.`);
+  if (!updatedImage || updatedImage.id !== imageId) {
+    throw new Error(`Rename completed, but ${imageId} was not returned by the editor backend.`);
   }
 
   return {
-    ...latestState,
+    ...renameResult,
     updatedImage,
-    backup: renameResult.backup,
-    fileMoves: renameResult.fileMoves ?? []
+    backups: state.backups ?? []
   };
+}
+
+function collectRenameMetadataFromCard(card) {
+  const updates = {};
+  const safeRenameFields = [
+    "title",
+    "category",
+    "year",
+    "location",
+    "note",
+    "alt",
+    "isPublic",
+    "thumbnailPosition",
+    "heroPosition",
+    "galleryPosition",
+    "galleryFitMode",
+    "galleryFrameStyle",
+    "gallerySize",
+    "heroFitMode",
+    "heroFrameStyle"
+  ];
+
+  safeRenameFields.forEach((fieldName) => {
+    const field = card.querySelector(`[data-field="${fieldName}"]`);
+
+    if (field) {
+      updates[fieldName] = getFieldValue(card, fieldName);
+    }
+  });
+
+  return updates;
 }
 
 async function renameImageIdFromCard(card) {
@@ -368,7 +1060,8 @@ async function renameImageIdFromCard(card) {
 
   setStatus("Renaming image ID and rendition files...", "neutral");
 
-  const result = await renameImageIdApi(currentImageId, newImageId);
+  const imageUpdates = collectRenameMetadataFromCard(card);
+  const result = await renameImageIdApi(currentImageId, newImageId, imageUpdates);
   const updatedImageId = result.updatedImage?.id;
 
   if (!updatedImageId) {
@@ -381,11 +1074,11 @@ async function renameImageIdFromCard(card) {
     imageId: updatedImageId
   };
   const nextHash = getImageDetailHash(updatedImageId);
-  const authoritativeState = await loadAuthoritativeStateForImage(updatedImageId, result);
+  const authoritativeState = getAuthoritativeRenameState(updatedImageId, result);
 
   // The old hash is invalid after a successful rename. Replace it first, then
-  // render from data reloaded from disk so the identity panel reflects the
-  // backend's final JSON and file-rendition state instead of a stale DOM route.
+  // render from the rename response so the identity panel reflects the backend's
+  // final JSON and file-rendition state without a stale cached /api/data read.
   replaceEditorHash(nextHash);
   applyLoadedState(authoritativeState, nextRoute);
   setDirtyState(false);
@@ -404,9 +1097,7 @@ async function renameImageIdFromCard(card) {
 // Gives immediate feedback on duplicate IDs, invalid fit modes, or unsupported values.
 function updateImportReviewValidation() {
   if (!pendingImportItems.length) {
-    if (elements.saveReviewedImportButton) {
-      elements.saveReviewedImportButton.disabled = false;
-    }
+    updateImportReviewControls();
 
     return {
       errors: [],
@@ -428,11 +1119,18 @@ function updateImportReviewValidation() {
 
     if (status) {
       const messages = [...cardErrors, ...cardWarnings].map((item) => item.message);
+      status.dataset.importState = card.dataset.importState;
       status.textContent = messages.length ? messages.join(" ") : "Ready to import into the portfolio rendition folders.";
     }
   });
 
   if (elements.saveReviewedImportButton) {
+    elements.saveReviewedImportButton.disabled = !validation.isValid;
+  }
+
+  updateImportReviewControls();
+
+  if (elements.saveReviewedImportButton && pendingImportItems.length) {
     elements.saveReviewedImportButton.disabled = !validation.isValid;
   }
 
@@ -500,6 +1198,13 @@ function getCurrentRoute() {
     };
   }
 
+  if (routeName === "about" && routeParts[1] === "photos") {
+    return {
+      name: "aboutPhotos",
+      page: "about-photos"
+    };
+  }
+
   if (VALID_PAGE_ROUTES.has(routeName)) {
     return {
       name: routeName,
@@ -537,6 +1242,10 @@ function applyLoadedState(nextState, routeOverride = null) {
     images: nextState.images ?? [],
     heroSlides: nextState.heroSlides ?? [],
     galleryCuration: nextState.galleryCuration ?? state.galleryCuration ?? [],
+    galleryCurationStatus: nextState.galleryCurationStatus ?? state.galleryCurationStatus ?? {},
+    galleryRoom: nextState.galleryRoom ?? state.galleryRoom ?? {},
+    aboutPhotos: nextState.aboutPhotos ?? state.aboutPhotos ?? [],
+    aboutCopy: nextState.aboutCopy ?? state.aboutCopy ?? {},
     backups: nextState.backups ?? state.backups ?? []
   };
 
@@ -559,6 +1268,10 @@ function updateStateFromCurrentDom() {
     images: nextState.images,
     heroSlides: nextState.heroSlides,
     galleryCuration: state.galleryCuration ?? [],
+    galleryCurationStatus: state.galleryCurationStatus ?? {},
+    galleryRoom: state.galleryRoom ?? {},
+    aboutPhotos: nextState.aboutPhotos ?? state.aboutPhotos ?? [],
+    aboutCopy: nextState.aboutCopy ?? state.aboutCopy ?? {},
     backups: state.backups ?? []
   };
 }
@@ -582,6 +1295,229 @@ function getEditorCategoryLabel(categoryId) {
 
 function getEditorImageById(imageId) {
   return state.images.find((image) => image.id === imageId);
+}
+
+function isEditorImagePublic(image) {
+  return image?.isPublic !== false;
+}
+
+function isEditorLandscapeImage(image) {
+  if (["landscape", "portrait", "square"].includes(image?.imageOrientation)) {
+    return image.imageOrientation === "landscape";
+  }
+
+  const aspectRatio = Number(image?.imageAspectRatio);
+
+  if (Number.isFinite(aspectRatio) && aspectRatio > 0) {
+    return aspectRatio > 1;
+  }
+
+  const width = Number(image?.imageWidth);
+  const height = Number(image?.imageHeight);
+
+  if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+    return width > height;
+  }
+
+  return true;
+}
+
+function getBulkEditorToolbar() {
+  return elements.editorList?.querySelector("[data-bulk-editor-toolbar]");
+}
+
+function getBulkSelectableCards() {
+  return Array.from(elements.editorList?.querySelectorAll("[data-image-id] [data-bulk-image-select]") ?? [])
+    .map((input) => input.closest("[data-image-id]"))
+    .filter(Boolean);
+}
+
+function getSelectedBulkImageIds() {
+  return Array.from(elements.editorList?.querySelectorAll("[data-bulk-image-select]:checked") ?? [])
+    .map((input) => String(input.value ?? input.closest("[data-image-id]")?.dataset.imageId ?? "").trim())
+    .filter(Boolean);
+}
+
+function hasBulkEditorChanges() {
+  return ["visibility", "category", "hero"].some((fieldName) => Boolean(getBulkFieldValue(fieldName)));
+}
+
+function updateBulkSelectionCount() {
+  const toolbar = getBulkEditorToolbar();
+  const output = toolbar?.querySelector("[data-bulk-selection-count]");
+
+  if (!toolbar || !output) {
+    return;
+  }
+
+  const selectedImageIds = getSelectedBulkImageIds();
+  const selectedIds = new Set(selectedImageIds);
+  const selectedCount = selectedImageIds.length;
+  const hasChanges = hasBulkEditorChanges();
+  const applyButton = toolbar.querySelector("[data-bulk-apply]");
+
+  getBulkSelectableCards().forEach((card) => {
+    const imageId = String(card.dataset.imageId ?? "").trim();
+    card.dataset.bulkSelected = selectedIds.has(imageId) ? "true" : "false";
+  });
+
+  toolbar.dataset.bulkHasSelection = selectedCount > 0 ? "true" : "false";
+  toolbar.dataset.bulkHasChanges = hasChanges ? "true" : "false";
+  toolbar.dataset.bulkReady = selectedCount > 0 && hasChanges ? "true" : "false";
+
+  output.textContent = `${selectedCount} image${selectedCount === 1 ? "" : "s"} selected`;
+
+  if (applyButton) {
+    applyButton.disabled = !(selectedCount > 0 && hasChanges);
+  }
+}
+
+function setBulkSelection(isSelected) {
+  getBulkSelectableCards().forEach((card) => {
+    const checkbox = card.querySelector("[data-bulk-image-select]");
+
+    if (checkbox) {
+      checkbox.checked = isSelected;
+    }
+  });
+
+  updateBulkSelectionCount();
+}
+
+function getBulkFieldValue(fieldName) {
+  const toolbar = getBulkEditorToolbar();
+  const field = toolbar?.querySelector(`[data-bulk-field="${fieldName}"]`);
+
+  return String(field?.value ?? "").trim();
+}
+
+function resetBulkControls() {
+  const toolbar = getBulkEditorToolbar();
+
+  toolbar?.querySelectorAll("[data-bulk-field]").forEach((field) => {
+    field.value = "";
+  });
+
+  setBulkSelection(false);
+}
+
+function dedupeHeroSlides(heroSlides) {
+  const seenImageIds = new Set();
+  const dedupedSlides = [];
+
+  heroSlides.forEach((slide) => {
+    if (!slide?.imageId || seenImageIds.has(slide.imageId)) {
+      return;
+    }
+
+    seenImageIds.add(slide.imageId);
+    dedupedSlides.push(slide);
+  });
+
+  return dedupedSlides;
+}
+
+function buildBulkEditorPayload(selectedImageIds) {
+  const selectedIds = new Set(selectedImageIds);
+  const visibilityAction = getBulkFieldValue("visibility");
+  const categoryAction = getBulkFieldValue("category");
+  const heroAction = getBulkFieldValue("hero");
+  const validCategoryIds = new Set(state.categories.map((category) => category.id));
+
+  if (!selectedIds.size) {
+    throw new Error("Select at least one image before applying bulk updates.");
+  }
+
+  if (!visibilityAction && !categoryAction && !heroAction) {
+    throw new Error("Choose at least one bulk update to apply.");
+  }
+
+  if (categoryAction && !validCategoryIds.has(categoryAction)) {
+    throw new Error("Bulk category target is not a valid category.");
+  }
+
+  const basePayload = collectEditorData(state);
+  const fallbackCategoryId = getFallbackCategoryId({ categories: basePayload.categories });
+  const updatedImages = basePayload.images.map((image) => {
+    if (!selectedIds.has(image.id)) {
+      return image;
+    }
+
+    const updatedImage = { ...image };
+
+    if (visibilityAction === "show") {
+      delete updatedImage.isPublic;
+    }
+
+    if (visibilityAction === "hide") {
+      updatedImage.isPublic = false;
+    }
+
+    if (categoryAction) {
+      updatedImage.category = categoryAction;
+    }
+
+    return updatedImage;
+  });
+  const imagesById = new Map(updatedImages.map((image) => [image.id, image]));
+  const shouldRemoveSelectedFromHero = heroAction === "remove" || visibilityAction === "hide";
+  let nextHeroSlides = basePayload.heroSlides.filter((slide) => {
+    const image = imagesById.get(slide.imageId);
+
+    if (!image || !isEditorImagePublic(image) || !isEditorLandscapeImage(image)) {
+      return false;
+    }
+
+    if (shouldRemoveSelectedFromHero && selectedIds.has(slide.imageId)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (heroAction === "add") {
+    const existingHeroIds = new Set(nextHeroSlides.map((slide) => slide.imageId));
+
+    updatedImages.forEach((image) => {
+      if (!selectedIds.has(image.id) || existingHeroIds.has(image.id)) {
+        return;
+      }
+
+      if (!isEditorImagePublic(image) || !isEditorLandscapeImage(image)) {
+        return;
+      }
+
+      nextHeroSlides.push({
+        imageId: image.id,
+        targetCategory: validCategoryIds.has(image.category) ? image.category : fallbackCategoryId
+      });
+      existingHeroIds.add(image.id);
+    });
+  }
+
+  return {
+    categories: basePayload.categories,
+    images: updatedImages,
+    heroSlides: dedupeHeroSlides(nextHeroSlides)
+  };
+}
+
+async function applyBulkEditorUpdates() {
+  const selectedImageIds = getSelectedBulkImageIds();
+  const payload = buildBulkEditorPayload(selectedImageIds);
+  const confirmed = confirm(`Apply bulk updates to ${selectedImageIds.length} selected image record${selectedImageIds.length === 1 ? "" : "s"}?`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  setStatus("Applying bulk editor updates...", "neutral");
+  const savedData = await saveDataApi(payload);
+
+  applyLoadedState(savedData);
+  setDirtyState(false);
+  setStatus(`Applied bulk updates to ${selectedImageIds.length} image record${selectedImageIds.length === 1 ? "" : "s"}.${getBackupStatusText(savedData)}`, "success");
+  resetBulkControls();
 }
 
 
@@ -1799,7 +2735,7 @@ function syncGalleryCurationCardState(card) {
 
   if (statusBadge) {
     statusBadge.dataset.galleryStatusBadge = displayStatus;
-    statusBadge.textContent = displayStatus === "hidden" ? "Hidden" : "Active";
+    statusBadge.textContent = displayStatus === "hidden" ? "Hidden from room" : "Visible in room";
   }
 
   if (placementBadge) {
@@ -1809,7 +2745,7 @@ function syncGalleryCurationCardState(card) {
 
   if (artworkBadge) {
     artworkBadge.dataset.galleryArtworkBadge = artworkState;
-    artworkBadge.textContent = image ? "Assigned" : "Needs artwork";
+    artworkBadge.textContent = image ? "Artwork assigned" : "Needs artwork";
   }
 
   if (wallTypeBadge) {
@@ -1893,6 +2829,8 @@ function clearPendingImportItems() {
   elements.importReview.classList.remove("is-active");
   elements.importReviewList.innerHTML = "";
   setImportSummary("");
+  resetImportProgress();
+  updateImportReviewControls();
 }
 
 async function loadData() {
@@ -1902,7 +2840,7 @@ async function loadData() {
 
   applyLoadedState(nextState);
   setDirtyState(false);
-  setStatus(`Loaded ${state.images.length} images and ${state.categories.length} categories.`, "success");
+  setStatus(`Loaded ${state.images.length} images, ${state.categories.length} categories, and About copy.`, "success");
 }
 
 async function refreshBackups(message = "Backups refreshed.") {
@@ -1923,8 +2861,12 @@ async function refreshBackups(message = "Backups refreshed.") {
 }
 
 async function restoreBackup(backupFolder) {
+  if (!confirmDiscardUnsavedChanges("restore a backup")) {
+    return;
+  }
+
   const confirmed = confirm(
-    `Restore backup "${backupFolder}"? The editor will create a new backup of the current JSON files before restoring.`
+    `Restore backup "${backupFolder}"?\n\nThe current JSON files will be backed up first, then replaced with this restore point.`
   );
 
   if (!confirmed) {
@@ -1947,7 +2889,7 @@ async function savePayload(payload) {
 
   applyLoadedState(savedData);
   setDirtyState(false);
-  setStatus(`Saved ${state.images.length} images and ${state.categories.length} categories.${getBackupStatusText(savedData)}`, "success");
+  setStatus(`Saved ${state.images.length} images, ${state.categories.length} categories, and About page copy.${getBackupStatusText(savedData)}`, "success");
 }
 
 
@@ -2086,6 +3028,373 @@ function moveGridCard(card, direction, successMessage) {
   }
 }
 
+function getCategoryOrderGridFromNode(node) {
+  return node?.closest?.("[data-category-order-grid]") ?? null;
+}
+
+function isCategoryOrderInteractiveTarget(target) {
+  return Boolean(target?.closest?.([
+    "button",
+    "input",
+    "select",
+    "textarea",
+    "label",
+    "summary",
+    "details",
+    "[contenteditable='true']",
+    "[data-no-card-drag]"
+  ].join(", ")));
+}
+
+function getCategoryOrderCards(grid) {
+  return Array.from(grid.children)
+    .filter((node) => node.matches?.("[data-category-order-card]") && !node.classList.contains("is-dragging"))
+    .filter((node) => !node.hidden && node.offsetParent !== null);
+}
+
+function buildCategoryOrderRows(grid) {
+  const candidates = getCategoryOrderCards(grid);
+
+  if (!candidates.length) {
+    return [];
+  }
+
+  const rowTolerance = 24;
+  const rows = [];
+
+  candidates.forEach((node, orderIndex) => {
+    const rect = node.getBoundingClientRect();
+    const centerY = rect.top + rect.height / 2;
+    const existingRow = rows.find((row) => Math.abs(row.centerY - centerY) <= rowTolerance);
+    const item = { node, rect, centerY, orderIndex };
+
+    if (existingRow) {
+      existingRow.items.push(item);
+      existingRow.centerY = existingRow.items.reduce((total, rowItem) => total + rowItem.centerY, 0) / existingRow.items.length;
+    } else {
+      rows.push({ centerY, items: [item] });
+    }
+  });
+
+  rows.sort((a, b) => a.centerY - b.centerY);
+  rows.forEach((row) => row.items.sort((a, b) => a.rect.left - b.rect.left));
+
+  return rows;
+}
+
+function getCategoryOrderRowFromPointer(rows, clientY) {
+  if (!rows.length) {
+    return null;
+  }
+
+  let rowIndex = rows.findIndex((row, index) => {
+    const previousRow = rows[index - 1];
+    const nextRow = rows[index + 1];
+    const upperBoundary = previousRow ? (previousRow.centerY + row.centerY) / 2 : Number.NEGATIVE_INFINITY;
+    const lowerBoundary = nextRow ? (row.centerY + nextRow.centerY) / 2 : Number.POSITIVE_INFINITY;
+
+    return clientY >= upperBoundary && clientY < lowerBoundary;
+  });
+
+  if (rowIndex < 0) {
+    rowIndex = clientY < rows[0].centerY ? 0 : rows.length - 1;
+  }
+
+  return rows[rowIndex];
+}
+
+function clampCategoryOrderInsertionIndex(index, maxIndex) {
+  if (!Number.isFinite(index)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(maxIndex, index));
+}
+
+function getCategoryOrderInsertionIndex(grid, clientX, clientY, currentIndex = 0) {
+  const cards = getCategoryOrderCards(grid);
+  const rows = buildCategoryOrderRows(grid);
+  const row = getCategoryOrderRowFromPointer(rows, clientY);
+
+  if (!row) {
+    return 0;
+  }
+
+  const safeCurrentIndex = clampCategoryOrderInsertionIndex(currentIndex, cards.length);
+  const firstItem = row.items[0];
+  const lastItem = row.items[row.items.length - 1];
+
+  if (clientX <= firstItem.rect.left) {
+    return firstItem.orderIndex;
+  }
+
+  if (clientX >= lastItem.rect.right) {
+    return lastItem.orderIndex + 1;
+  }
+
+  for (let index = 0; index < row.items.length; index += 1) {
+    const item = row.items[index];
+    const nextItem = row.items[index + 1];
+
+    if (clientX >= item.rect.left && clientX <= item.rect.right) {
+      const ratio = (clientX - item.rect.left) / Math.max(1, item.rect.width);
+      const isMovingRightAcrossItem = safeCurrentIndex <= item.orderIndex;
+      const isMovingLeftAcrossItem = safeCurrentIndex > item.orderIndex;
+
+      // Moving right felt too abrupt because the placeholder advanced as soon
+      // as the pointer crossed the target card midpoint. Use a small
+      // direction-aware buffer so rightward movement requires a little more
+      // commitment and better matches the steadier leftward pacing.
+      if (isMovingRightAcrossItem) {
+        return ratio >= CATEGORY_ORDER_DRAG_RIGHT_ADVANCE_RATIO ? item.orderIndex + 1 : item.orderIndex;
+      }
+
+      if (isMovingLeftAcrossItem) {
+        // Leftward placement felt too sensitive once the single-placeholder
+        // drag model was stable. Require the pointer to move deeper into the
+        // left side of the target card before the placeholder crosses to that
+        // card's leading edge. This keeps left and right placement from
+        // feeling like they flip at different speeds.
+        return ratio <= CATEGORY_ORDER_DRAG_LEFT_ADVANCE_RATIO ? item.orderIndex : item.orderIndex + 1;
+      }
+
+      return ratio >= CATEGORY_ORDER_DRAG_CENTER_ADVANCE_RATIO ? item.orderIndex + 1 : item.orderIndex;
+    }
+
+    if (nextItem && clientX > item.rect.right && clientX < nextItem.rect.left) {
+      return safeCurrentIndex;
+    }
+  }
+
+  return lastItem.orderIndex + 1;
+}
+
+function placeCategoryOrderPlaceholder(event) {
+  if (!activeCategoryOrderDrag?.card || !activeCategoryOrderDrag?.grid) {
+    return;
+  }
+
+  const { card, grid } = activeCategoryOrderDrag;
+  let currentIndex = Array.from(grid.children).indexOf(card);
+
+  // The real card becomes the placeholder while the ghost card floats above the
+  // grid. Moving that one DOM node prevents the duplicate blank cell that could
+  // appear when a separate placeholder node and the hidden source card competed
+  // for CSS Grid placement.
+  if (card.parentElement === grid) {
+    card.remove();
+  }
+
+  const cards = getCategoryOrderCards(grid);
+  currentIndex = clampCategoryOrderInsertionIndex(currentIndex, cards.length);
+
+  const insertionIndex = getCategoryOrderInsertionIndex(grid, event.clientX, event.clientY, currentIndex);
+  const insertionPoint = cards[insertionIndex] ?? null;
+
+  if (insertionPoint) {
+    grid.insertBefore(card, insertionPoint);
+    return;
+  }
+
+  grid.appendChild(card);
+}
+
+function createCategoryOrderDragGhost(card, rect) {
+  const ghost = card.cloneNode(true);
+  ghost.classList.add("category-order-drag-ghost");
+  ghost.classList.remove("is-dragging");
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.querySelectorAll("a, button, input, select, textarea, label").forEach((node) => {
+    node.setAttribute("tabindex", "-1");
+  });
+  ghost.style.width = `${rect.width}px`;
+  ghost.style.height = `${rect.height}px`;
+  ghost.style.left = `${rect.left}px`;
+  ghost.style.top = `${rect.top}px`;
+  document.body.appendChild(ghost);
+
+  return ghost;
+}
+
+function moveCategoryOrderGhost(event) {
+  if (!activeCategoryOrderDrag?.ghost) {
+    return;
+  }
+
+  const { ghost, pointerOffsetX, pointerOffsetY } = activeCategoryOrderDrag;
+  ghost.style.left = `${event.clientX - pointerOffsetX}px`;
+  ghost.style.top = `${event.clientY - pointerOffsetY}px`;
+}
+
+const CATEGORY_ORDER_DRAG_HOLD_MS = 140;
+const CATEGORY_ORDER_DRAG_MOVE_THRESHOLD = 6;
+// Keep before/after placement near the visual midpoint of a target card.
+// The left threshold also controls how quickly a card that is already placed
+// after a target will snap back before it; keeping it close to center prevents
+// right-side placement from feeling like it activates after only a small overlap.
+const CATEGORY_ORDER_DRAG_RIGHT_ADVANCE_RATIO = 0.58;
+const CATEGORY_ORDER_DRAG_LEFT_ADVANCE_RATIO = 0.48;
+const CATEGORY_ORDER_DRAG_CENTER_ADVANCE_RATIO = 0.54;
+
+function getCategoryOrderDragSnapshot(event) {
+  return {
+    clientX: event.clientX,
+    clientY: event.clientY,
+    pointerId: event.pointerId,
+    preventDefault: () => event.preventDefault()
+  };
+}
+
+function clearCategoryOrderDragTimer() {
+  if (activeCategoryOrderDrag?.holdTimer) {
+    window.clearTimeout(activeCategoryOrderDrag.holdTimer);
+    activeCategoryOrderDrag.holdTimer = null;
+  }
+}
+
+function beginCategoryOrderDrag(card, event) {
+  const grid = getCategoryOrderGridFromNode(card);
+
+  if (!card || !grid || activeCategoryOrderDrag) {
+    return;
+  }
+
+  const initialLink = event.target.closest?.("a[href]");
+
+  const dragState = {
+    card,
+    grid,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    startedAt: window.performance?.now ? window.performance.now() : Date.now(),
+    latestX: event.clientX,
+    latestY: event.clientY,
+    started: false,
+    ghost: null,
+    originalNextSibling: card.nextElementSibling,
+    initialLinkHref: initialLink?.getAttribute("href") ?? "",
+    pointerOffsetX: 0,
+    pointerOffsetY: 0,
+    holdTimer: null
+  };
+
+  dragState.holdTimer = window.setTimeout(() => {
+    if (!activeCategoryOrderDrag || activeCategoryOrderDrag.pointerId !== dragState.pointerId || activeCategoryOrderDrag.started) {
+      return;
+    }
+
+    activateCategoryOrderDrag({
+      clientX: activeCategoryOrderDrag.latestX,
+      clientY: activeCategoryOrderDrag.latestY,
+      pointerId: activeCategoryOrderDrag.pointerId,
+      preventDefault: () => {}
+    });
+  }, CATEGORY_ORDER_DRAG_HOLD_MS);
+
+  activeCategoryOrderDrag = dragState;
+}
+
+function activateCategoryOrderDrag(event) {
+  if (!activeCategoryOrderDrag || activeCategoryOrderDrag.started) {
+    return;
+  }
+
+  clearCategoryOrderDragTimer();
+
+  const { card, grid } = activeCategoryOrderDrag;
+  const rect = card.getBoundingClientRect();
+
+  activeCategoryOrderDrag.started = true;
+  card.setPointerCapture?.(event.pointerId);
+  activeCategoryOrderDrag.pointerOffsetX = event.clientX - rect.left;
+  activeCategoryOrderDrag.pointerOffsetY = event.clientY - rect.top;
+  activeCategoryOrderDrag.ghost = createCategoryOrderDragGhost(card, rect);
+
+  card.style.minHeight = `${Math.max(140, Math.round(rect.height))}px`;
+  card.classList.add("is-dragging");
+  grid.dataset.categoryDragging = "true";
+  document.body.dataset.categoryImageDragging = "true";
+  setStatus("Dragging image card. Release to keep the new order, then save the category order.", "neutral");
+  moveCategoryOrderGhost(event);
+  placeCategoryOrderPlaceholder(event);
+}
+
+function updateCategoryOrderDrag(event) {
+  if (!activeCategoryOrderDrag || event.pointerId !== activeCategoryOrderDrag.pointerId) {
+    return;
+  }
+
+  activeCategoryOrderDrag.latestX = event.clientX;
+  activeCategoryOrderDrag.latestY = event.clientY;
+
+  const distance = Math.hypot(
+    event.clientX - activeCategoryOrderDrag.startX,
+    event.clientY - activeCategoryOrderDrag.startY
+  );
+
+  if (!activeCategoryOrderDrag.started) {
+    if (distance < CATEGORY_ORDER_DRAG_MOVE_THRESHOLD) {
+      return;
+    }
+
+    const elapsed = window.performance?.now ? window.performance.now() : Date.now();
+
+    if (elapsed - activeCategoryOrderDrag.startedAt < CATEGORY_ORDER_DRAG_HOLD_MS) {
+      return;
+    }
+  }
+
+  event.preventDefault();
+  activateCategoryOrderDrag(getCategoryOrderDragSnapshot(event));
+  moveCategoryOrderGhost(event);
+  placeCategoryOrderPlaceholder(event);
+}
+
+function finishCategoryOrderDrag(event, commit = true) {
+  if (!activeCategoryOrderDrag || event.pointerId !== activeCategoryOrderDrag.pointerId) {
+    return;
+  }
+
+  clearCategoryOrderDragTimer();
+
+  const { card, grid, started, ghost, originalNextSibling, initialLinkHref } = activeCategoryOrderDrag;
+
+  if (card.hasPointerCapture?.(event.pointerId)) {
+    card.releasePointerCapture(event.pointerId);
+  }
+
+  if (started) {
+    if (!commit) {
+      grid.insertBefore(card, originalNextSibling?.parentElement === grid ? originalNextSibling : null);
+    }
+
+    ghost?.remove();
+  }
+
+  card.style.minHeight = "";
+  card.classList.remove("is-dragging");
+  grid.dataset.categoryDragging = "false";
+  delete document.body.dataset.categoryImageDragging;
+  activeCategoryOrderDrag = null;
+
+  if (!started && commit && initialLinkHref) {
+    window.setTimeout(() => {
+      if (window.location.hash !== initialLinkHref) {
+        window.location.hash = initialLinkHref;
+      }
+    }, 0);
+  }
+
+  if (started && commit) {
+    suppressNextCategoryOrderClick = true;
+    window.setTimeout(() => {
+      suppressNextCategoryOrderClick = false;
+    }, 0);
+    setDirtyState(true, "Reordered category images. Click Save Category Order to preserve it.");
+  }
+}
+
 // Moves category rows in the DOM before saving category order.
 function moveCategoryRow(row, direction) {
   if (!row) {
@@ -2174,7 +3483,35 @@ async function prepareImportReview() {
 
   renderImportReview(state, elements, pendingImportItems);
   updateImportReviewValidation();
-  setDirtyState(true, `Prepared ${pendingImportItems.length} images for review. Review each card, then save the import.`);
+  updateImportReviewControls();
+  resetImportProgress();
+  setDirtyState(true, `Prepared ${pendingImportItems.length} images for review. Review each card, remove anything you do not want, then import the approved photos.`);
+}
+
+function removePendingImportItem(index) {
+  if (index < 0 || index >= pendingImportItems.length) {
+    return;
+  }
+
+  syncPendingImportItemsFromReview();
+
+  const [removedItem] = pendingImportItems.splice(index, 1);
+
+  if (removedItem?.previewUrl) {
+    URL.revokeObjectURL(removedItem.previewUrl);
+  }
+
+  renderImportReview(state, elements, pendingImportItems);
+  updateImportReviewValidation();
+  updateImportReviewControls();
+
+  if (!pendingImportItems.length) {
+    clearPendingImportItems();
+    setDirtyState(false, "Import review cleared.");
+    return;
+  }
+
+  setDirtyState(true, `Removed one photo from the import review. ${pendingImportItems.length} remain.`);
 }
 
 async function saveReviewedImport() {
@@ -2183,13 +3520,11 @@ async function saveReviewedImport() {
     return;
   }
 
-  setStatus("Importing reviewed images...", "neutral");
-  setImportSummary("Copying files and saving JSON...");
-
   syncPendingImportItemsFromReview();
 
   const formData = new FormData();
   const records = collectImportReviewRecords(state);
+  const categories = collectCategories();
   const validation = validateImportRecords(records, state.images);
 
   if (!validation.isValid) {
@@ -2197,17 +3532,48 @@ async function saveReviewedImport() {
     throw new Error(validation.errors.map((item) => item.message).join(" "));
   }
 
+  setStatus(`Importing ${getPendingImportCountLabel(pendingImportItems.length)}...`, "neutral");
+  setImportSummary("Uploading files to the local editor...");
+  resetImportProgress();
+  setImportProgress(5, "Preparing upload package");
+  appendImportProgressLog(`Queued ${getPendingImportCountLabel(pendingImportItems.length)} for import.`);
+
+  if (elements.saveReviewedImportButton) {
+    elements.saveReviewedImportButton.disabled = true;
+  }
+
   pendingImportItems.forEach((item) => {
     formData.append("images", item.file);
   });
 
   formData.append("records", JSON.stringify(records));
+  formData.append("categories", JSON.stringify(categories));
 
-  const result = await importReviewedImagesApi(formData);
+  appendImportProgressLog("Uploading original files and reviewed metadata.");
+
+  let didMarkBackendProcessing = false;
+
+  const result = await importReviewedImagesApi(formData, {
+    onUploadProgress: ({ percent }) => {
+      const uploadPercent = 5 + Math.round(percent * 0.45);
+      setImportProgress(uploadPercent, `Uploading files (${percent}%)`);
+
+      if (percent >= 100 && !didMarkBackendProcessing) {
+        didMarkBackendProcessing = true;
+        setImportProgress(62, "Creating WebP renditions and saving JSON");
+        appendImportProgressLog("Upload complete. Backend is creating portfolio renditions and writing source data.");
+      }
+    }
+  });
+
+  setImportProgress(92, "Finalizing imported records");
 
   applyLoadedState(result);
 
   const importedTitles = result.importedImages.map((image) => image.title).join(", ");
+
+  setImportProgress(100, "Import complete");
+  appendImportProgressLog(`Imported ${result.importedImages.length} photo${result.importedImages.length === 1 ? "" : "s"}.`);
 
   elements.importFiles.value = "";
   clearPendingImportItems();
@@ -2221,6 +3587,29 @@ async function saveReviewedImport() {
 
 // Re-render the editor when the hash route changes, such as moving from Images to Import.
 window.addEventListener("hashchange", () => {
+  if (isRestoringHash) {
+    isRestoringHash = false;
+    return;
+  }
+
+  if (!confirmDiscardUnsavedChanges("switch editor sections")) {
+    isRestoringHash = true;
+    window.location.hash = lastConfirmedHash;
+    return;
+  }
+
+  lastConfirmedHash = window.location.hash || "#/images";
+
+  if (pendingImportItems.length) {
+    clearPendingImportItems();
+  }
+
+  if (pendingAboutImportItems.length) {
+    clearPendingAboutImportItems();
+  }
+
+  setDirtyState(false);
+
   const route = getCurrentRoute();
 
   renderAll(state, elements, route);
@@ -2242,14 +3631,24 @@ elements.addCategoryButton.addEventListener("click", () => {
   state = collectEditorData(state);
 
   const label = prompt("Category name:");
+  const cleanLabel = String(label ?? "").trim();
 
-  if (!label) {
+  if (!cleanLabel) {
+    return;
+  }
+
+  const existingCategory = state.categories.find((category) => {
+    return category.label.trim().toLowerCase() === cleanLabel.toLowerCase();
+  });
+
+  if (existingCategory) {
+    setStatus(`Category "${existingCategory.label}" already exists.`, "neutral");
     return;
   }
 
   state.categories.push({
-    id: slugify(label),
-    label: label.trim()
+    id: makeUniqueCategoryId(cleanLabel),
+    label: cleanLabel
   });
 
   setDirtyState(true, "Added category. Click Save Category Settings to preserve it.");
@@ -2257,6 +3656,13 @@ elements.addCategoryButton.addEventListener("click", () => {
 });
 
 elements.saveCategorySettingsButton.addEventListener("click", () => {
+  try {
+    validateCategoryDrafts(collectCategories());
+  } catch (error) {
+    setStatus(error.message, "error");
+    return;
+  }
+
   saveData().catch((error) => {
     console.error(error);
     setStatus(error.message, "error");
@@ -2287,6 +3693,7 @@ elements.categoryList.addEventListener("click", (event) => {
 
   state = collectEditorData(state);
 
+  const row = removeButton.closest("[data-category-row]");
   const categoryId = removeButton.dataset.removeCategory;
   const categoryIndex = state.categories.findIndex((category) => category.id === categoryId);
 
@@ -2294,7 +3701,18 @@ elements.categoryList.addEventListener("click", (event) => {
     return;
   }
 
-  const confirmed = confirm("Remove this category? Images in this category will be moved to the first remaining category.");
+  if (state.categories.length <= 1) {
+    setStatus("At least one category is required.", "error");
+    return;
+  }
+
+  const category = state.categories[categoryIndex];
+  const reassignTargetId = getCategoryReassignTarget(row, categoryId);
+  const reassignTarget = state.categories.find((item) => item.id === reassignTargetId);
+  const stats = getCategoryUsageStats(categoryId);
+  const confirmed = confirm(
+    `Remove category "${category.label}"?\n\n${stats.total} image${stats.total === 1 ? "" : "s"} and ${stats.hero} hero slide target${stats.hero === 1 ? "" : "s"} will be reassigned to "${reassignTarget?.label ?? reassignTargetId}". Save Category Settings afterward to write the change.`
+  );
 
   if (!confirmed) {
     return;
@@ -2302,18 +3720,13 @@ elements.categoryList.addEventListener("click", (event) => {
 
   state.categories.splice(categoryIndex, 1);
 
-  if (!state.categories.length) {
-    state.categories.push({
-      id: "personal",
-      label: "Personal"
-    });
-  }
-
-  const fallbackCategoryId = getFallbackCategoryId(state);
-  const validCategoryIds = new Set(state.categories.map((category) => category.id));
+  const fallbackCategoryId = state.categories.some((item) => item.id === reassignTargetId)
+    ? reassignTargetId
+    : getFallbackCategoryId(state);
+  const validCategoryIds = new Set(state.categories.map((item) => item.id));
 
   state.images = state.images.map((image) => {
-    if (validCategoryIds.has(image.category)) {
+    if (image.category !== categoryId && validCategoryIds.has(image.category)) {
       return image;
     }
 
@@ -2324,7 +3737,7 @@ elements.categoryList.addEventListener("click", (event) => {
   });
 
   state.heroSlides = state.heroSlides.map((slide) => {
-    if (validCategoryIds.has(slide.targetCategory)) {
+    if (slide.targetCategory !== categoryId && validCategoryIds.has(slide.targetCategory)) {
       return slide;
     }
 
@@ -2334,7 +3747,7 @@ elements.categoryList.addEventListener("click", (event) => {
     };
   });
 
-  setDirtyState(true, "Removed category. Click Save JSON to preserve it.");
+  setDirtyState(true, "Removed category and reassigned affected records. Click Save Category Settings to preserve it.");
   rerenderCurrentRoute();
 });
 
@@ -2370,9 +3783,16 @@ elements.editorList.addEventListener("input", (event) => {
 
 // Re-render preview sections when fit/frame dropdowns change.
 elements.editorList.addEventListener("change", (event) => {
+  const bulkSelect = event.target.closest("[data-bulk-image-select]");
+  const bulkField = event.target.closest("[data-bulk-field]");
   const cropSetting = event.target.closest("[data-crop-setting]");
-  const imageEditorSetting = event.target.closest('[data-field="galleryFrameStyle"], [data-field="galleryFitMode"]');
+  const imageEditorSetting = event.target.closest('[data-field="galleryFrameStyle"], [data-field="galleryFitMode"], [data-field="isPublic"]');
   const editableField = event.target.closest("[data-field], [data-category-field]");
+
+  if (bulkSelect || bulkField) {
+    updateBulkSelectionCount();
+    return;
+  }
 
   if (!cropSetting && !imageEditorSetting && !editableField) {
     return;
@@ -2422,8 +3842,88 @@ elements.importReviewList.addEventListener("change", () => {
 });
 
 
+
+elements.aboutCopyEditor?.addEventListener("input", (event) => {
+  const field = event.target.closest("[data-about-copy-field]");
+
+  if (!field) {
+    return;
+  }
+
+  setDirtyState(true, "About copy edits are unsaved. Click Save Changes to preserve them.");
+});
+
+elements.aboutCopyEditor?.addEventListener("change", (event) => {
+  const field = event.target.closest("[data-about-copy-field]");
+
+  if (!field) {
+    return;
+  }
+
+  setDirtyState(true, "About copy edits are unsaved. Click Save Changes to preserve them.");
+});
+
+elements.aboutPhotoList?.addEventListener("input", (event) => {
+  const field = event.target.closest("[data-field]");
+
+  if (!field) {
+    return;
+  }
+
+  setDirtyState(true, "About photo edits are unsaved. Click Save Changes to preserve them.");
+});
+
+elements.aboutPhotoList?.addEventListener("change", (event) => {
+  const field = event.target.closest("[data-field]");
+
+  if (!field) {
+    return;
+  }
+
+  setDirtyState(true, "About photo edits are unsaved. Click Save Changes to preserve them.");
+});
+
+elements.aboutImportReviewList?.addEventListener("input", () => {
+  setDirtyState(true, "About import review has unsaved changes. Import reviewed About photos to keep it.");
+});
+
+elements.aboutImportReviewList?.addEventListener("change", () => {
+  setDirtyState(true, "About import review has unsaved changes. Import reviewed About photos to keep it.");
+});
+
+
 elements.importReviewList.addEventListener("click", (event) => {
+  const previewButton = event.target.closest("[data-open-import-lightbox]");
+  const removeButton = event.target.closest("[data-remove-import-item]");
+  const createCategoryButton = event.target.closest("[data-create-import-category]");
   const useTitleIdButton = event.target.closest("[data-import-use-title-id]");
+
+  if (previewButton) {
+    openImportLightbox(Number(previewButton.dataset.openImportLightbox));
+    return;
+  }
+
+  if (removeButton) {
+    removePendingImportItem(Number(removeButton.dataset.removeImportItem));
+    return;
+  }
+
+  if (createCategoryButton) {
+    const card = createCategoryButton.closest("[data-import-card]");
+    const nextCategory = createImportCategory(false);
+
+    if (nextCategory && card) {
+      const updatedCard = document.querySelector(`[data-import-card][data-import-index="${card.dataset.importIndex}"]`);
+      const categorySelect = updatedCard?.querySelector('[data-import-field="category"]');
+
+      if (categorySelect) {
+        categorySelect.value = nextCategory.id;
+        updateImportReviewValidation();
+      }
+    }
+
+    return;
+  }
 
   if (!useTitleIdButton) {
     return;
@@ -2737,8 +4237,65 @@ elements.backupList?.addEventListener("click", (event) => {
   }
 });
 
+elements.editorList.addEventListener("dragstart", (event) => {
+  if (event.target.closest("[data-category-order-card]")) {
+    event.preventDefault();
+  }
+});
+
+elements.editorList.addEventListener("pointerdown", (event) => {
+  const card = event.target.closest("[data-category-order-card]");
+
+  if (event.button !== 0 || !card || !getCategoryOrderGridFromNode(card) || isCategoryOrderInteractiveTarget(event.target)) {
+    return;
+  }
+
+  beginCategoryOrderDrag(card, event);
+});
+
+elements.editorList.addEventListener("pointermove", (event) => {
+  updateCategoryOrderDrag(event);
+});
+
+window.addEventListener("pointermove", (event) => {
+  updateCategoryOrderDrag(event);
+});
+
+elements.editorList.addEventListener("pointerup", (event) => {
+  finishCategoryOrderDrag(event, true);
+});
+
+elements.editorList.addEventListener("pointercancel", (event) => {
+  finishCategoryOrderDrag(event, false);
+});
+
+window.addEventListener("pointerup", (event) => {
+  finishCategoryOrderDrag(event, true);
+});
+
+window.addEventListener("pointercancel", (event) => {
+  finishCategoryOrderDrag(event, false);
+});
+
+elements.editorList.addEventListener("click", (event) => {
+  if (!suppressNextCategoryOrderClick) {
+    return;
+  }
+
+  const card = event.target.closest("[data-category-order-card]");
+
+  if (card) {
+    event.preventDefault();
+    event.stopPropagation();
+    suppressNextCategoryOrderClick = false;
+  }
+}, true);
+
 // Route clicks inside the dynamic editor list to the correct action handler.
 elements.editorList.addEventListener("click", (event) => {
+  const bulkSelectVisibleButton = event.target.closest("[data-bulk-select-visible]");
+  const bulkClearSelectionButton = event.target.closest("[data-bulk-clear-selection]");
+  const bulkApplyButton = event.target.closest("[data-bulk-apply]");
   const cropSettingButton = event.target.closest("[data-set-crop-setting]");
   const categoryMoveButton = event.target.closest("[data-move-category-image]");
   const heroMoveButton = event.target.closest("[data-move-hero-image]");
@@ -2748,8 +4305,30 @@ elements.editorList.addEventListener("click", (event) => {
   const saveCropButton = event.target.closest("[data-save-crop-page]");
   const suggestTitleIdButton = event.target.closest("[data-suggest-title-id]");
   const renameImageIdButton = event.target.closest("[data-rename-image-id]");
+  const addImageToAboutButton = event.target.closest("[data-add-image-to-about]");
   const saveButton = event.target.closest("[data-save-image-card]");
   const removeButton = event.target.closest("[data-remove-image-card]");
+
+  if (bulkSelectVisibleButton) {
+    setBulkSelection(true);
+    setStatus("Selected visible image cards for bulk editing.", "neutral");
+    return;
+  }
+
+  if (bulkClearSelectionButton) {
+    resetBulkControls();
+    setStatus("Cleared bulk editor selection.", "neutral");
+    return;
+  }
+
+  if (bulkApplyButton) {
+    applyBulkEditorUpdates().catch((error) => {
+      console.error(error);
+      setStatus(error.message, "error");
+    });
+
+    return;
+  }
 
   if (suggestTitleIdButton) {
     const card = suggestTitleIdButton.closest("[data-image-card]");
@@ -2766,6 +4345,11 @@ elements.editorList.addEventListener("click", (event) => {
       setStatus(error.message, "error");
     });
 
+    return;
+  }
+
+  if (addImageToAboutButton) {
+    addPortfolioImageToAbout(addImageToAboutButton.dataset.addImageToAbout, addImageToAboutButton);
     return;
   }
 
@@ -2867,6 +4451,10 @@ elements.editorList.addEventListener("click", (event) => {
   }
 });
 
+elements.createImportCategoryButton?.addEventListener("click", () => {
+  createImportCategory(true);
+});
+
 elements.prepareImportButton.addEventListener("click", () => {
   prepareImportReview().catch((error) => {
     console.error(error);
@@ -2880,11 +4468,85 @@ elements.saveReviewedImportButton.addEventListener("click", () => {
     console.error(error);
     setStatus(error.message, "error");
     setImportSummary(error.message);
+    updateImportReviewValidation();
+    updateImportReviewControls();
   });
 });
 
 elements.clearImportReviewButton.addEventListener("click", () => {
+  if (!pendingImportItems.length) {
+    clearPendingImportItems();
+    return;
+  }
+
+  if (!confirm("Clear the current import review? This discards reviewed metadata for the pending photos.")) {
+    return;
+  }
+
   clearPendingImportItems();
+  setDirtyState(false, "Import review cleared.");
+});
+
+document.body.addEventListener("click", (event) => {
+  const removeAboutImportButton = event.target.closest("[data-remove-about-import]");
+  const moveAboutPhotoButton = event.target.closest("[data-move-about-photo]");
+  const removeAboutPhotoButton = event.target.closest("[data-remove-about-photo]");
+
+  if (removeAboutImportButton) {
+    removePendingAboutImportItem(Number(removeAboutImportButton.dataset.removeAboutImport));
+    return;
+  }
+
+  if (moveAboutPhotoButton) {
+    moveAboutPhotoCard(moveAboutPhotoButton.closest("[data-about-photo-card]"), moveAboutPhotoButton.dataset.moveAboutPhoto);
+    return;
+  }
+
+  if (removeAboutPhotoButton) {
+    removeAboutPhotoCard(removeAboutPhotoButton.closest("[data-about-photo-card]"));
+    return;
+  }
+
+  if (event.target.closest("[data-import-lightbox-close]")) {
+    closeImportLightbox();
+  }
+});
+
+
+
+elements.prepareAboutImportButton?.addEventListener("click", () => {
+  prepareAboutImportReview().catch((error) => {
+    console.error(error);
+    setStatus(error.message, "error");
+    updateAboutImportSummary(error.message);
+  });
+});
+
+elements.saveReviewedAboutImportButton?.addEventListener("click", () => {
+  saveReviewedAboutImport().catch((error) => {
+    console.error(error);
+    setStatus(error.message, "error");
+    updateAboutImportSummary(error.message);
+    updateAboutImportReviewControls();
+  });
+});
+
+elements.clearAboutImportReviewButton?.addEventListener("click", () => {
+  if (!pendingAboutImportItems.length) {
+    clearPendingAboutImportItems();
+    return;
+  }
+
+  if (!confirm("Clear the current About import review? This discards reviewed metadata for the pending About photos.")) {
+    return;
+  }
+
+  clearPendingAboutImportItems();
+  setDirtyState(false, "About import review cleared.");
+});
+
+elements.themeToggleButton?.addEventListener("click", () => {
+  setEditorTheme(getCurrentEditorTheme() === "dark" ? "light" : "dark");
 });
 
 elements.saveButton.addEventListener("click", () => {
@@ -2895,6 +4557,10 @@ elements.saveButton.addEventListener("click", () => {
 });
 
 elements.reloadButton.addEventListener("click", () => {
+  if (!confirmDiscardUnsavedChanges("reload JSON data from disk")) {
+    return;
+  }
+
   clearPendingImportItems();
 
   loadData().catch((error) => {
@@ -2908,6 +4574,7 @@ window.addEventListener("keydown", (event) => {
     closeGalleryArtworkPicker();
     closeGalleryPreviewLightbox();
     closeGalleryAddWallOverlay();
+    closeImportLightbox();
   }
 });
 
@@ -2922,7 +4589,9 @@ window.addEventListener("beforeunload", (event) => {
 });
 
 // Start the editor by selecting the initial route and loading JSON data.
+updateThemeToggleButton();
 setEditorRoute();
+lastConfirmedHash = window.location.hash || "#/images";
 
 loadData().then(() => {
   if (getCurrentRoute().name === "backups") {

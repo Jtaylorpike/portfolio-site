@@ -34,6 +34,8 @@ type HeroTransitionState = {
 
 let keyboardNavigationBound = false;
 let heroWheelNavigationBound = false;
+let aboutScrollMotionBound = false;
+let aboutScrollMotionFrame = 0;
 const heroWheelAccumulation = new WeakMap<HTMLElement, number>();
 
 
@@ -859,6 +861,67 @@ function bindHeroWheelNavigation(): void {
   heroWheelNavigationBound = true;
 }
 
+
+function updateAboutScrollMotion(): void {
+  aboutScrollMotionFrame = 0;
+
+  const page = document.querySelector<HTMLElement>('.modern-about-page');
+
+  if (!page) {
+    return;
+  }
+
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  const motionRoot = document.querySelector<HTMLElement>('.modern-site[data-page="about"]') ?? page;
+
+  if (motionQuery.matches) {
+    motionRoot.querySelectorAll<HTMLElement>('[data-about-float]').forEach((element) => {
+      element.style.setProperty('--about-float-y', '0');
+      element.style.setProperty('--about-float-x', '0');
+    });
+    return;
+  }
+
+  const pageRect = page.getBoundingClientRect();
+  const viewportOffset = -pageRect.top;
+
+  motionRoot.querySelectorAll<HTMLElement>('[data-about-float]').forEach((element) => {
+    const speed = Number(element.dataset.aboutFloatSpeed ?? '0');
+    const hasXMotion = typeof element.dataset.aboutFloatXSpeed === 'string';
+    const xSpeed = Number(element.dataset.aboutFloatXSpeed ?? '0');
+
+    if (!Number.isFinite(speed) || !Number.isFinite(xSpeed)) {
+      return;
+    }
+
+    const y = Math.max(-34, Math.min(34, viewportOffset * speed));
+    const x = hasXMotion ? Math.max(-16, Math.min(16, viewportOffset * xSpeed)) : 0;
+    element.style.setProperty('--about-float-y', y.toFixed(2));
+    element.style.setProperty('--about-float-x', x.toFixed(2));
+  });
+}
+
+function requestAboutScrollMotionUpdate(): void {
+  if (aboutScrollMotionFrame) {
+    return;
+  }
+
+  aboutScrollMotionFrame = window.requestAnimationFrame(updateAboutScrollMotion);
+}
+
+function setupAboutScrollMotion(): void {
+  updateAboutScrollMotion();
+
+  if (aboutScrollMotionBound) {
+    return;
+  }
+
+  aboutScrollMotionBound = true;
+  window.addEventListener('scroll', requestAboutScrollMotionUpdate, { passive: true });
+  window.addEventListener('resize', requestAboutScrollMotionUpdate, { passive: true });
+}
+
 // Connects mouse controls to every hero slideshow on the page.
 function setupHeroSlideshows(): void {
   bindHeroWheelNavigation();
@@ -991,4 +1054,5 @@ export function setupSiteInteractions(): void {
   setupPortfolioFilters();
   setupPortfolioLightbox();
   setupKeyboardNavigation();
+  setupAboutScrollMotion();
 }

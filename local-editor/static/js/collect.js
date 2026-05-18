@@ -52,11 +52,25 @@ function getCardImageOrientation(card) {
   return "landscape";
 }
 
+function isPublicImageCard(card) {
+  const input = card.querySelector('[data-field="isPublic"]');
+
+  if (!input) {
+    return true;
+  }
+
+  return Boolean(input.checked);
+}
+
 function isHeroEligibleCard(card) {
-  return getCardImageOrientation(card) === "landscape";
+  return isPublicImageCard(card) && getCardImageOrientation(card) === "landscape";
 }
 
 function isHeroEligibleImage(image) {
+  if (image?.isPublic === false) {
+    return false;
+  }
+
   const orientation = image?.imageOrientation;
 
   if (["landscape", "portrait", "square"].includes(orientation)) {
@@ -111,6 +125,10 @@ function collectEditedImageFromCard(card, fallbackCategoryId, validCategoryIds) 
     src: getFieldValue(card, "src"),
     alt: getFieldValue(card, "alt")
   };
+
+  if (!isPublicImageCard(card)) {
+    image.isPublic = false;
+  }
 
   for (const optionalField of [
     "thumbSrc",
@@ -405,6 +423,103 @@ export function collectGalleryCuration(state) {
   return cards.map((card, index) => collectGalleryCurationCard(card, state, index + 1));
 }
 
+
+function collectAboutPhotosFromPage(state) {
+  const cards = Array.from(document.querySelectorAll("[data-about-photo-card]"));
+
+  if (!cards.length) {
+    return state.aboutPhotos ?? [];
+  }
+
+  return cards.map((card) => {
+    const photo = {
+      id: getFieldValue(card, "id"),
+      title: getFieldValue(card, "title"),
+      year: getFieldValue(card, "year"),
+      location: getFieldValue(card, "location"),
+      note: getFieldValue(card, "note"),
+      src: getFieldValue(card, "src"),
+      thumbSrc: getFieldValue(card, "thumbSrc"),
+      fullSrc: getFieldValue(card, "fullSrc"),
+      alt: getFieldValue(card, "alt"),
+      imageWidth: getFieldValue(card, "imageWidth"),
+      imageHeight: getFieldValue(card, "imageHeight"),
+      imageAspectRatio: getFieldValue(card, "imageAspectRatio"),
+      imageOrientation: getFieldValue(card, "imageOrientation"),
+      placementRole: getFieldValue(card, "placementRole") || "lower-collage",
+      sourceType: getFieldValue(card, "sourceType") || "about",
+      sourceImageId: getFieldValue(card, "sourceImageId")
+    };
+
+    if (!getCheckboxValue(card, "isActive")) {
+      photo.isActive = false;
+    }
+
+    return photo;
+  });
+}
+
+
+function collectAboutCopyFromPage(state) {
+  const root = document.querySelector("#aboutCopyEditor");
+
+  if (!root) {
+    return state.aboutCopy ?? {};
+  }
+
+  const fields = Array.from(root.querySelectorAll("[data-about-copy-field]"));
+
+  if (!fields.length) {
+    return state.aboutCopy ?? {};
+  }
+
+  const getCopyFieldValue = (fieldName) => {
+    const field = fields.find((input) => input.dataset.aboutCopyField === fieldName);
+
+    return String(field?.value ?? "").trim();
+  };
+
+  const linkIndexes = [0, 1, 2, 3];
+  const links = linkIndexes
+    .map((index) => ({
+      label: getCopyFieldValue(`contact.links.${index}.label`),
+      url: getCopyFieldValue(`contact.links.${index}.url`)
+    }))
+    .filter((link) => link.label && link.url);
+
+  return {
+    schemaVersion: 1,
+    hero: {
+      eyebrow: getCopyFieldValue("hero.eyebrow"),
+      headline: getCopyFieldValue("hero.headline"),
+      intro: getCopyFieldValue("hero.intro")
+    },
+    about: {
+      eyebrow: getCopyFieldValue("about.eyebrow"),
+      heading: getCopyFieldValue("about.heading"),
+      paragraphs: [
+        getCopyFieldValue("about.paragraphs.0"),
+        getCopyFieldValue("about.paragraphs.1")
+      ].filter(Boolean)
+    },
+    project: {
+      eyebrow: getCopyFieldValue("project.eyebrow"),
+      heading: getCopyFieldValue("project.heading"),
+      paragraphs: [
+        getCopyFieldValue("project.paragraphs.0"),
+        getCopyFieldValue("project.paragraphs.1")
+      ].filter(Boolean)
+    },
+    contact: {
+      eyebrow: getCopyFieldValue("contact.eyebrow"),
+      headline: getCopyFieldValue("contact.headline"),
+      body: getCopyFieldValue("contact.body"),
+      email: getCopyFieldValue("contact.email"),
+      links
+    }
+  };
+}
+
 // Builds the full JSON payload for normal Save JSON actions.
 export function collectEditorData(state) {
   const categories = collectCategories();
@@ -444,7 +559,9 @@ export function collectEditorData(state) {
     return {
       categories,
       images,
-      heroSlides: heroPageOrder
+      heroSlides: heroPageOrder,
+      aboutPhotos: collectAboutPhotosFromPage(state),
+      aboutCopy: collectAboutCopyFromPage(state)
     };
   }
 
@@ -472,6 +589,8 @@ export function collectEditorData(state) {
   return {
     categories,
     images,
+    aboutPhotos: collectAboutPhotosFromPage(state),
+    aboutCopy: collectAboutCopyFromPage(state),
     heroSlides: [
       ...heroSlidesFromUneditedImages,
       ...heroSlidesFromEditedImages
@@ -512,7 +631,31 @@ export function collectImportReviewRecords(state) {
       imageWidth: getImportFieldValue(card, "imageWidth"),
       imageHeight: getImportFieldValue(card, "imageHeight"),
       imageAspectRatio: getImportFieldValue(card, "imageAspectRatio"),
-      imageOrientation: getImportFieldValue(card, "imageOrientation")
+      imageOrientation: getImportFieldValue(card, "imageOrientation"),
+      originalFilename: getImportFieldValue(card, "originalFilename")
+    };
+  });
+}
+
+
+export function collectAboutImportReviewRecords() {
+  const cards = Array.from(document.querySelectorAll("[data-about-import-card]"));
+
+  return cards.map((card) => {
+    return {
+      id: getImportFieldValue(card, "id"),
+      title: getImportFieldValue(card, "title"),
+      year: getImportFieldValue(card, "year"),
+      location: getImportFieldValue(card, "location"),
+      alt: getImportFieldValue(card, "alt"),
+      note: getImportFieldValue(card, "note"),
+      placementRole: getImportFieldValue(card, "placementRole") || "lower-collage",
+      imageWidth: getImportFieldValue(card, "imageWidth"),
+      imageHeight: getImportFieldValue(card, "imageHeight"),
+      imageAspectRatio: getImportFieldValue(card, "imageAspectRatio"),
+      imageOrientation: getImportFieldValue(card, "imageOrientation"),
+      originalFilename: getImportFieldValue(card, "originalFilename"),
+      isActive: true
     };
   });
 }

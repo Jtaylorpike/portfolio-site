@@ -17,6 +17,7 @@ The active image architecture is rendition-based, not category-folder-based:
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,7 @@ from .data_store import (
     DataValidationError,
     PUBLIC_DIR,
     get_current_data,
+    normalize_categories,
     save_project_data,
 )
 from .utils import clean_string, make_unique_value, slugify, title_from_filename
@@ -83,6 +85,7 @@ GALLERY_MAX_SIZE_BY_STYLE = {
 }
 
 GALLERY_MIN_SIZE = 0.55
+IMAGE_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 def get_public_url_for_file(path: Path) -> str:
@@ -289,16 +292,102 @@ def save_all_renditions(source_path: Path, rendition_paths: dict[str, Path]) -> 
     return urls
 
 
+def get_rendition_collision_names(image_id: str) -> list[str]:
+    """Return existing rendition folders that would be overwritten by this ID."""
+
+    collisions: list[str] = []
+
+    for rendition_name, path in make_rendition_paths(image_id).items():
+        if path.exists():
+            collisions.append(rendition_name)
+
+    return collisions
+
+
+def get_review_record_label(record: dict[str, Any], index: int) -> str:
+    """Build a readable label for import validation errors."""
+
+    return clean_string(record.get("title")) or clean_string(record.get("id")) or f"Import item {index + 1}"
+
+
+def validate_import_preflight(
+    uploaded_files: list[Any],
+    records: list[Any],
+    existing_images: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Validate all reviewed records before any file is written to disk.
+
+    The earlier importer silently uniqued colliding IDs. That was safe from an
+    overwrite standpoint, but it made the final saved ID differ from the ID the
+    editor showed during review. Preflight keeps the import atomic and forces the
+    user to resolve ID/file collisions intentionally before the backend writes
+    source images, renditions, or JSON.
+    """
+
+    existing_ids = {clean_string(image.get("id")) for image in existing_images if clean_string(image.get("id"))}
+    seen_ids: set[str] = set()
+    errors: list[str] = []
+    normalized_records: list[dict[str, Any]] = []
+
+    for index, (uploaded_file, raw_record) in enumerate(zip(uploaded_files, records)):
+        if not isinstance(raw_record, dict):
+            errors.append(f"Import item {index + 1}: metadata record was not an object.")
+            continue
+
+        original_filename = secure_filename(uploaded_file.filename or "")
+        label = get_review_record_label(raw_record, index)
+
+        if not original_filename:
+            errors.append(f"{label}: uploaded file was missing a filename.")
+            continue
+
+        if not is_allowed_image_file(original_filename):
+            errors.append(f"{label}: {original_filename} is not a supported image file. Use JPG, PNG, or WebP.")
+            continue
+
+        raw_id = clean_string(raw_record.get("id"))
+        image_id = slugify(raw_id)
+
+        if not raw_id:
+            errors.append(f"{label}: image ID is required.")
+            continue
+
+        if raw_id != image_id or not IMAGE_ID_PATTERN.match(image_id):
+            errors.append(f"{label}: image ID must use lowercase letters, numbers, and single hyphens only.")
+            continue
+
+        if image_id in seen_ids:
+            errors.append(f"{label}: image ID '{image_id}' is duplicated in this import review.")
+            continue
+
+        if image_id in existing_ids:
+            errors.append(f"{label}: image ID '{image_id}' already exists in galleryImages.json.")
+            continue
+
+        rendition_collisions = get_rendition_collision_names(image_id)
+
+        if rendition_collisions:
+            collision_list = ", ".join(rendition_collisions)
+            errors.append(
+                f"{label}: image ID '{image_id}' would overwrite existing rendition file(s) in {collision_list}. "
+                "Choose a different ID or clean up the old files first."
+            )
+            continue
+
+        seen_ids.add(image_id)
+        normalized_records.append({**raw_record, "id": image_id, "originalFilename": original_filename})
+
+    return normalized_records, errors
+
+
 def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any], int]:
     """Validate reviewed uploads, create renditions, update JSON, and create a backup."""
 
     categories, images, hero_slides = get_current_data()
 
-    valid_category_ids = {category["id"] for category in categories}
-    fallback_category_id = categories[0]["id"]
-
     uploaded_files = request.files.getlist("images")
     records_raw = clean_string(request.form.get("records"))
+    categories_raw = clean_string(request.form.get("categories"))
 
     if not uploaded_files:
         return {"error": "No image files were uploaded."}, 400
@@ -314,105 +403,117 @@ def import_reviewed_images_from_request(request: Request) -> tuple[dict[str, Any
     if len(records) != len(uploaded_files):
         return {"error": "Import record count did not match file count."}, 400
 
-    used_image_ids = {image["id"] for image in images}
+    if categories_raw:
+        try:
+            reviewed_categories = json.loads(categories_raw)
+        except json.JSONDecodeError:
+            return {"error": "Import categories were not valid JSON."}, 400
+
+        if not isinstance(reviewed_categories, list):
+            return {"error": "Import categories must be a list."}, 400
+
+        categories = normalize_categories(reviewed_categories)
+
+    valid_category_ids = {category["id"] for category in categories}
+    fallback_category_id = categories[0]["id"]
+
+    normalized_records, preflight_errors = validate_import_preflight(uploaded_files, records, images)
+
+    if preflight_errors:
+        return {
+            "error": "Import review has issues that must be fixed before files are written.",
+            "errors": preflight_errors,
+        }, 400
+
     used_file_stems = get_used_file_stems(images)
 
     imported_images: list[dict[str, Any]] = []
     skipped_files: list[str] = []
-
-    for uploaded_file, raw_record in zip(uploaded_files, records):
-        if not isinstance(raw_record, dict):
-            continue
-
-        original_filename = secure_filename(uploaded_file.filename or "")
-
-        if not original_filename:
-            continue
-
-        if not is_allowed_image_file(original_filename):
-            skipped_files.append(original_filename)
-            continue
-
-        category = clean_string(raw_record.get("category"))
-
-        if category not in valid_category_ids:
-            category = fallback_category_id
-
-        extension = Path(original_filename).suffix.lower()
-        original_stem = Path(original_filename).stem
-        clean_stem = slugify(original_stem)
-
-        requested_id = slugify(clean_string(raw_record.get("id")) or f"{category}-{clean_stem}")
-        image_id = make_unique_value(requested_id, used_image_ids)
-        used_image_ids.add(image_id)
-
-        source_stem = make_unique_value(image_id, used_file_stems)
-        used_file_stems.add(source_stem)
-
-        source_path = make_source_path(source_stem, extension)
-        source_path.parent.mkdir(parents=True, exist_ok=True)
-        uploaded_file.save(source_path)
-
-        rendition_paths = make_rendition_paths(image_id)
-
-        try:
-            image_metadata = get_image_metadata(source_path)
-            rendition_urls = save_all_renditions(source_path, rendition_paths)
-
-        except Exception as error:
-            print(f"Could not optimize {original_filename}: {error}")
-
-            if source_path.exists():
-                source_path.unlink()
-
-            skipped_files.append(original_filename)
-            continue
-
-        title = clean_string(raw_record.get("title")) or title_from_filename(original_filename)
-        alt = clean_string(raw_record.get("alt")) or f"Photograph by Taylor Pike: {title}"
-
-        gallery_frame_style = normalize_frame_style(raw_record.get("galleryFrameStyle"))
-        gallery_orientation = image_metadata.get("imageOrientation")
-
-        image_record: dict[str, Any] = {
-            "id": image_id,
-            "title": title,
-            "category": category,
-            "year": clean_string(raw_record.get("year")),
-            "location": clean_string(raw_record.get("location")),
-            "note": clean_string(raw_record.get("note")),
-            "src": rendition_urls["src"],
-            "thumbSrc": rendition_urls["thumbSrc"],
-            "textureSrc": rendition_urls["textureSrc"],
-            "thumbnailPosition": normalize_position(raw_record.get("thumbnailPosition")),
-            "heroPosition": normalize_position(raw_record.get("heroPosition")),
-            "heroFrameStyle": normalize_frame_style(raw_record.get("heroFrameStyle")),
-            "heroFitMode": normalize_hero_fit_mode(raw_record.get("heroFitMode")),
-            "galleryPosition": normalize_position(raw_record.get("galleryPosition")),
-            "galleryFitMode": normalize_gallery_fit_mode(raw_record.get("galleryFitMode")),
-            "galleryFrameStyle": gallery_frame_style,
-            "gallerySize": normalize_gallery_size(
-                raw_record.get("gallerySize"),
-                gallery_frame_style,
-                gallery_orientation,
-            ),
-            "alt": alt,
-            "fullSrc": rendition_urls["fullSrc"],
-        }
-
-        for key, value in image_metadata.items():
-            if value:
-                image_record[key] = value
-
-        images.append(image_record)
-        imported_images.append(image_record)
-
-    if not imported_images:
-        return {"error": "No valid image files were imported."}, 400
+    created_source_paths: list[Path] = []
+    created_rendition_paths: list[Path] = []
 
     try:
+        for uploaded_file, raw_record in zip(uploaded_files, normalized_records):
+            original_filename = clean_string(raw_record.get("originalFilename"))
+            category = clean_string(raw_record.get("category"))
+
+            if category not in valid_category_ids:
+                category = fallback_category_id
+
+            extension = Path(original_filename).suffix.lower()
+            image_id = clean_string(raw_record.get("id"))
+
+            source_stem = make_unique_value(image_id, used_file_stems)
+            used_file_stems.add(source_stem)
+
+            source_path = make_source_path(source_stem, extension)
+            source_path.parent.mkdir(parents=True, exist_ok=True)
+            uploaded_file.save(source_path)
+            created_source_paths.append(source_path)
+
+            rendition_paths = make_rendition_paths(image_id)
+
+            try:
+                image_metadata = get_image_metadata(source_path)
+                rendition_urls = save_all_renditions(source_path, rendition_paths)
+                created_rendition_paths.extend(rendition_paths.values())
+
+            except Exception as error:
+                raise RuntimeError(f"Could not optimize {original_filename}: {error}") from error
+
+            title = clean_string(raw_record.get("title")) or title_from_filename(original_filename)
+            alt = clean_string(raw_record.get("alt")) or f"Photograph by Taylor Pike: {title}"
+
+            gallery_frame_style = normalize_frame_style(raw_record.get("galleryFrameStyle"))
+            gallery_orientation = image_metadata.get("imageOrientation")
+
+            image_record: dict[str, Any] = {
+                "id": image_id,
+                "title": title,
+                "category": category,
+                "year": clean_string(raw_record.get("year")),
+                "location": clean_string(raw_record.get("location")),
+                "note": clean_string(raw_record.get("note")),
+                "src": rendition_urls["src"],
+                "thumbSrc": rendition_urls["thumbSrc"],
+                "textureSrc": rendition_urls["textureSrc"],
+                "thumbnailPosition": normalize_position(raw_record.get("thumbnailPosition")),
+                "heroPosition": normalize_position(raw_record.get("heroPosition")),
+                "heroFrameStyle": normalize_frame_style(raw_record.get("heroFrameStyle")),
+                "heroFitMode": normalize_hero_fit_mode(raw_record.get("heroFitMode")),
+                "galleryPosition": normalize_position(raw_record.get("galleryPosition")),
+                "galleryFitMode": normalize_gallery_fit_mode(raw_record.get("galleryFitMode")),
+                "galleryFrameStyle": gallery_frame_style,
+                "gallerySize": normalize_gallery_size(
+                    raw_record.get("gallerySize"),
+                    gallery_frame_style,
+                    gallery_orientation,
+                ),
+                "alt": alt,
+                "fullSrc": rendition_urls["fullSrc"],
+            }
+
+            for key, value in image_metadata.items():
+                if value:
+                    image_record[key] = value
+
+            images.append(image_record)
+            imported_images.append(image_record)
+
+        if not imported_images:
+            return {"error": "No valid image files were imported."}, 400
+
         backup = save_project_data(categories, images, hero_slides, "image-import")
-    except DataValidationError as error:
+
+    except (DataValidationError, RuntimeError) as error:
+        for path in created_rendition_paths:
+            if path.exists():
+                path.unlink()
+
+        for path in created_source_paths:
+            if path.exists():
+                path.unlink()
+
         return {"error": str(error)}, 400
 
     return {

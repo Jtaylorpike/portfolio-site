@@ -6,7 +6,7 @@
 //
 // This does not write files automatically yet.
 
-import { galleryImages } from '../../data/images';
+import { allGalleryImages } from '../../data/images';
 import { heroSlides } from '../../data/heroSlides';
 
 function escapeAttribute(value: string) {
@@ -38,7 +38,7 @@ function isHeroEligibleImage(image: { imageOrientation?: string; imageAspectRati
 }
 
 export function renderImageEditorPage() {
-  const imageRows = galleryImages
+  const imageRows = allGalleryImages
     .map((image) => {
       const isHeroSlide = heroSlides.some((slide) => slide.imageId === image.id);
       const heroSlide = heroSlides.find((slide) => slide.imageId === image.id);

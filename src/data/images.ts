@@ -51,6 +51,11 @@ export type GalleryImage = {
   galleryFitMode?: GalleryFitMode;
   galleryFrameStyle?: GalleryFrameStyle;
   gallerySize?: number;
+
+  // Local editor visibility flag. Missing or true means the image is public;
+  // false keeps the record/renditions available in the editor while removing it
+  // from the public site, hero slideshow, and virtual gallery artwork catalog.
+  isPublic?: boolean;
 };
 
 function isExternalOrSpecialUrl(value: string) {
@@ -86,6 +91,10 @@ function resolveCardImage(card: CardImage): CardImage {
     ...card,
     src: resolvePublicAssetPath(card.src)
   };
+}
+
+function isPublicPortfolioImage(image: GalleryImage): boolean {
+  return image.isPublic !== false;
 }
 
 function resolveGalleryImage(image: GalleryImage): GalleryImage {
@@ -132,5 +141,6 @@ export const cardImages = Object.fromEntries(
   })
 ) as Record<keyof typeof rawCardImages, CardImage>;
 
-export const galleryImages = (galleryImagesJson as GalleryImage[]).map(resolveGalleryImage);
+export const allGalleryImages = (galleryImagesJson as GalleryImage[]).map(resolveGalleryImage);
+export const galleryImages = allGalleryImages.filter(isPublicPortfolioImage);
 

@@ -4,8 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taylor Pike Portfolio Editor</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=44" />
-  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=44"></script>
+  <script>
+    (() => {
+      const storageKey = "taylor-pike-editor-theme";
+      const savedTheme = window.localStorage?.getItem(storageKey);
+      const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
+      const theme = savedTheme === "dark" || (!savedTheme && prefersDark) ? "dark" : "light";
+      document.documentElement.dataset.editorTheme = theme;
+    })();
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=72" />
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=72"></script>
 </head>
 
 <body>
@@ -20,7 +29,9 @@
         </p>
       </div>
 
-      <div class="actions">
+      <div class="actions header-actions">
+        <span class="dirty-indicator" id="dirtyIndicator" data-dirty-state="saved" aria-live="polite">Saved</span>
+        <button class="button" type="button" id="themeToggleButton" aria-pressed="false">Dark Mode</button>
         <button class="button" type="button" id="reloadButton">Reload Data</button>
         <button class="button primary" type="button" id="saveButton">Save Changes</button>
       </div>
@@ -31,6 +42,8 @@
       <a href="#/images" data-editor-route-link="images">Images</a>
       <a href="#/import" data-editor-route-link="import">Import</a>
       <a href="#/gallery" data-editor-route-link="gallery">Gallery</a>
+      <a href="#/about" data-editor-route-link="about">About</a>
+      <a href="#/about/photos" data-editor-route-link="about-photos">About Photos</a>
       <a href="#/categories" data-editor-route-link="categories">Categories</a>
       <a href="#/backups" data-editor-route-link="backups">Backups</a>
     </nav>
@@ -67,6 +80,11 @@
             <select id="importCategory"></select>
           </label>
 
+          <div class="import-category-create">
+            <button class="button subtle" type="button" id="createImportCategoryButton">Create Category</button>
+            <span>Add a category during import without leaving this screen.</span>
+          </div>
+
           <label>
             <span>Default year</span>
             <input id="importYear" placeholder="2026" />
@@ -98,9 +116,20 @@
           <p class="eyebrow">Import Review</p>
           <h2>Edit each image before saving</h2>
 
-          <div class="actions">
-            <button class="button primary" type="button" id="saveReviewedImportButton">Save Reviewed Import</button>
+          <div class="actions import-review-actions">
+            <button class="button primary" type="button" id="saveReviewedImportButton" disabled>Import 0 photos</button>
             <button class="button" type="button" id="clearImportReviewButton">Clear Import Review</button>
+          </div>
+
+          <div class="import-progress" id="importProgress" hidden>
+            <div class="import-progress-header">
+              <strong data-import-progress-label>Import progress</strong>
+              <span data-import-progress-percent>0%</span>
+            </div>
+            <div class="import-progress-track" aria-hidden="true">
+              <span data-import-progress-bar style="width: 0%;"></span>
+            </div>
+            <ol class="import-progress-log" id="importProgressLog"></ol>
           </div>
 
           <div class="import-review-list" id="importReviewList"></div>
@@ -119,6 +148,111 @@
       </div>
 
       <section class="editor-list" id="galleryCurationList"></section>
+    </section>
+
+
+
+    <!-- About copy page: default About editor route for public About/contact text. -->
+    <section class="editor-page-section" data-editor-page="about">
+      <div class="section-heading">
+        <p class="eyebrow">About / Contact</p>
+        <h2>About copy</h2>
+        <p>
+          Edit the public About/contact page text without touching source code. Image controls now live on the separate About Photos editor page.
+        </p>
+        <div class="section-heading-actions">
+          <a class="button" href="#/about/photos">Open About Photos</a>
+        </div>
+      </div>
+
+      <section class="editor-list about-copy-editor-list" id="aboutCopyEditor"></section>
+    </section>
+
+    <!-- About photo page: manages About/contact page imagery in separate folders. -->
+    <section class="editor-page-section" data-editor-page="about-photos">
+      <div class="section-heading">
+        <p class="eyebrow">About / Contact</p>
+        <h2>About photos</h2>
+        <p>
+          Manage the separate About photo stack. New image imports write to public/images/about/ and remain outside galleryImages.json.
+        </p>
+        <div class="section-heading-actions">
+          <a class="button" href="#/about">Open About Copy</a>
+        </div>
+      </div>
+
+      <section class="panel" aria-label="About photo import">
+        <p class="eyebrow">About Import</p>
+        <h2>Add About page images</h2>
+
+        <div class="panel-grid">
+          <label class="panel-wide">
+            <span>About image files</span>
+            <input id="aboutImportFiles" type="file" accept="image/*" multiple />
+          </label>
+
+          <label>
+            <span>Default year</span>
+            <input id="aboutImportYear" placeholder="2026" />
+          </label>
+
+          <label>
+            <span>Default location</span>
+            <input id="aboutImportLocation" placeholder="Location" />
+          </label>
+
+          <label>
+            <span>Default About placement</span>
+            <select id="aboutImportPlacementRole">
+              <option value="lower-collage">Lower collage</option>
+              <option value="upper-collage">Upper collage</option>
+              <option value="background-float">Background float</option>
+              <option value="unused">Unused / staged</option>
+            </select>
+          </label>
+
+          <label class="panel-wide">
+            <span>Default alt text prefix</span>
+            <input id="aboutImportAltPrefix" placeholder="About page photograph by Taylor Pike" />
+          </label>
+
+          <label class="panel-wide">
+            <span>Default note</span>
+            <textarea id="aboutImportNote" placeholder="This will pre-fill each About photo note. You can edit each photo before saving."></textarea>
+          </label>
+        </div>
+
+        <div class="actions" style="margin-top: 14px;">
+          <button class="button primary" type="button" id="prepareAboutImportButton">Prepare About Import Review</button>
+        </div>
+
+        <p class="import-summary" id="aboutImportSummary"></p>
+
+        <div class="import-review about-import-review" id="aboutImportReview">
+          <p class="eyebrow">About Import Review</p>
+          <h2>Edit each About image before saving</h2>
+
+          <div class="actions import-review-actions">
+            <button class="button primary" type="button" id="saveReviewedAboutImportButton" disabled>Import 0 About photos</button>
+            <button class="button" type="button" id="clearAboutImportReviewButton">Clear About Import Review</button>
+          </div>
+
+          <div class="import-progress" id="aboutImportProgress" hidden>
+            <div class="import-progress-header">
+              <strong data-about-import-progress-label>About import progress</strong>
+              <span data-about-import-progress-percent>0%</span>
+            </div>
+            <div class="import-progress-track" aria-hidden="true">
+              <span data-about-import-progress-bar style="width: 0%;"></span>
+            </div>
+            <ol class="import-progress-log" id="aboutImportProgressLog"></ol>
+          </div>
+
+          <div class="import-review-list" id="aboutImportReviewList"></div>
+        </div>
+      </section>
+
+      <section class="editor-list" id="aboutPhotoList"></section>
     </section>
 
     <!-- Categories page: manages the order and labels used throughout the site. -->
@@ -153,5 +287,25 @@
       <section class="editor-list" id="backupList"></section>
     </section>
   </main>
+
+  <!-- Import preview lightbox: shows the selected browser preview at full size before files are written. -->
+  <div class="import-lightbox" id="importLightbox" data-import-lightbox hidden>
+    <button class="import-lightbox-backdrop" type="button" data-import-lightbox-close aria-label="Close import preview"></button>
+    <section class="import-lightbox-panel" role="dialog" aria-modal="true" aria-labelledby="importLightboxTitle">
+      <header class="import-lightbox-header">
+        <div>
+          <p class="eyebrow">Import Preview</p>
+          <h2 id="importLightboxTitle" data-import-lightbox-title>Image preview</h2>
+          <p data-import-lightbox-meta></p>
+        </div>
+        <button class="button" type="button" data-import-lightbox-close>Close</button>
+      </header>
+      <figure class="import-lightbox-figure">
+        <img data-import-lightbox-image alt="" />
+      </figure>
+      <p class="import-lightbox-note">This preview uses the temporary browser file and does not save or modify the import record.</p>
+    </section>
+  </div>
+
 </body>
 </html>

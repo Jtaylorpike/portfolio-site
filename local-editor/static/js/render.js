@@ -117,9 +117,16 @@ function getFrameStyle(value) {
   return "auto";
 }
 
-// The homepage hero is locked to a 16:9 landscape cover frame.
+// Missing isPublic means visible. false keeps an image in the editor while
+// removing it from the public portfolio, public hero, and 3D gallery artwork.
+function isImagePublic(image) {
+  return image?.isPublic !== false;
+}
+
+// The homepage hero is locked to a 16:9 landscape cover frame and should not
+// use records hidden from the public website.
 function isHeroEligibleImage(image) {
-  return getImageOrientation(image) === "landscape";
+  return isImagePublic(image) && getImageOrientation(image) === "landscape";
 }
 
 function getHeroFrameStyle(_image) {
@@ -346,26 +353,111 @@ function renderCategoryLinks(state, activeCategoryId = null, activeMetaCategory 
   `;
 }
 
+function isImageHeroSlide(state, imageId) {
+  return state.heroSlides.some((slide) => slide.imageId === imageId);
+}
+
+function renderImageStatusBadges(state, image) {
+  const publicStatus = isImagePublic(image) ? "public" : "hidden";
+  const publicLabel = isImagePublic(image) ? "Visible on site" : "Hidden from site";
+  const heroBadge = isImageHeroSlide(state, image.id)
+    ? `<span class="image-status-badge" data-image-status="hero"><span aria-hidden="true"></span>Homepage hero</span>`
+    : "";
+
+  return `
+    <div class="image-status-badges" aria-label="Image status">
+      <span class="image-status-badge" data-image-status="${publicStatus}"><span aria-hidden="true"></span>${publicLabel}</span>
+      ${heroBadge}
+    </div>
+  `;
+}
+
+function renderBulkEditorToolbar(state, scopeLabel) {
+  const categoryOptionsMarkup = state.categories.map((category) => {
+    return `<option value="${escapeHtml(category.id)}">${escapeHtml(category.label)}</option>`;
+  }).join("");
+
+  return `
+    <section class="bulk-editor-toolbar" data-bulk-editor-toolbar aria-label="Bulk image editor">
+      <div class="bulk-editor-toolbar-header">
+        <div class="bulk-editor-toolbar-copy">
+          <p class="eyebrow">Bulk Editor</p>
+          <strong>${escapeHtml(scopeLabel)}</strong>
+          <span>Select images, choose one or more updates, then apply them in a single save.</span>
+        </div>
+        <output class="bulk-editor-count" data-bulk-selection-count aria-live="polite">0 selected</output>
+      </div>
+
+      <div class="bulk-editor-selection-actions" aria-label="Bulk selection actions">
+        <button class="button" type="button" data-bulk-select-visible>Select all visible cards</button>
+        <button class="button" type="button" data-bulk-clear-selection>Clear selection</button>
+      </div>
+
+      <div class="bulk-editor-controls">
+        <label>
+          <span>Visibility</span>
+          <select data-bulk-field="visibility">
+            <option value="">Leave visibility unchanged</option>
+            <option value="show">Show selected on public site</option>
+            <option value="hide">Hide selected from public site</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Category</span>
+          <select data-bulk-field="category">
+            <option value="">Leave category unchanged</option>
+            ${categoryOptionsMarkup}
+          </select>
+        </label>
+
+        <label>
+          <span>Homepage hero</span>
+          <select data-bulk-field="hero">
+            <option value="">Leave hero status unchanged</option>
+            <option value="add">Add eligible selected images</option>
+            <option value="remove">Remove selected from hero</option>
+          </select>
+        </label>
+
+        <button class="button primary" type="button" data-bulk-apply disabled>Apply selected updates</button>
+      </div>
+
+      <p class="bulk-editor-note">
+        Hidden images stay in the editor and keep their files. Hero additions only apply to visible landscape images.
+      </p>
+    </section>
+  `;
+}
+
 // Builds one card in the all-images overview grid.
 function renderImageOverviewCard(state, image) {
   const thumbnailPosition = image.thumbnailPosition ?? "50% 50%";
 
   return `
-    <a class="image-overview-card" href="#/image/${encodeURIComponent(image.id)}">
-      <div class="image-overview-thumb">
-        <img
-          src="${escapeHtml(image.thumbSrc ?? image.src)}"
-          alt="${escapeHtml(image.alt)}"
-          loading="lazy"
-          style="object-position: ${escapeHtml(thumbnailPosition)};"
-        />
-      </div>
+    <article class="image-overview-card" data-image-card-overview data-image-id="${escapeHtml(image.id)}" data-public-status="${isImagePublic(image) ? "public" : "hidden"}">
+      <label class="bulk-image-select-control">
+        <input type="checkbox" data-bulk-image-select value="${escapeHtml(image.id)}" />
+        <span>Select image</span>
+      </label>
 
-      <div class="image-overview-meta">
-        <strong>${escapeHtml(image.title)}</strong>
-        <span>${escapeHtml(getCategoryLabel(state, image.category))} / ${escapeHtml(image.year)}</span>
-      </div>
-    </a>
+      <a class="image-overview-card-link" href="#/image/${encodeURIComponent(image.id)}">
+        <div class="image-overview-thumb">
+          <img
+            src="${escapeHtml(image.thumbSrc ?? image.src)}"
+            alt="${escapeHtml(image.alt)}"
+            loading="lazy"
+            style="object-position: ${escapeHtml(thumbnailPosition)};"
+          />
+        </div>
+
+        <div class="image-overview-meta">
+          <strong>${escapeHtml(image.title)}</strong>
+          <span>${escapeHtml(getCategoryLabel(state, image.category))} / ${escapeHtml(image.year)}</span>
+          ${renderImageStatusBadges(state, image)}
+        </div>
+      </a>
+    </article>
   `;
 }
 
@@ -374,12 +466,18 @@ function renderImageOrderCard(state, image) {
   const thumbnailPosition = image.thumbnailPosition ?? "50% 50%";
 
   return `
-    <article class="image-overview-card image-order-card" data-category-order-card data-image-id="${escapeHtml(image.id)}">
-      <a class="image-overview-thumb" href="#/image/${encodeURIComponent(image.id)}">
+    <article class="image-overview-card image-order-card" data-category-order-card data-image-id="${escapeHtml(image.id)}" data-public-status="${isImagePublic(image) ? "public" : "hidden"}">
+      <label class="bulk-image-select-control" data-no-card-drag>
+        <input type="checkbox" data-bulk-image-select value="${escapeHtml(image.id)}" />
+        <span>Select image</span>
+      </label>
+
+      <a class="image-overview-thumb" href="#/image/${encodeURIComponent(image.id)}" draggable="false">
         <img
           src="${escapeHtml(image.thumbSrc ?? image.src)}"
           alt="${escapeHtml(image.alt)}"
           loading="lazy"
+          draggable="false"
           style="object-position: ${escapeHtml(thumbnailPosition)};"
         />
       </a>
@@ -387,6 +485,7 @@ function renderImageOrderCard(state, image) {
       <div class="image-overview-meta">
         <strong>${escapeHtml(image.title)}</strong>
         <span>${escapeHtml(getCategoryLabel(state, image.category))} / ${escapeHtml(image.year)}</span>
+        ${renderImageStatusBadges(state, image)}
       </div>
 
       <div class="image-overview-actions">
@@ -405,11 +504,12 @@ function renderHeroOrderCard(state, image, slide) {
 
   return `
     <article class="image-overview-card image-order-card hero-order-card" data-hero-order-card data-image-id="${escapeHtml(image.id)}">
-      <a class="image-overview-thumb" href="#/image/${encodeURIComponent(image.id)}">
+      <a class="image-overview-thumb" href="#/image/${encodeURIComponent(image.id)}" draggable="false">
         <img
           src="${escapeHtml(image.thumbSrc ?? image.src)}"
           alt="${escapeHtml(image.alt)}"
           loading="lazy"
+          draggable="false"
           style="object-position: ${escapeHtml(thumbnailPosition)};"
         />
       </a>
@@ -589,37 +689,88 @@ export function updateImportCategoryOptions(state, elements) {
   );
 }
 
+function getCategoryUsageStats(state, categoryId) {
+  const images = state.images.filter((image) => image.category === categoryId);
+  const total = images.length;
+  const hidden = images.filter((image) => image.isPublic === false).length;
+  const visible = total - hidden;
+  const hero = state.heroSlides.filter((slide) => slide.targetCategory === categoryId).length;
+
+  return { total, visible, hidden, hero };
+}
+
+function renderCategoryReassignOptions(state, currentCategoryId) {
+  const fallbackCategory = state.categories.find((category) => category.id !== currentCategoryId) ?? state.categories[0];
+
+  return state.categories
+    .filter((category) => category.id !== currentCategoryId)
+    .map((category) => {
+      const selected = category.id === fallbackCategory?.id ? "selected" : "";
+
+      return `<option value="${escapeHtml(category.id)}" ${selected}>${escapeHtml(category.label)}</option>`;
+    })
+    .join("");
+}
+
 // Builds the category settings editor.
 export function renderCategories(state, elements) {
-  elements.categoryList.innerHTML = state.categories.map((category) => {
-    const imageCount = state.images.filter((image) => image.category === category.id).length;
+  const totalImages = state.images.length;
+  const hiddenImages = state.images.filter((image) => image.isPublic === false).length;
+  const visibleImages = totalImages - hiddenImages;
+  const heroCount = state.heroSlides.length;
 
-    return `
-      <div class="category-row" data-category-row data-category-id="${escapeHtml(category.id)}">
-        <label>
-          <span>Category ID</span>
-          <input data-category-field="id" value="${escapeHtml(category.id)}" />
-        </label>
+  elements.categoryList.innerHTML = `
+    <div class="category-manager-summary" aria-label="Category summary">
+      <span><strong>${escapeHtml(String(state.categories.length))}</strong> categories</span>
+      <span><strong>${escapeHtml(String(totalImages))}</strong> images</span>
+      <span><strong>${escapeHtml(String(visibleImages))}</strong> visible</span>
+      <span><strong>${escapeHtml(String(hiddenImages))}</strong> hidden</span>
+      <span><strong>${escapeHtml(String(heroCount))}</strong> hero slides</span>
+    </div>
 
-        <label>
-          <span>Display Label</span>
-          <input data-category-field="label" value="${escapeHtml(category.label)}" />
-        </label>
+    ${state.categories.map((category) => {
+      const stats = getCategoryUsageStats(state, category.id);
+      const canRemove = state.categories.length > 1;
 
-        <div class="category-row-meta">
-          <span>${imageCount} image${imageCount === 1 ? "" : "s"}</span>
+      return `
+        <div class="category-row" data-category-row data-category-id="${escapeHtml(category.id)}">
+          <div class="category-row-fields">
+            <label>
+              <span>Category ID</span>
+              <input data-category-field="id" value="${escapeHtml(category.id)}" />
+            </label>
+
+            <label>
+              <span>Display Label</span>
+              <input data-category-field="label" value="${escapeHtml(category.label)}" />
+            </label>
+          </div>
+
+          <div class="category-row-meta">
+            <span><strong>${escapeHtml(String(stats.total))}</strong> total</span>
+            <span>${escapeHtml(String(stats.visible))} visible</span>
+            <span>${escapeHtml(String(stats.hidden))} hidden</span>
+            <span>${escapeHtml(String(stats.hero))} hero</span>
+          </div>
+
+          <label class="category-reassign-control">
+            <span>On remove, move images/slides to</span>
+            <select data-category-reassign ${canRemove ? "" : "disabled"}>
+              ${renderCategoryReassignOptions(state, category.id)}
+            </select>
+          </label>
+
+          <div class="category-row-actions">
+            <button class="button" type="button" data-move-category-row="top">Top</button>
+            <button class="button" type="button" data-move-category-row="up">Up</button>
+            <button class="button" type="button" data-move-category-row="down">Down</button>
+            <a class="button" href="#/images/category/${encodeURIComponent(category.id)}">View</a>
+            <button class="button danger" type="button" data-remove-category="${escapeHtml(category.id)}" ${canRemove ? "" : "disabled"}>Remove</button>
+          </div>
         </div>
-
-        <div class="category-row-actions">
-          <button class="button" type="button" data-move-category-row="top">Top</button>
-          <button class="button" type="button" data-move-category-row="up">Up</button>
-          <button class="button" type="button" data-move-category-row="down">Down</button>
-          <a class="button" href="#/images/category/${encodeURIComponent(category.id)}">View</a>
-          <button class="button danger" type="button" data-remove-category="${escapeHtml(category.id)}">Remove</button>
-        </div>
-      </div>
-    `;
-  }).join("");
+      `;
+    }).join("")}
+  `;
 }
 
 // Builds the all-images overview page.
@@ -630,6 +781,7 @@ function renderImageOverview(state, elements) {
 
   elements.editorList.innerHTML = `
     ${renderCategoryLinks(state)}
+    ${renderBulkEditorToolbar(state, `${state.images.length} total image records`)}
 
     <div class="image-overview-grid">
       ${state.images.map((image) => renderImageOverviewCard(state, image)).join("")}
@@ -645,7 +797,7 @@ function renderCategoryImageOverview(state, elements, categoryId) {
   elements.imagesPageEyebrow.textContent = "Category Images";
   elements.imagesPageTitle.textContent = category ? category.label : "Category not found";
   elements.imagesPageDescription.textContent = category
-    ? "This page controls the order of images within this category. Move images, then save JSON to preserve the order."
+    ? "This page controls the order of images within this category. Drag the image preview, title area, or any non-control part of a card, then save the category order."
     : "The category ID in the route does not exist in categories.json.";
 
   if (!category) {
@@ -661,12 +813,14 @@ function renderCategoryImageOverview(state, elements, categoryId) {
 
   elements.editorList.innerHTML = `
     ${renderCategoryLinks(state, categoryId)}
+    ${renderBulkEditorToolbar(state, `${categoryImages.length} image records in ${category.label}`)}
 
-    <div class="category-page-actions">
+    <div class="category-page-actions category-order-actions">
+      <p class="category-order-help">Short-click an image preview to open the image editor. Press and hold on the preview, title area, or any non-control part of a card to pick it up and reorder it. Buttons, selects, and checkboxes stay clickable. The All images view remains read-only for ordering.</p>
       <button class="button primary" type="button" data-save-category-order>Save Category Order</button>
     </div>
 
-    <div class="image-overview-grid" data-category-order-grid data-category-id="${escapeHtml(categoryId)}">
+    <div class="image-overview-grid" data-category-order-grid data-category-id="${escapeHtml(categoryId)}" aria-label="Reorder images in ${escapeHtml(category.label)}">
       ${categoryImages.map((image) => renderImageOrderCard(state, image)).join("")}
     </div>
   `;
@@ -689,6 +843,34 @@ function renderHeroImageOverview(state, elements) {
 
     <div class="image-overview-grid" data-hero-order-grid>
       ${heroImages.map((item) => renderHeroOrderCard(state, item.image, item.slide)).join("")}
+    </div>
+  `;
+}
+
+function isImageAlreadyInAboutPhotos(state, imageId) {
+  return Boolean((state.aboutPhotos ?? []).some((photo) => photo.sourceType === "portfolio-reference" && photo.sourceImageId === imageId));
+}
+
+function renderAddToAboutPanel(state, image) {
+  const alreadyAdded = isImageAlreadyInAboutPhotos(state, image.id);
+  const aboutCount = (state.aboutPhotos ?? []).length;
+
+  return `
+    <div class="wide image-to-about-panel" data-image-to-about-panel>
+      <div>
+        <p class="eyebrow">About page</p>
+        <strong>${alreadyAdded ? "Already added to About photos" : "Add this image to the About page archive"}</strong>
+        <span>
+          ${alreadyAdded
+            ? "This portfolio image already has a reference record in the separate About photo list."
+            : "This creates an About photo reference that points to the existing portfolio renditions. It does not copy files or import this image into public/images/about/."}
+        </span>
+      </div>
+      <div class="image-to-about-actions">
+        <button class="button" type="button" data-add-image-to-about="${escapeHtml(image.id)}" ${alreadyAdded ? "disabled" : ""}>${alreadyAdded ? "Added" : "Add to About"}</button>
+        <a class="button" href="#/about">Open About</a>
+        <small>${escapeHtml(String(aboutCount))} About records</small>
+      </div>
     </div>
   `;
 }
@@ -737,6 +919,18 @@ function renderImageEditCard(state, image) {
         <label>
           <span>Category</span>
           <select data-field="category">${categoryOptions(state.categories, image.category)}</select>
+        </label>
+
+        <label class="checkbox public-visibility-control wide">
+          <input
+            type="checkbox"
+            data-field="isPublic"
+            ${isImagePublic(image) ? "checked" : ""}
+          />
+          <span>
+            <strong>Visible on public site</strong>
+            <small>Turn this off to keep the image in the editor while hiding it from the portfolio, hero slideshow, and 3D gallery lookup.</small>
+          </span>
         </label>
 
         <label>
@@ -836,6 +1030,8 @@ function renderImageEditCard(state, image) {
           <textarea data-field="note">${escapeHtml(image.note)}</textarea>
         </label>
 
+        ${renderAddToAboutPanel(state, image)}
+
         <div class="hero-controls ${isHeroEligible ? "" : "is-disabled"}">
           <label class="checkbox">
             <input
@@ -852,7 +1048,7 @@ function renderImageEditCard(state, image) {
             <select data-field="heroTargetCategory" ${isHeroEligible ? "" : "disabled"}>${categoryOptions(state.categories, heroTargetCategory)}</select>
           </label>
 
-          ${isHeroEligible ? "" : `<p class="editor-inline-note">Hero slides must be landscape. This image is ${escapeHtml(orientation)} and cannot be added to the homepage carousel.</p>`}
+          ${isHeroEligible ? "" : `<p class="editor-inline-note">Hero slides must be public landscape images. This image is ${isImagePublic(image) ? escapeHtml(orientation) : "hidden from the public site"} and cannot be added to the homepage carousel.</p>`}
         </div>
 
         <div class="crop-shortcuts wide">
@@ -1090,19 +1286,31 @@ export function renderImportReview(state, elements, pendingImportItems) {
 
     return `
       <article class="import-card" data-import-card data-import-index="${index}" data-import-id-manual="false" data-import-state="valid">
-        <div class="preview">
+        <div class="import-card-toolbar">
+          <span>Review item ${index + 1} of ${pendingImportItems.length}</span>
+          <button class="button danger subtle" type="button" data-remove-import-item="${index}">Remove from Import</button>
+        </div>
+
+        <button
+          class="preview import-preview-button"
+          type="button"
+          data-open-import-lightbox="${index}"
+          aria-label="Open full import preview for ${escapeHtml(item.title || item.id || `review item ${index + 1}`)}"
+        >
           <img
             src="${escapeHtml(item.previewUrl)}"
             alt=""
             style="object-position: ${escapeHtml(item.thumbnailPosition)};"
           />
 
+          <span class="import-preview-zoom">View full image</span>
+
           <div class="image-diagnostics">
             <span>${escapeHtml(orientation)}</span>
             <span>${escapeHtml(String(item.imageWidth || "—"))} × ${escapeHtml(String(item.imageHeight || "—"))}</span>
             <span>${escapeHtml(aspectRatio)}</span>
           </div>
-        </div>
+        </button>
 
         <div class="fields">
           <div class="import-card-status wide" data-import-card-status>
@@ -1129,6 +1337,11 @@ export function renderImportReview(state, elements, pendingImportItems) {
             <select data-import-field="category">${categoryOptions(state.categories, item.category)}</select>
           </label>
 
+          <div class="import-category-create">
+            <button class="button subtle" type="button" data-create-import-category>Create Category</button>
+            <span>Add a category, then keep reviewing this import card.</span>
+          </div>
+
           <label>
             <span>Year</span>
             <input data-import-field="year" value="${escapeHtml(item.year)}" />
@@ -1150,33 +1363,17 @@ export function renderImportReview(state, elements, pendingImportItems) {
             <span>${heroEligible ? "The image can be added to the homepage hero later. Hero display remains locked to 16:9 cover." : "The image will still import, but it cannot be added to the homepage hero because the hero is landscape-only."}</span>
           </div>
 
-          <label>
-            <span>Gallery frame style</span>
-            <select data-import-field="galleryFrameStyle">
-              ${renderImportSelectOptions([
-                { value: "auto", label: "Auto" },
-                { value: "landscape", label: "Landscape" },
-                { value: "portrait", label: "Portrait" },
-                { value: "square", label: "Square" }
-              ], galleryFrameStyle)}
-            </select>
-          </label>
+          <div class="import-framing-defaults wide">
+            <p class="eyebrow">Archive defaults</p>
+            <strong>Crop and framing tools are handled after import.</strong>
+            <span>New images keep centered thumbnail and gallery framing by default. Use the image detail crop editors later only when a specific image needs manual adjustment.</span>
+          </div>
 
-          <label>
-            <span>Gallery fit mode</span>
-            <select data-import-field="galleryFitMode">
-              ${renderImportSelectOptions([
-                { value: "cover", label: "Cover / Crop to Frame" },
-                { value: "contain", label: "Fit Entire Image" }
-              ], galleryFitMode)}
-            </select>
-          </label>
-
-          ${renderGallerySizeControl(importPreviewImage, "data-import-field")}
-
-          ${renderPositionControls("thumbnailPosition", "Thumbnail crop", item.thumbnailPosition ?? "50% 50%", true)}
-          ${renderPositionControls("galleryPosition", "Virtual gallery crop", item.galleryPosition ?? "50% 50%", true)}
-
+          ${renderImportHiddenValue("thumbnailPosition", item.thumbnailPosition ?? "50% 50%")}
+          ${renderImportHiddenValue("galleryPosition", item.galleryPosition ?? "50% 50%")}
+          ${renderImportHiddenValue("galleryFrameStyle", galleryFrameStyle)}
+          ${renderImportHiddenValue("galleryFitMode", galleryFitMode)}
+          ${renderImportHiddenValue("gallerySize", getGallerySize(importPreviewImage))}
           ${renderImportHiddenValue("heroPosition", item.heroPosition ?? "50% 50%")}          
           ${renderImportHiddenValue("heroFitMode", "cover")}
           ${renderImportHiddenValue("heroFrameStyle", "landscape")}
@@ -1184,6 +1381,7 @@ export function renderImportReview(state, elements, pendingImportItems) {
           ${renderImportHiddenValue("imageHeight", item.imageHeight ?? "")}
           ${renderImportHiddenValue("imageAspectRatio", item.imageAspectRatio ?? "")}
           ${renderImportHiddenValue("imageOrientation", orientation)}
+          ${renderImportHiddenValue("originalFilename", item.file?.name ?? "")}
 
           ${renderImportOutputSummary(item)}
 
@@ -1931,23 +2129,31 @@ function renderGalleryCurationSummary(state, records) {
   const activeUnassigned = records.filter((record) => {
     return record.showInGallery !== false && !getCurationImage(state, record.artworkId);
   }).length;
+  const statusNote = activeUnassigned
+    ? `${activeUnassigned} visible wall${activeUnassigned === 1 ? "" : "s"} still need artwork.`
+    : "Visible wall assignments are filled.";
 
   return `
     <section class="gallery-curation-summary" aria-label="Gallery curation summary">
       <div class="gallery-curation-summary-heading">
-        <p class="eyebrow">Curation Status</p>
-        <h3>Wall assignments at a glance</h3>
-        <p>
-          Use the floor map as the source of truth for wall placement, rotation, facing, and map status. Individual wall cards now focus on artwork, type, status, and plaque behavior.
-        </p>
-
+        <div>
+          <p class="eyebrow">Archive Room Editor</p>
+          <h3>Gallery wall control surface</h3>
+          <p>
+            Manage wall placement on the floor map, then tune artwork, wall type, visibility, and plaque behavior on each wall card. This page edits curation data only; it does not change the public site design shell.
+          </p>
+        </div>
+        <div class="gallery-curation-summary-actions">
+          <button class="button primary" type="button" data-save-gallery-curation>Save All Gallery Curation</button>
+          <span>${escapeHtml(statusNote)}</span>
+        </div>
       </div>
 
       <div class="gallery-curation-stat-grid">
-        ${renderGalleryStatCard("Total wall cards", stats.total)}
-        ${renderGalleryStatCard("On map", stats.placed)}
-        ${renderGalleryStatCard("Not on map", stats.unplaced)}
-        ${renderGalleryStatCard("Assigned artwork", stats.assigned, activeUnassigned ? `${activeUnassigned} active wall(s) still need artwork.` : "")}
+        ${renderGalleryStatCard("Wall cards", stats.total, "Total editable wall records")}
+        ${renderGalleryStatCard("On map", stats.placed, `${stats.unplaced} off-map`)}
+        ${renderGalleryStatCard("Artwork", `${stats.assigned}/${stats.total}`, activeUnassigned ? `${activeUnassigned} visible gap${activeUnassigned === 1 ? "" : "s"}` : "Assignments ready")}
+        ${renderGalleryStatCard("Visible", stats.active, `${stats.hidden} hidden`)}
       </div>
 
       <div class="gallery-curation-type-strip" aria-label="Wall block type counts">
@@ -1976,43 +2182,53 @@ function renderGalleryCurationFilters(state) {
 
   return `
     <section class="gallery-curation-filters" aria-label="Gallery wall filters">
-      <label>
-        <span>Search walls/artwork</span>
-        <input data-gallery-curation-filter="search" placeholder="Search title, wall slot, type, or ID" />
-      </label>
+      <div class="gallery-filter-heading">
+        <div>
+          <p class="eyebrow">Wall Finder</p>
+          <h4>Filter wall cards</h4>
+        </div>
+        <p>Use these controls to narrow the wall list without changing saved data.</p>
+      </div>
 
-      <label>
-        <span>Display status</span>
-        <select data-gallery-curation-filter="status">
-          <option value="all">All statuses</option>
-          <option value="active">Active / visible</option>
-          <option value="hidden">Hidden / inactive</option>
-          <option value="needs-artwork">Needs artwork</option>
-        </select>
-      </label>
+      <div class="gallery-filter-grid">
+        <label class="gallery-filter-search">
+          <span>Search walls/artwork</span>
+          <input data-gallery-curation-filter="search" placeholder="Search title, wall slot, type, or ID" />
+        </label>
 
-      <label>
-        <span>Map placement</span>
-        <select data-gallery-curation-filter="placement">
-          <option value="all">All placement states</option>
-          <option value="placed">On map</option>
-          <option value="unplaced">Not on map</option>
-        </select>
-      </label>
+        <label>
+          <span>Display status</span>
+          <select data-gallery-curation-filter="status">
+            <option value="all">All statuses</option>
+            <option value="active">Visible in room</option>
+            <option value="hidden">Hidden from room</option>
+            <option value="needs-artwork">Needs artwork</option>
+          </select>
+        </label>
 
-      <label>
-        <span>Wall block type</span>
-        <select data-gallery-curation-filter="wallType">
-          ${wallTypeOptions}
-        </select>
-      </label>
+        <label>
+          <span>Map placement</span>
+          <select data-gallery-curation-filter="placement">
+            <option value="all">All placement states</option>
+            <option value="placed">On map</option>
+            <option value="unplaced">Not on map</option>
+          </select>
+        </label>
 
-      <label>
-        <span>Artwork category</span>
-        <select data-gallery-curation-filter="category">
-          ${categoryOptionsMarkup}
-        </select>
-      </label>
+        <label>
+          <span>Wall block type</span>
+          <select data-gallery-curation-filter="wallType">
+            ${wallTypeOptions}
+          </select>
+        </label>
+
+        <label>
+          <span>Artwork category</span>
+          <select data-gallery-curation-filter="category">
+            ${categoryOptionsMarkup}
+          </select>
+        </label>
+      </div>
     </section>
   `;
 }
@@ -2156,6 +2372,9 @@ function renderGalleryCurationCard(state, record, index) {
     positionZ: placement.positionZ,
     rotationYDegrees: placement.rotationYDegrees
   });
+  const artworkMeta = image
+    ? [getCategoryLabel(state, image.category), image.year, image.location].filter(Boolean).join(" / ")
+    : "No image mounted to this wall.";
 
   return `
     <article
@@ -2170,6 +2389,24 @@ function renderGalleryCurationCard(state, record, index) {
       data-gallery-curation-search="${escapeHtml(searchText)}"
       data-gallery-placement-collision="${collisionText ? "true" : "false"}"
     >
+      <div class="gallery-curation-card-header wide">
+        <div class="gallery-curation-heading">
+          <p class="eyebrow">Wall ${String(index + 1).padStart(2, "0")}</p>
+          <div class="gallery-curation-heading-row">
+            <div>
+              <h3>${escapeHtml(wallDisplayName)}</h3>
+              <span>Blueprint slot: ${escapeHtml(record.wallId)} / Display order ${escapeHtml(String(record.displayOrder ?? index + 1))}</span>
+            </div>
+            <div class="gallery-curation-badge-row" aria-label="Wall status">
+              <span class="gallery-curation-badge" data-gallery-status-badge="${escapeHtml(displayStatus)}">${showInGallery ? "Visible in room" : "Hidden from room"}</span>
+              <span class="gallery-curation-badge" data-gallery-placement-badge="${escapeHtml(placementStatus)}">${placedInGallery ? "On map" : "Not on map"}</span>
+              <span class="gallery-curation-badge" data-gallery-artwork-badge="${escapeHtml(artworkState)}">${image ? "Artwork assigned" : "Needs artwork"}</span>
+              <span class="gallery-curation-badge" data-gallery-wall-type-badge>${escapeHtml(wallTypeMeta.label)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="gallery-curation-preview-column">
         <button
           class="gallery-curation-thumb ${image ? "" : "is-empty"}"
@@ -2188,53 +2425,81 @@ function renderGalleryCurationCard(state, record, index) {
           ` : `<span>No artwork</span>`}
         </button>
 
+        <div class="gallery-slot-readout">
+          <span>Map position</span>
+          <strong>${escapeHtml(placedInGallery ? placementSummary : "Not placed on map")}</strong>
+          <small>${escapeHtml(footprintLabel)}</small>
+          ${collisionText ? `<p>${escapeHtml(collisionText)}</p>` : ""}
+        </div>
+
         ${renderGalleryWallPreview(state, record, image, wallType, plaqueEnabled, plaqueSide, showInGallery)}
       </div>
 
       <div class="gallery-curation-fields">
-        <div class="gallery-curation-heading">
-          <div class="gallery-curation-heading-row">
-            <div>
-              <p class="eyebrow">Wall ${index + 1}</p>
-              <h3>${escapeHtml(wallDisplayName)}</h3>
-            </div>
-            <div class="gallery-curation-badge-row" aria-label="Wall status">
-              <span class="gallery-curation-badge" data-gallery-status-badge="${escapeHtml(displayStatus)}">${showInGallery ? "Active" : "Hidden"}</span>
-              <span class="gallery-curation-badge" data-gallery-placement-badge="${escapeHtml(placementStatus)}">${placedInGallery ? "On map" : "Not on map"}</span>
-              <span class="gallery-curation-badge" data-gallery-artwork-badge="${escapeHtml(artworkState)}">${image ? "Assigned" : "Needs artwork"}</span>
-              <span class="gallery-curation-badge" data-gallery-wall-type-badge>${escapeHtml(wallTypeMeta.label)}</span>
-            </div>
+        <section class="gallery-editor-section gallery-selected-artwork wide">
+          <div>
+            <p class="eyebrow">Assigned artwork</p>
+            <h4 data-gallery-curation-selected-title>${escapeHtml(image?.title ?? "No artwork assigned")}</h4>
+            <p data-gallery-curation-selected-meta>${image ? `${escapeHtml(artworkMeta)} / ${escapeHtml(image.id)}` : "Use the visual picker or choose an ID from the fallback select."}</p>
           </div>
-          <span>Blueprint slot: ${escapeHtml(record.wallId)} / Display order ${escapeHtml(String(record.displayOrder ?? index + 1))} / ${escapeHtml(placementSummary)}</span>
-        </div>
-
-        <div class="gallery-selected-artwork wide">
-          <p class="eyebrow">Assigned artwork</p>
-          <h4 data-gallery-curation-selected-title>${escapeHtml(image?.title ?? "No artwork assigned")}</h4>
-          <p data-gallery-curation-selected-meta>${image ? `${escapeHtml(getCategoryLabel(state, image.category))} / ${escapeHtml(image.id)}` : "Use the visual picker or choose an ID from the fallback select."}</p>
           <div class="image-overview-actions">
             <button class="button primary" type="button" data-open-artwork-picker>Assign artwork</button>
+            <button class="button" type="button" data-open-gallery-preview="artwork">Preview artwork</button>
           </div>
-        </div>
+        </section>
 
-        <label class="wide fallback-select">
-          <span>Assigned artwork ID fallback</span>
-          <select data-gallery-curation-field="artworkId">
-            ${renderGalleryCurationImageOptions(state, record.artworkId)}
-          </select>
-        </label>
+        <section class="gallery-editor-section wide">
+          <div class="gallery-section-title">
+            <div>
+              <p class="eyebrow">Wall settings</p>
+              <h4>Room behavior</h4>
+            </div>
+            <span>${escapeHtml(wallTypeMeta.description)}</span>
+          </div>
 
-        <label>
-          <span>Wall block type</span>
-          <select data-gallery-curation-field="wallType">
-            ${renderGalleryCurationWallTypeOptions(wallType)}
-          </select>
-        </label>
+          <div class="gallery-field-grid">
+            <label>
+              <span>Wall block type</span>
+              <select data-gallery-curation-field="wallType">
+                ${renderGalleryCurationWallTypeOptions(wallType)}
+              </select>
+            </label>
 
-        <div class="gallery-wall-type-note" data-gallery-wall-type-note>
-          <span data-gallery-wall-type-label>${escapeHtml(wallTypeMeta.label)}</span>
-          <p data-gallery-wall-type-description>${escapeHtml(wallTypeMeta.description)}</p>
-        </div>
+            <label>
+              <span>Display status</span>
+              <select data-gallery-curation-field="showInGallery">
+                ${renderGalleryCurationDisplayStatusOptions(showInGallery)}
+              </select>
+            </label>
+
+            <label>
+              <span>Plaque side</span>
+              <select data-gallery-curation-field="plaqueSide">
+                ${renderGalleryCurationPlaqueSideOptions(plaqueSide)}
+              </select>
+            </label>
+
+            <label class="check-row gallery-plaque-toggle">
+              <input data-gallery-curation-field="plaqueEnabled" type="checkbox" ${plaqueEnabled ? "checked" : ""} />
+              <span>Show plaque</span>
+            </label>
+          </div>
+
+          <div class="gallery-wall-type-note" data-gallery-wall-type-note>
+            <span data-gallery-wall-type-label>${escapeHtml(wallTypeMeta.label)}</span>
+            <p data-gallery-wall-type-description>${escapeHtml(wallTypeMeta.description)}</p>
+          </div>
+        </section>
+
+        <details class="gallery-editor-section gallery-advanced-fields wide">
+          <summary>Precise artwork ID fallback</summary>
+          <label class="fallback-select">
+            <span>Assigned artwork ID</span>
+            <select data-gallery-curation-field="artworkId">
+              ${renderGalleryCurationImageOptions(state, record.artworkId)}
+            </select>
+          </label>
+        </details>
 
         <div class="gallery-placement-hidden-fields" data-gallery-placement-controls hidden aria-hidden="true">
           <strong data-gallery-placement-state-label>${placedInGallery ? "On map" : "Not on map"}</strong>
@@ -2248,31 +2513,12 @@ function renderGalleryCurationCard(state, record, index) {
           <input data-gallery-curation-field="rotationYDegrees" type="hidden" value="${escapeHtml(String(placement.rotationYDegrees))}" />
         </div>
 
-        <label>
-          <span>Plaque side</span>
-          <select data-gallery-curation-field="plaqueSide">
-            ${renderGalleryCurationPlaqueSideOptions(plaqueSide)}
-          </select>
-        </label>
-
-        <label>
-          <span>Display status</span>
-          <select data-gallery-curation-field="showInGallery">
-            ${renderGalleryCurationDisplayStatusOptions(showInGallery)}
-          </select>
-        </label>
-
-        <label class="check-row">
-          <input data-gallery-curation-field="plaqueEnabled" type="checkbox" ${plaqueEnabled ? "checked" : ""} />
-          <span>Show plaque</span>
-        </label>
-
-        <div class="image-overview-actions wide">
+        <div class="gallery-card-actions wide">
           <button class="button primary" type="button" data-save-gallery-curation-wall>Save Wall</button>
+          <button class="button" type="button" data-move-gallery-curation="top">Move Top</button>
+          <button class="button" type="button" data-move-gallery-curation="up">Move Up</button>
+          <button class="button" type="button" data-move-gallery-curation="down">Move Down</button>
           <button class="button danger" type="button" data-remove-gallery-wall-card>Remove Wall</button>
-          <button class="button" type="button" data-move-gallery-curation="top">Top</button>
-          <button class="button" type="button" data-move-gallery-curation="up">Up</button>
-          <button class="button" type="button" data-move-gallery-curation="down">Down</button>
         </div>
       </div>
     </article>
@@ -2346,13 +2592,24 @@ function renderGalleryCurationPage(state, elements) {
   }
 
   if (!records.length) {
+    const curationStatus = state.galleryCurationStatus ?? {};
+    const fileExists = curationStatus.fileExists;
+    const rawRowCount = Number(curationStatus.rawRowCount ?? 0);
+    const loadedRowCount = Number(curationStatus.loadedRowCount ?? 0);
+    const heading = fileExists === false
+      ? "galleryCuration.json was not found."
+      : "No gallery wall rows are currently loaded.";
+    const description = fileExists === false
+      ? "The editor could not find src/data/galleryCuration.json. Restore that file before editing virtual gallery wall assignments."
+      : rawRowCount > 0 && loadedRowCount === 0
+        ? `src/data/galleryCuration.json exists and contains ${escapeHtml(String(rawRowCount))} raw row${rawRowCount === 1 ? "" : "s"}, but none passed editor normalization. Check for missing wall IDs or duplicate wall IDs.`
+        : "src/data/galleryCuration.json exists, but no editable wall assignment rows are available yet. Add a wall card to start curating the virtual gallery.";
+
     elements.galleryCurationList.innerHTML = `
       <section class="panel backup-empty-state">
-        <p class="eyebrow">No curation rows</p>
-        <h2>galleryCuration.json is empty or missing.</h2>
-        <p class="panel-description">
-          The editor expects src/data/galleryCuration.json to define editable wall assignments for the virtual gallery.
-        </p>
+        <p class="eyebrow">No loaded gallery rows</p>
+        <h2>${heading}</h2>
+        <p class="panel-description">${description}</p>
       </section>
     `;
     return;
@@ -2425,7 +2682,12 @@ function renderBackupPage(state, elements) {
   }
 
   elements.backupList.innerHTML = `
-    <div class="category-page-actions">
+    <div class="backup-toolbar">
+      <div>
+        <p class="eyebrow">Restore safety</p>
+        <h3>Available JSON restore points</h3>
+        <p>Restores affect category, image, hero, gallery curation, and gallery room JSON. The current JSON files are backed up before a restore runs.</p>
+      </div>
       <button class="button" type="button" data-refresh-backups>Refresh Backups</button>
     </div>
 
@@ -2436,7 +2698,7 @@ function renderBackupPage(state, elements) {
         const canRestore = Boolean(backup.canRestore);
 
         return `
-          <article class="backup-card" data-backup-card data-backup-folder="${escapeHtml(backup.backupFolder)}">
+          <article class="backup-card" data-backup-card data-backup-folder="${escapeHtml(backup.backupFolder)}" data-backup-restorable="${canRestore ? "true" : "false"}">
             <div class="backup-card-main">
               <p class="eyebrow">${escapeHtml(formatBackupReason(backup.reason))}</p>
               <h3>${escapeHtml(backup.backupFolder)}</h3>
@@ -2445,6 +2707,7 @@ function renderBackupPage(state, elements) {
             </div>
 
             <div class="backup-card-actions">
+              <span class="backup-restore-state">${canRestore ? "Ready to restore" : "Incomplete backup"}</span>
               <button
                 class="button danger"
                 type="button"
@@ -2463,6 +2726,512 @@ function renderBackupPage(state, elements) {
   `;
 }
 
+
+function getAboutPhotoAspect(photo) {
+  const aspect = Number(photo.imageAspectRatio);
+
+  if (Number.isFinite(aspect) && aspect > 0) {
+    return aspect;
+  }
+
+  const width = Number(photo.imageWidth);
+  const height = Number(photo.imageHeight);
+
+  if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+    return width / height;
+  }
+
+  return 0.75;
+}
+
+function getAboutPhotoOrientation(photo) {
+  if (["landscape", "portrait", "square"].includes(photo.imageOrientation)) {
+    return photo.imageOrientation;
+  }
+
+  const aspect = getAboutPhotoAspect(photo);
+
+  if (Math.abs(aspect - 1) <= 0.04) {
+    return "square";
+  }
+
+  return aspect > 1 ? "landscape" : "portrait";
+}
+
+const ABOUT_PLACEMENT_OPTIONS = [
+  { value: "upper-collage", label: "Upper collage (max 2 visible)" },
+  { value: "lower-collage", label: "Lower collage" },
+  { value: "background-float", label: "Transparent background float" },
+  { value: "unused", label: "Unused / staged" }
+];
+
+function getAboutPlacementRole(photo) {
+  const role = photo?.placementRole ?? "lower-collage";
+  return ABOUT_PLACEMENT_OPTIONS.some((option) => option.value === role) ? role : "lower-collage";
+}
+
+function renderAboutPlacementOptions(selectedValue) {
+  return ABOUT_PLACEMENT_OPTIONS.map((option) => `
+    <option value="${escapeHtml(option.value)}" ${option.value === selectedValue ? "selected" : ""}>${escapeHtml(option.label)}</option>
+  `).join("");
+}
+
+function renderAboutPhotoCard(photo, index) {
+  const orientation = getAboutPhotoOrientation(photo);
+  const aspect = getAboutPhotoAspect(photo);
+  const isActive = photo.isActive !== false;
+
+  return `
+    <article class="about-editor-card" data-about-photo-card data-about-photo-id="${escapeHtml(photo.id)}">
+      <div class="about-editor-thumb">
+        <img src="${escapeHtml(photo.thumbSrc ?? photo.src)}" alt="${escapeHtml(photo.alt ?? photo.title)}" loading="lazy" draggable="false" />
+        <span>${escapeHtml(String(index + 1).padStart(2, "0"))}</span>
+      </div>
+
+      <div class="about-editor-fields">
+        <input type="hidden" data-field="sourceType" value="${escapeHtml(photo.sourceType ?? "about")}" />
+        <input type="hidden" data-field="sourceImageId" value="${escapeHtml(photo.sourceImageId ?? "")}" />
+
+        <label>
+          <span>ID</span>
+          <input data-field="id" value="${escapeHtml(photo.id)}" />
+        </label>
+
+        <label>
+          <span>Title</span>
+          <input data-field="title" value="${escapeHtml(photo.title ?? "")}" />
+        </label>
+
+        <label class="checkbox about-active-control">
+          <input type="checkbox" data-field="isActive" ${isActive ? "checked" : ""} />
+          <span>Use on About page</span>
+        </label>
+
+        <label>
+          <span>About placement</span>
+          <select data-field="placementRole">
+            ${renderAboutPlacementOptions(getAboutPlacementRole(photo))}
+          </select>
+        </label>
+
+        <label>
+          <span>Year</span>
+          <input data-field="year" value="${escapeHtml(photo.year ?? "")}" />
+        </label>
+
+        <label>
+          <span>Location</span>
+          <input data-field="location" value="${escapeHtml(photo.location ?? "")}" />
+        </label>
+
+        <label class="wide">
+          <span>Alt text</span>
+          <input data-field="alt" value="${escapeHtml(photo.alt ?? "")}" />
+        </label>
+
+        <label>
+          <span>Display source</span>
+          <input data-field="src" value="${escapeHtml(photo.src ?? "")}" />
+        </label>
+
+        <label>
+          <span>Thumbnail source</span>
+          <input data-field="thumbSrc" value="${escapeHtml(photo.thumbSrc ?? "")}" />
+        </label>
+
+        <label>
+          <span>Full source</span>
+          <input data-field="fullSrc" value="${escapeHtml(photo.fullSrc ?? "")}" />
+        </label>
+
+        <label>
+          <span>Image width</span>
+          <input data-field="imageWidth" value="${escapeHtml(String(photo.imageWidth ?? ""))}" readonly />
+        </label>
+
+        <label>
+          <span>Image height</span>
+          <input data-field="imageHeight" value="${escapeHtml(String(photo.imageHeight ?? ""))}" readonly />
+        </label>
+
+        <label>
+          <span>Aspect ratio</span>
+          <input data-field="imageAspectRatio" value="${escapeHtml(String(photo.imageAspectRatio ?? aspect.toFixed(6)))}" readonly />
+        </label>
+
+        <label>
+          <span>Orientation</span>
+          <input data-field="imageOrientation" value="${escapeHtml(orientation)}" readonly />
+        </label>
+
+        <label class="wide">
+          <span>Note</span>
+          <textarea data-field="note">${escapeHtml(photo.note ?? "")}</textarea>
+        </label>
+
+        <div class="about-editor-actions wide">
+          <button class="button" type="button" data-move-about-photo="top">Top</button>
+          <button class="button" type="button" data-move-about-photo="up">Up</button>
+          <button class="button" type="button" data-move-about-photo="down">Down</button>
+          <button class="button danger" type="button" data-remove-about-photo>Remove</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderAboutImportCard(item, index) {
+  return `
+    <article class="about-import-card" data-about-import-card data-import-index="${index}">
+      <button class="about-import-thumb" type="button" data-about-import-preview="${index}">
+        <img src="${escapeHtml(item.previewUrl)}" alt="" draggable="false" />
+        <span>${escapeHtml(String(index + 1).padStart(2, "0"))}</span>
+      </button>
+
+      <div class="about-import-fields">
+        <input type="hidden" data-import-field="originalFilename" value="${escapeHtml(item.originalFilename)}" />
+        <input type="hidden" data-import-field="imageWidth" value="${escapeHtml(String(item.imageWidth ?? ""))}" />
+        <input type="hidden" data-import-field="imageHeight" value="${escapeHtml(String(item.imageHeight ?? ""))}" />
+        <input type="hidden" data-import-field="imageAspectRatio" value="${escapeHtml(String(item.imageAspectRatio ?? ""))}" />
+        <input type="hidden" data-import-field="imageOrientation" value="${escapeHtml(item.imageOrientation ?? "portrait")}" />
+
+        <label>
+          <span>ID</span>
+          <input data-import-field="id" value="${escapeHtml(item.id)}" />
+        </label>
+
+        <label>
+          <span>Title</span>
+          <input data-import-field="title" value="${escapeHtml(item.title)}" />
+        </label>
+
+        <label>
+          <span>Year</span>
+          <input data-import-field="year" value="${escapeHtml(item.year ?? "")}" />
+        </label>
+
+        <label>
+          <span>Location</span>
+          <input data-import-field="location" value="${escapeHtml(item.location ?? "")}" />
+        </label>
+
+        <label>
+          <span>About placement</span>
+          <select data-import-field="placementRole">
+            ${renderAboutPlacementOptions(item.placementRole ?? "lower-collage")}
+          </select>
+        </label>
+
+        <label class="wide">
+          <span>Alt text</span>
+          <input data-import-field="alt" value="${escapeHtml(item.alt ?? "")}" />
+        </label>
+
+        <label class="wide">
+          <span>Note</span>
+          <textarea data-import-field="note">${escapeHtml(item.note ?? "")}</textarea>
+        </label>
+
+        <div class="import-pipeline-summary wide">
+          <p class="eyebrow">About output</p>
+          <strong>Will write into public/images/about/</strong>
+          <div class="import-path-grid">
+            <span>display</span><code>/images/about/display/${escapeHtml(item.id)}.webp</code>
+            <span>thumb</span><code>/images/about/thumb/${escapeHtml(item.id)}.webp</code>
+            <span>full</span><code>/images/about/full/${escapeHtml(item.id)}.webp</code>
+          </div>
+        </div>
+
+        <button class="button danger wide" type="button" data-remove-about-import="${index}">Remove from About Import</button>
+      </div>
+    </article>
+  `;
+}
+
+export function renderAboutImportReview(elements, pendingAboutImportItems) {
+  if (!elements.aboutImportReviewList) {
+    return;
+  }
+
+  elements.aboutImportReviewList.innerHTML = pendingAboutImportItems.length
+    ? pendingAboutImportItems.map((item, index) => renderAboutImportCard(item, index)).join("")
+    : "";
+}
+
+function getAboutSectionEntries(aboutPhotos, placementRole) {
+  return aboutPhotos
+    .map((photo, index) => ({ photo, index }))
+    .filter((entry) => getAboutPlacementRole(entry.photo) === placementRole);
+}
+
+function renderAboutPhotoSection({ title, eyebrow, description, placementRole, entries, usageNote }) {
+  const activeCount = entries.filter((entry) => entry.photo.isActive !== false).length;
+  const emptyMessage = `No ${title.toLowerCase()} records yet.`;
+
+  return `
+    <section class="about-editor-section panel" data-about-placement-section="${escapeHtml(placementRole)}">
+      <div class="about-editor-section-header">
+        <div>
+          <p class="eyebrow">${escapeHtml(eyebrow)}</p>
+          <h3>${escapeHtml(title)}</h3>
+          <p class="panel-description">${escapeHtml(description)}</p>
+          ${usageNote ? `<p class="about-editor-usage-note">${escapeHtml(usageNote)}</p>` : ""}
+        </div>
+        <div class="about-editor-section-counts" aria-label="${escapeHtml(title)} counts">
+          <span><strong>${escapeHtml(String(entries.length))}</strong> total</span>
+          <span><strong>${escapeHtml(String(activeCount))}</strong> active</span>
+        </div>
+      </div>
+
+      <div class="about-editor-section-list" data-about-photo-section-list>
+        ${entries.length
+          ? entries.map((entry) => renderAboutPhotoCard(entry.photo, entry.index)).join("")
+          : `<div class="about-editor-empty-state">${escapeHtml(emptyMessage)}</div>`}
+      </div>
+    </section>
+  `;
+}
+
+
+const FALLBACK_ABOUT_COPY = {
+  hero: {
+    eyebrow: "About / Contact",
+    headline: "A reserved space for the personal side of the archive.",
+    intro: "Placeholder copy. Replace this with your final About introduction when you are ready."
+  },
+  about: {
+    eyebrow: "About Me",
+    heading: "Personal background",
+    paragraphs: [
+      "Placeholder copy. Use this block for the short version of who you are, where you are from, and what shaped your creative point of view.",
+      "Placeholder copy. Use this second paragraph for photography, climbing, community, technical work, and the personal thread between them."
+    ]
+  },
+  project: {
+    eyebrow: "Photography / Project",
+    heading: "Creative practice, technical crossover, and the archive system.",
+    paragraphs: [
+      "Placeholder copy. Use this block for how you think about photography, climbing, landscape, portrait work, commercial work, visual storytelling, and building this site as an evolving archive.",
+      "Placeholder copy. Use this block for the bridge between photography, editing, web development, support work, and the interactive gallery concept."
+    ]
+  },
+  contact: {
+    eyebrow: "Contact",
+    headline: "Available for selected projects, collaborations, and image work.",
+    body: "Placeholder copy. Replace this with your preferred contact language and availability notes.",
+    email: "jtaylorpike@gmail.com",
+    links: []
+  }
+};
+
+function getAboutCopy(state) {
+  const copy = state.aboutCopy ?? {};
+
+  return {
+    hero: {
+      eyebrow: copy.hero?.eyebrow ?? FALLBACK_ABOUT_COPY.hero.eyebrow,
+      headline: copy.hero?.headline ?? FALLBACK_ABOUT_COPY.hero.headline,
+      intro: copy.hero?.intro ?? FALLBACK_ABOUT_COPY.hero.intro
+    },
+    about: {
+      eyebrow: copy.about?.eyebrow ?? FALLBACK_ABOUT_COPY.about.eyebrow,
+      heading: copy.about?.heading ?? FALLBACK_ABOUT_COPY.about.heading,
+      paragraphs: Array.isArray(copy.about?.paragraphs) && copy.about.paragraphs.length ? copy.about.paragraphs : FALLBACK_ABOUT_COPY.about.paragraphs
+    },
+    project: {
+      eyebrow: copy.project?.eyebrow ?? FALLBACK_ABOUT_COPY.project.eyebrow,
+      heading: copy.project?.heading ?? FALLBACK_ABOUT_COPY.project.heading,
+      paragraphs: Array.isArray(copy.project?.paragraphs) && copy.project.paragraphs.length ? copy.project.paragraphs : FALLBACK_ABOUT_COPY.project.paragraphs
+    },
+    contact: {
+      eyebrow: copy.contact?.eyebrow ?? FALLBACK_ABOUT_COPY.contact.eyebrow,
+      headline: copy.contact?.headline ?? FALLBACK_ABOUT_COPY.contact.headline,
+      body: copy.contact?.body ?? FALLBACK_ABOUT_COPY.contact.body,
+      email: copy.contact?.email ?? FALLBACK_ABOUT_COPY.contact.email,
+      links: Array.isArray(copy.contact?.links) ? copy.contact.links : []
+    }
+  };
+}
+
+function renderAboutCopyInput(fieldName, label, value) {
+  return `
+    <label>
+      <span>${escapeHtml(label)}</span>
+      <input data-about-copy-field="${escapeHtml(fieldName)}" value="${escapeHtml(value ?? "")}" />
+    </label>
+  `;
+}
+
+function renderAboutCopyTextarea(fieldName, label, value, className = "wide") {
+  return `
+    <label class="${escapeHtml(className)}">
+      <span>${escapeHtml(label)}</span>
+      <textarea data-about-copy-field="${escapeHtml(fieldName)}">${escapeHtml(value ?? "")}</textarea>
+    </label>
+  `;
+}
+
+function renderAboutCopyPanel({ eyebrow, title, description, fields }) {
+  return `
+    <section class="about-copy-editor-panel panel">
+      <div class="about-copy-editor-heading">
+        <p class="eyebrow">${escapeHtml(eyebrow)}</p>
+        <h3>${escapeHtml(title)}</h3>
+        <p class="panel-description">${escapeHtml(description)}</p>
+      </div>
+      <div class="about-copy-editor-fields">
+        ${fields.join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderAboutContactLinkFields(links) {
+  const editableLinks = [0, 1, 2, 3].map((index) => links[index] ?? { label: "", url: "" });
+
+  return editableLinks.map((link, index) => `
+    <div class="about-copy-link-row">
+      ${renderAboutCopyInput(`contact.links.${index}.label`, `Link ${index + 1} label`, link.label ?? "")}
+      ${renderAboutCopyInput(`contact.links.${index}.url`, `Link ${index + 1} URL`, link.url ?? "")}
+    </div>
+  `).join("");
+}
+
+function renderAboutCopyEditor(state) {
+  const copy = getAboutCopy(state);
+
+  return `
+    <section class="about-copy-editor-summary panel" data-about-copy-editor>
+      <p class="eyebrow">About Copy</p>
+      <h2>Public About/contact text</h2>
+      <p class="panel-description">
+        Edit the structured text fields that feed the public About page. This keeps final copy user-authored while removing copy changes from source-code edits.
+      </p>
+    </section>
+
+    ${renderAboutCopyPanel({
+      eyebrow: "Hero / Intro",
+      title: "Top About block",
+      description: "Controls the first text block beside the upper photo collage.",
+      fields: [
+        renderAboutCopyInput("hero.eyebrow", "Eyebrow", copy.hero.eyebrow),
+        renderAboutCopyInput("hero.headline", "Headline", copy.hero.headline),
+        renderAboutCopyTextarea("hero.intro", "Intro paragraph", copy.hero.intro)
+      ]
+    })}
+
+    ${renderAboutCopyPanel({
+      eyebrow: "Main writing band",
+      title: "About Me block",
+      description: "Controls the full-width copy band below the upper collage.",
+      fields: [
+        renderAboutCopyInput("about.eyebrow", "Eyebrow", copy.about.eyebrow),
+        renderAboutCopyInput("about.heading", "Heading", copy.about.heading),
+        renderAboutCopyTextarea("about.paragraphs.0", "Paragraph 1", copy.about.paragraphs[0] ?? ""),
+        renderAboutCopyTextarea("about.paragraphs.1", "Paragraph 2", copy.about.paragraphs[1] ?? "")
+      ]
+    })}
+
+    ${renderAboutCopyPanel({
+      eyebrow: "Project / Practice",
+      title: "Secondary copy block",
+      description: "Controls the copy block beside the lower foreground collage.",
+      fields: [
+        renderAboutCopyInput("project.eyebrow", "Eyebrow", copy.project.eyebrow),
+        renderAboutCopyInput("project.heading", "Heading", copy.project.heading),
+        renderAboutCopyTextarea("project.paragraphs.0", "Paragraph 1", copy.project.paragraphs[0] ?? ""),
+        renderAboutCopyTextarea("project.paragraphs.1", "Paragraph 2", copy.project.paragraphs[1] ?? "")
+      ]
+    })}
+
+    ${renderAboutCopyPanel({
+      eyebrow: "Contact",
+      title: "Contact card",
+      description: "Controls the lower contact section. Optional links render only when both label and URL are filled in.",
+      fields: [
+        renderAboutCopyInput("contact.eyebrow", "Eyebrow", copy.contact.eyebrow),
+        renderAboutCopyInput("contact.headline", "Headline", copy.contact.headline),
+        renderAboutCopyTextarea("contact.body", "Body text", copy.contact.body),
+        renderAboutCopyInput("contact.email", "Email", copy.contact.email),
+        `<div class="about-copy-links wide">${renderAboutContactLinkFields(copy.contact.links)}</div>`
+      ]
+    })}
+  `;
+}
+
+function renderAboutPage(state, elements) {
+  if (elements.aboutCopyEditor) {
+    elements.aboutCopyEditor.innerHTML = renderAboutCopyEditor(state);
+  }
+
+  const aboutPhotos = state.aboutPhotos ?? [];
+  const activeCount = aboutPhotos.filter((photo) => photo.isActive !== false).length;
+  const nativeCount = aboutPhotos.filter((photo) => photo.sourceType !== "portfolio-reference").length;
+  const referenceCount = aboutPhotos.length - nativeCount;
+  const upperEntries = getAboutSectionEntries(aboutPhotos, "upper-collage");
+  const lowerEntries = getAboutSectionEntries(aboutPhotos, "lower-collage");
+  const backgroundEntries = getAboutSectionEntries(aboutPhotos, "background-float");
+  const unusedEntries = getAboutSectionEntries(aboutPhotos, "unused");
+
+  elements.aboutPhotoList.innerHTML = `
+    <section class="about-editor-summary panel">
+      <p class="eyebrow">About Photos</p>
+      <h2>Separate About image archive</h2>
+      <p class="panel-description">
+        About page imagery is managed separately from the portfolio archive. New imports write into <code>public/images/about/</code>, not <code>public/images/portfolio/</code>.
+      </p>
+      <div class="category-manager-summary">
+        <span><strong>${escapeHtml(String(aboutPhotos.length))}</strong> total</span>
+        <span><strong>${escapeHtml(String(activeCount))}</strong> active</span>
+        <span><strong>${escapeHtml(String(nativeCount))}</strong> about-native</span>
+        <span><strong>${escapeHtml(String(referenceCount))}</strong> portfolio references</span>
+        <span><strong>${escapeHtml(String(upperEntries.length))}</strong> upper collage</span>
+        <span><strong>${escapeHtml(String(lowerEntries.length))}</strong> lower collage</span>
+        <span><strong>${escapeHtml(String(backgroundEntries.length))}</strong> background floats</span>
+        <span><strong>${escapeHtml(String(unusedEntries.length))}</strong> unused</span>
+      </div>
+      <p class="panel-description">
+        About image controls are separated by page role so the upper collage, lower collage, and transparent background float layer can be curated independently.
+      </p>
+    </section>
+
+    <div class="about-editor-list" data-about-photo-list>
+      ${renderAboutPhotoSection({
+        title: "Upper collage",
+        eyebrow: "Foreground collage A",
+        description: "Controls the top-right foreground stack on the public About page.",
+        placementRole: "upper-collage",
+        entries: upperEntries,
+        usageNote: "The public page renders the first two active images only: one large base image with one smaller centered image stacked on top."
+      })}
+      ${renderAboutPhotoSection({
+        title: "Lower collage",
+        eyebrow: "Foreground collage B",
+        description: "Controls the lower foreground image group beside the secondary copy block.",
+        placementRole: "lower-collage",
+        entries: lowerEntries,
+        usageNote: "The public page renders this group in order as the lower image collage."
+      })}
+      ${renderAboutPhotoSection({
+        title: "Background floats",
+        eyebrow: "Transparent motion layer",
+        description: "Controls the oversized, mostly transparent images that drift behind the copy and foreground collage layers.",
+        placementRole: "background-float",
+        entries: backgroundEntries,
+        usageNote: "These photos are intentionally large and low-opacity on the public page."
+      })}
+      ${renderAboutPhotoSection({
+        title: "Unused / staged",
+        eyebrow: "Holding area",
+        description: "Stores About photo records that should remain available in the editor without appearing in an active page role.",
+        placementRole: "unused",
+        entries: unusedEntries,
+        usageNote: "Move photos here when they should stay in aboutPhotos.json but not participate in the current layout."
+      })}
+    </div>
+  `;
+}
+
 // Chooses which editor page to render for the current route.
 export function renderAll(state, elements, route) {
   renderCategories(state, elements);
@@ -2475,6 +3244,12 @@ export function renderAll(state, elements, route) {
 
   if (route.name === "gallery") {
     renderGalleryCurationPage(state, elements);
+    return;
+  }
+
+  if (route.name === "about" || route.name === "aboutPhotos") {
+    renderAboutPage(state, elements);
+    renderAboutImportReview(elements, []);
     return;
   }
 

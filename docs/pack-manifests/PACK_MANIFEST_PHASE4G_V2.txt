@@ -1,0 +1,11 @@
+Phase 4G v2 Adobe-inspired Gallery editor correction
+
+local-editor/static/editor.css
+local-editor/templates/editor.html
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/PHASE4G_V2_ADOBE_INSPIRED_GALLERY_EDITOR_CORRECTION.md
+PROJECT_CHANGELOG.md
+PACK_NOTES_PHASE4G_V2.md
+PACK_MANIFEST_PHASE4G_V2.txt

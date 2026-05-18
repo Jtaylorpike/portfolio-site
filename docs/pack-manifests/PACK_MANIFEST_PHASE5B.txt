@@ -1,0 +1,14 @@
+src/app/sitePages.ts
+src/app/siteInteractionsController.ts
+src/styles/global.css
+local-editor/static/editor.css
+local-editor/static/js/main.js
+local-editor/static/js/render.js
+local-editor/templates/editor.html
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/PHASE5B_ABOUT_VERTICAL_LAYOUT_AND_PORTFOLIO_REFERENCE.md
+docs/pack-notes/PACK_NOTES_PHASE5B.md
+docs/pack-manifests/PACK_MANIFEST_PHASE5B.txt
+PROJECT_CHANGELOG.md

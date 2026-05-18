@@ -1,0 +1,9 @@
+src/app/sitePages.ts
+src/app/siteInteractionsController.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE5_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/PHASE5H_ABOUT_BACKGROUND_MOTION_REFINEMENT.md
+docs/pack-notes/PACK_NOTES_PHASE5H.md
+docs/pack-manifests/PACK_MANIFEST_PHASE5H.txt
+PROJECT_CHANGELOG.md

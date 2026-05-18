@@ -96,9 +96,11 @@ export function validateImportRecords(records, existingImages = []) {
   const warnings = [];
   const existingIds = new Set(existingImages.map((image) => image.id).filter(Boolean));
   const seenIds = new Set();
+  const seenFilenames = new Set();
 
   records.forEach((record, index) => {
     const label = record.title || record.id || `Import ${index + 1}`;
+    const originalFilename = String(record.originalFilename ?? "").trim().toLowerCase();
 
     if (!record.id) {
       addIndexedMessage(errors, index, `${label}: ID is required.`);
@@ -115,6 +117,14 @@ export function validateImportRecords(records, existingImages = []) {
 
     if (record.id) {
       seenIds.add(record.id);
+    }
+
+    if (originalFilename) {
+      if (seenFilenames.has(originalFilename)) {
+        addIndexedMessage(warnings, index, `${label}: another pending file has the same filename. The import can continue, but confirm this is not an accidental duplicate.`);
+      }
+
+      seenFilenames.add(originalFilename);
     }
 
     if (!record.title) {

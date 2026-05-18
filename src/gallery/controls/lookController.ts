@@ -1,11 +1,7 @@
-// Handles mouse-look and pointer lock for the 3D gallery.
+// Handles first-person look controls for the 3D gallery.
 //
-// This file owns:
-// - clicking the canvas to lock the pointer
-// - pointer lock state
-// - mouse movement
-// - yaw and pitch values
-// - camera rotation
+// Desktop uses pointer lock and mouse movement.
+// Touch/coarse input uses direct drag-to-look on the gallery canvas.
 
 import * as THREE from 'three';
 
@@ -13,20 +9,27 @@ type LookControllerOptions = {
   canvas: HTMLCanvasElement;
   camera: THREE.PerspectiveCamera;
   initialYaw: number;
+  inputMode?: 'desktop' | 'touch';
 };
 
 export class LookController {
   private canvas: HTMLCanvasElement;
   private camera: THREE.PerspectiveCamera;
+  private inputMode: 'desktop' | 'touch';
 
   private yaw: number;
   private pitch = 0;
   private isPointerLocked = false;
+  private activeTouchLookPointerId: number | null = null;
+  private lastTouchLookX = 0;
+  private lastTouchLookY = 0;
   private sensitivity = 0.002;
+  private touchSensitivity = 0.0042;
 
   constructor(options: LookControllerOptions) {
     this.canvas = options.canvas;
     this.camera = options.camera;
+    this.inputMode = options.inputMode ?? 'desktop';
     this.yaw = options.initialYaw;
 
     this.camera.rotation.order = 'YXZ';
@@ -38,6 +41,14 @@ export class LookController {
     this.canvas.addEventListener('contextmenu', this.handleContextMenu);
     document.addEventListener('pointerlockchange', this.handlePointerLockChange);
     document.addEventListener('mousemove', this.handleMouseMove);
+
+    if (this.inputMode === 'touch') {
+      this.canvas.addEventListener('pointerdown', this.handleTouchLookStart);
+      this.canvas.addEventListener('pointermove', this.handleTouchLookMove);
+      this.canvas.addEventListener('pointerup', this.handleTouchLookEnd);
+      this.canvas.addEventListener('pointercancel', this.handleTouchLookEnd);
+      this.canvas.addEventListener('lostpointercapture', this.handleTouchLookEnd);
+    }
   }
 
   public unbindEvents() {
@@ -45,6 +56,14 @@ export class LookController {
     this.canvas.removeEventListener('contextmenu', this.handleContextMenu);
     document.removeEventListener('pointerlockchange', this.handlePointerLockChange);
     document.removeEventListener('mousemove', this.handleMouseMove);
+
+    if (this.inputMode === 'touch') {
+      this.canvas.removeEventListener('pointerdown', this.handleTouchLookStart);
+      this.canvas.removeEventListener('pointermove', this.handleTouchLookMove);
+      this.canvas.removeEventListener('pointerup', this.handleTouchLookEnd);
+      this.canvas.removeEventListener('pointercancel', this.handleTouchLookEnd);
+      this.canvas.removeEventListener('lostpointercapture', this.handleTouchLookEnd);
+    }
   }
 
   public getYaw() {
@@ -58,6 +77,10 @@ export class LookController {
   }
 
   private handleCanvasClick = () => {
+    if (this.inputMode === 'touch') {
+      return;
+    }
+
     if (document.pointerLockElement === this.canvas) {
       return;
     }
@@ -88,13 +111,56 @@ export class LookController {
       return;
     }
 
-    this.yaw -= event.movementX * this.sensitivity;
-    this.pitch -= event.movementY * this.sensitivity;
+    this.applyLookDelta(event.movementX, event.movementY, this.sensitivity);
+  };
+
+  private handleTouchLookStart = (event: PointerEvent) => {
+    if (event.pointerType === 'mouse' || this.activeTouchLookPointerId !== null) {
+      return;
+    }
+
+    this.activeTouchLookPointerId = event.pointerId;
+    this.lastTouchLookX = event.clientX;
+    this.lastTouchLookY = event.clientY;
+    this.canvas.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+
+  private handleTouchLookMove = (event: PointerEvent) => {
+    if (event.pointerId !== this.activeTouchLookPointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - this.lastTouchLookX;
+    const deltaY = event.clientY - this.lastTouchLookY;
+
+    this.lastTouchLookX = event.clientX;
+    this.lastTouchLookY = event.clientY;
+    this.applyLookDelta(deltaX, deltaY, this.touchSensitivity);
+    event.preventDefault();
+  };
+
+  private handleTouchLookEnd = (event: PointerEvent) => {
+    if (event.pointerId !== this.activeTouchLookPointerId) {
+      return;
+    }
+
+    if (this.canvas.hasPointerCapture(event.pointerId)) {
+      this.canvas.releasePointerCapture(event.pointerId);
+    }
+
+    this.activeTouchLookPointerId = null;
+    event.preventDefault();
+  };
+
+  private applyLookDelta(deltaX: number, deltaY: number, sensitivity: number) {
+    this.yaw -= deltaX * sensitivity;
+    this.pitch -= deltaY * sensitivity;
 
     const maxPitch = Math.PI / 2 - 0.1;
     this.pitch = Math.max(-maxPitch, Math.min(maxPitch, this.pitch));
 
     this.camera.rotation.y = this.yaw;
     this.camera.rotation.x = this.pitch;
-  };
+  }
 }

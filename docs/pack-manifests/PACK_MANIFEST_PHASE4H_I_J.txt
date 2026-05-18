@@ -1,0 +1,16 @@
+local-editor/app/image_importer.py
+local-editor/static/editor.css
+local-editor/static/js/api.js
+local-editor/static/js/collect.js
+local-editor/static/js/dom.js
+local-editor/static/js/importValidation.js
+local-editor/static/js/main.js
+local-editor/static/js/render.js
+local-editor/templates/editor.html
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/PHASE4H_I_J_EDITOR_FUNCTIONALITY_PACK.md
+PROJECT_CHANGELOG.md
+PACK_NOTES_PHASE4H_I_J.md
+PACK_MANIFEST_PHASE4H_I_J.txt
