@@ -6,6 +6,43 @@ Current source files remain the source of truth. This changelog is a historical 
 
 ---
 
+## 2026-05-18 — Phase 8A Gallery environment direction start
+
+### Summary
+
+- Started Phase 8: advanced 3D gallery texture, lighting, atmosphere, and room realism.
+- Recorded the proposed museum/private-archive visual direction before major runtime Three.js visual changes.
+- Added a Phase 8 active handoff and Phase 8A direction note.
+- Recorded a recommended implementation order: materials/lighting foundation, atmosphere/spatial grounding, room expansion feasibility, then optional window/time-of-day concept.
+- Preserved the current Phase 7 SEO/Lighthouse closeout baseline and hash-routing decision.
+
+### Files changed
+
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE7_ACTIVE.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE7_CLOSEOUT.md`
+- `docs/PHASE7E_SEO_LIGHTHOUSE_CLOSEOUT.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE8A_GALLERY_ENVIRONMENT_DIRECTION_START.md`
+- `docs/pack-notes/PACK_NOTES_PHASE8A.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE8A.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm ci --ignore-scripts`
+- `npm run build`
+- Static documentation marker checks
+- Pack manifest check
+- `unzip -t`
+
+### Notes
+
+- This is a docs-only start pack.
+- No runtime code, CSS, data, image assets, editor behavior, public copy, hash routing, favicon/logo assets, social preview assets, wall placement, collision behavior, plaque fallback behavior, or mobile controls changed.
+
 ## 2026-05-15 — Phase 4D import review workflow polish
 
 ### Changed
@@ -3329,3 +3366,1361 @@ Additional tested behavior:
 
 - This is a docs-only closeout pack.
 - No runtime code, CSS, data, image assets, editor behavior, public copy, hash routing, favicon/logo assets, or social preview assets were changed.
+
+## 2026-05-18 — Phase 8B gallery materials and lighting foundation
+
+### Summary
+
+- Started the runtime implementation side of Phase 8 with a restrained 3D gallery materials/lighting pass.
+- Replaced the random floor grain with seeded deterministic procedural texture generation so the gallery floor remains visually stable between loads.
+- Added subtle procedural wall, room-shell wall, ceiling, and paper/mat texture treatment to reduce flatness without adding external texture assets.
+- Refined frame, trim, ceiling panel, plaque-body, floor, wall, and ceiling material values for a quieter museum/private-archive feel.
+- Adjusted gallery lighting toward lower global wash and warmer local ceiling-panel pools without adding runtime shadow maps.
+- Added static transparent per-artwork contact-shadow planes behind frames as a baked-shadow-style alternative to dynamic shadows.
+- Corrected stale Phase 8 roadmap language that still said the phase had not started.
+
+### Files changed
+
+- `src/gallery/environment/galleryMaterials.ts`
+- `src/gallery/environment/galleryLighting.ts`
+- `src/gallery/GalleryScene.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE7_ACTIVE.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE7_CLOSEOUT.md`
+- `docs/PHASE7E_SEO_LIGHTHOUSE_CLOSEOUT.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE8B_MATERIALS_LIGHTING_FOUNDATION.md`
+- `docs/pack-notes/PACK_NOTES_PHASE8B.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE8B.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm ci --ignore-scripts`
+- `npm run build`
+
+### Notes
+
+- No room footprint, wall placement, collision, plaque fallback, gallery curation, editor, mobile-control, hash-routing, SEO, public-copy, favicon/logo/social-preview, image-asset, or dependency changes were made.
+- No WebGL shadow maps, post-processing, HDRI assets, or external material textures were added.
+- A Playwright/Chromium gallery smoke screenshot was attempted, but local navigation to the Vite server was blocked by the sandbox administrator policy with `net::ERR_BLOCKED_BY_ADMINISTRATOR`.
+
+## 2026-05-18 — Phase 8B root-relative pack format correction
+
+### Summary
+
+- Reissued the Phase 8B materials/lighting foundation pack in root-relative replacement-pack format.
+- Documented that future assistant-created replacement packs should place changed project paths directly at the zip root, so the pack can be copied into the repository root without creating a nested wrapper folder.
+- Removed the top-level phase README pattern from the corrected pack format; pack notes and manifests remain inside `docs/pack-notes/` and `docs/pack-manifests/`.
+- Kept the Phase 8B runtime implementation unchanged from the prior Phase 8B pack.
+
+### Files changed
+
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`
+- `docs/PHASE8B_MATERIALS_LIGHTING_FOUNDATION.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/pack-notes/PACK_NOTES_PHASE8B.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE8B.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- Pack manifest/structure check
+- `unzip -t`
+
+### Notes
+
+- No runtime code, CSS, data, image assets, editor behavior, routing, public copy, favicon/logo/social preview assets, wall placement, collision, plaque fallback, gallery curation, or mobile controls changed in this correction.
+
+## 2026-05-18 — Phase 8C gallery load recovery hotfix
+
+### Summary
+
+- Responded to the reported regression that the virtual gallery no longer loaded after the Phase 8B materials/lighting pack.
+- Backed out the Phase 8B experimental `GalleryScene.ts` per-artwork contact-shadow mesh wiring and restored the pre-Phase-8B scene-construction flow.
+- Removed the now-unused contact-shadow material helper from `galleryMaterials.ts`.
+- Preserved the lower-risk Phase 8B deterministic procedural material textures and warmer low-cost lighting balance.
+- Added documentation for the recovery decision and reinforced that hotfix packs must preserve root-relative replacement-pack formatting.
+
+### Files changed
+
+- `src/gallery/GalleryScene.ts`
+- `src/gallery/environment/galleryMaterials.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE8C_GALLERY_LOAD_RECOVERY_HOTFIX.md`
+- `docs/pack-notes/PACK_NOTES_PHASE8C.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE8C.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- static check that `GalleryScene.ts` no longer contains `contactShadow` wiring
+- static check that `galleryMaterials.ts` no longer exports `createArtworkContactShadowMaterial`
+- root-relative pack structure check
+- `unzip -t`
+
+### Notes
+
+- No room footprint, wall placement, collision, plaque fallback, gallery curation, editor, mobile-control, hash-routing, SEO, public-copy, favicon/logo/social-preview, image-asset, data-schema, or dependency changes were made.
+- A local browser gallery smoke test could not be completed in this sandbox because Chromium navigation to local server URLs is blocked by policy.
+
+## 2026-05-18 — Phase 8E Gallery Surface Tone Correction
+
+- Corrected the Phase 8B/8C visual issue where procedural wall/ceiling texture maps created an unappealing darker tone across the top of the gallery walls and visible wall cap faces.
+- Removed procedural wall and ceiling texture maps from `src/gallery/environment/galleryMaterials.ts`.
+- Preserved deterministic floor texture and deterministic paper/mat texture so Phase 8 keeps the lower-cost material foundation without the problematic wall banding.
+- Adjusted `src/gallery/environment/galleryLighting.ts` slightly to reduce muddy upper-room tone while keeping the inexpensive hemisphere/directional/point-light model.
+- Documented that the generated Phase 8D runtime rollback should be treated as fallback-only/not accepted unless explicitly applied, because the user clarified Phase 8C worked after a proper browser refresh.
+- Preserved room footprint, wall placement, collision behavior, plaque fallback logic, gallery curation/editor logic, mobile controls, image assets, routing, public copy, favicon/logo/social-preview deferrals, and dependency set.
+
+
+
+## 2026-05-18 — Phase 8F Gallery Motion Artifact Cleanup
+
+### Summary
+
+- Responded to Phase 8E visual feedback: the darker top-wall/cap band was gone, but a greenish-grey tracer appeared to be left behind by wall geometry while moving the camera.
+- Removed the remaining procedural floor texture map and procedural paper/mat texture map from `src/gallery/environment/galleryMaterials.ts`.
+- Restored stable flat matte room material values and the pre-Phase-8B lighting balance.
+- Restored safer ceiling light panel material behavior instead of the Phase 8B/8C/8E `depthWrite: false` transparent panel treatment.
+- Explicitly set renderer frame-clear flags in `src/gallery/GalleryScene.ts` to protect against visual residue between frames.
+- Documented Phase 8F as the current corrective stability pass and preserved the root-relative replacement-pack convention.
+
+### Files changed
+
+- `src/gallery/GalleryScene.ts`
+- `src/gallery/environment/galleryMaterials.ts`
+- `src/gallery/environment/galleryLighting.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE8F_GALLERY_MOTION_ARTIFACT_CLEANUP.md`
+- `docs/pack-notes/PACK_NOTES_PHASE8F.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE8F.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- Static check that `galleryMaterials.ts` no longer creates procedural `CanvasTexture` surface maps
+- Static check that `galleryMaterials.ts` no longer contains `depthWrite: false` in the ceiling light panel material
+- Static check that `GalleryScene.ts` explicitly sets renderer frame-clear flags
+- Root-relative pack structure check
+- `unzip -t`
+
+### Notes
+
+- No room footprint, wall placement, collision, plaque fallback, gallery curation, editor, mobile-control, hash-routing, SEO, public-copy, favicon/logo/social-preview, image-asset, data-schema, or dependency changes were made.
+- If this stabilizes camera movement but feels visually flat, the next Phase 8 pass should be proposed before implementation and should avoid broad procedural wall textures, high-frequency floor/paper texture maps, or transparent per-artwork shadow geometry.
+
+## 2026-05-18 — Phase 8G Gallery Tonal Refinement Restart
+
+### Summary
+
+- Responded to the user confirming that the Phase 8F greenish-grey camera-movement tracer appeared to be gone, while the room still needed to look more refined.
+- Restarted visual improvement from the stable Phase 8F baseline without reintroducing procedural surface textures, transparent per-artwork shadow geometry, dynamic shadow maps, post-processing, new dependencies, or new image assets.
+- Warmed and cleaned up flat matte material tones for walls, room shell, ceiling, trim, frames, mats, fallback artwork, and plaque bodies.
+- Replaced the translucent ceiling-light panel material with an opaque softly emissive material and added simple four-bar ceiling-light fixture frames so the panels read as more architectural.
+- Warmed the low-cost hemisphere/directional/point-light balance and slightly adjusted scene/clear color plus tone-mapping exposure.
+
+### Files changed
+
+- `src/gallery/GalleryScene.ts`
+- `src/gallery/environment/galleryMaterials.ts`
+- `src/gallery/environment/galleryLighting.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE8G_GALLERY_TONAL_REFINEMENT.md`
+- `docs/pack-notes/PACK_NOTES_PHASE8G.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE8G.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- Static check that Phase 8G does not introduce `CanvasTexture` in `src/gallery/environment/galleryMaterials.ts`
+- Static check that Phase 8G does not add `shadowMap`, `castShadow`, or `receiveShadow` usage in `src/`
+- Root-relative pack structure check
+- `unzip -t`
+
+### Notes
+
+- No room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile-control, hash-routing, SEO, public-copy, favicon/logo/social-preview, image-asset, data-schema, or dependency changes were made.
+- The manual visual check is whether the gallery now feels warmer and more refined while the darker top-wall/cap band and greenish-grey movement tracer remain gone.
+
+
+## 2026-05-19 — Phase 8H Frame and Ceiling Refinement
+
+### Summary
+
+- Continued Phase 8 gallery visual polish from the accepted Phase 8G tonal baseline after the user confirmed Phase 8G appeared to be working.
+- Refined artwork frames so they feel deeper and more physical, with dark-wood material values and modest clearcoat response rather than flat black matte material alone.
+- Added separate four-piece frame rail geometry around each artwork to create visible frame depth while preserving artwork placement, wall placement, collision, plaque fallback, and focus targeting.
+- Added frame-rail geometry updates during high-resolution texture replacement so frame rails stay aligned when resolved artwork dimensions change after texture load.
+- Added subtle ceiling relief strips as simple opaque geometry instead of reintroducing artifact-prone ceiling texture maps.
+- Preserved the stable no-procedural-surface-texture-map/no-shadow-geometry path established after Phase 8F and Phase 8G.
+
+### Files changed
+
+- `src/gallery/GalleryScene.ts`
+- `src/gallery/environment/galleryMaterials.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE8H_FRAME_AND_CEILING_REFINEMENT.md`
+- `docs/pack-notes/PACK_NOTES_PHASE8H.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE8H.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- Static check that `src/gallery/environment/galleryMaterials.ts` does not create procedural `CanvasTexture` surface maps
+- Static check that no `shadowMap`, `castShadow`, or `receiveShadow` usage was added in `src/`
+- Root-relative pack structure check
+- `unzip -t`
+
+### Notes
+
+- No room footprint, wall placement, wall ID, movement/collision, plaque placement/fallback, gallery curation/editor logic, mobile-control, hash-routing, SEO, public-copy, favicon/logo/social-preview, image-asset, data-schema, or dependency changes were made.
+- The manual visual check is whether the frames feel more dimensional and wood-like without becoming glossy/plastic, and whether the ceiling relief adds quiet texture without looking decorative or game-like.
+
+## 2026-05-19 — Phase 8I Frame Sheen Tuning
+
+### Summary
+
+- Responded to user visual feedback after Phase 8H that the frame material was too dark and did not feel glossy enough after a hard browser refresh.
+- Lightened the dark wood/walnut frame palette modestly so the frames remain restrained but are less black-heavy.
+- Increased `MeshPhysicalMaterial` clearcoat response and reduced roughness on the main frame and frame rail materials.
+- Added a narrow inner-sheen frame rail layer as simple opaque geometry so the frames catch light more visibly without texture maps, transparency, shadow geometry, dynamic shadow maps, post-processing, new dependencies, or new image assets.
+- Kept the Phase 8H ceiling relief strip treatment unchanged.
+
+### Files changed
+
+- `src/gallery/GalleryScene.ts`
+- `src/gallery/environment/galleryMaterials.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE8I_FRAME_SHEEN_TUNING.md`
+- `docs/pack-notes/PACK_NOTES_PHASE8I.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE8I.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- Static check that `src/gallery/environment/galleryMaterials.ts` does not create procedural `CanvasTexture` surface maps
+- Static check that no `shadowMap`, `castShadow`, or `receiveShadow` usage was added in `src/`
+- Root-relative pack structure check
+- `unzip -t`
+
+### Notes
+
+- No room footprint, wall placement, wall ID, movement/collision, plaque placement/fallback, gallery curation/editor logic, mobile-control, hash-routing, SEO, public-copy, favicon/logo/social-preview, image-asset, data-schema, or dependency changes were made.
+- The manual visual check is whether the frames feel lighter and more lacquered/wood-like without becoming plastic, orange, metallic, or more visually important than the artwork.
+
+## 2026-05-19 — Phase 8J Dramatic Lighting and Frame Highlights
+
+### Summary
+
+- Responded to the approved dramatic museum/private-archive visual target and the user's request to keep refining frames while beginning the more dramatic lighting work within Phase 8.
+- Continued from the Phase 8I baseline, which the user reported felt a little better but not final.
+- Lowered broad ambient/fill lighting and added focused, non-shadow-casting spotlights from the existing ceiling-panel positions to create stronger artwork emphasis without runtime shadow-map cost.
+- Darkened the ceiling and ceiling-detail materials to create more overhead atmosphere while keeping wall tones warm and avoiding the prior top-wall/cap band artifact.
+- Tuned frame, rail, catchlight, mat, plaque, trim, wall, fixture, and ceiling material values toward a warmer cinematic archive palette.
+- Added opaque frame lacquer-catchlight and depth-edge rail geometry so the dark-stained wood frame treatment can catch light more visibly through geometry rather than relying on material clearcoat alone.
+- Kept procedural surface texture maps, transparent per-artwork shadow geometry, dynamic shadows, post-processing, new dependencies, new image assets, fog, room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+- `src/gallery/GalleryScene.ts`
+- `src/gallery/environment/galleryMaterials.ts`
+- `src/gallery/environment/galleryLighting.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE8J_DRAMATIC_LIGHTING_AND_FRAME_HIGHLIGHTS.md`
+- `docs/pack-notes/PACK_NOTES_PHASE8J.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE8J.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- `npm run build`
+- Static check that `src/gallery/environment/galleryMaterials.ts` does not create procedural `CanvasTexture` surface maps
+- Static check that no `shadowMap`, `castShadow`, or `receiveShadow` usage was added in `src/`
+- Root-relative pack structure check
+- `unzip -t`
+
+### Notes
+
+- Vite can run in this sandbox, but Chromium navigation to local and file URLs is blocked by the sandbox policy, so direct screenshot iteration against the generated mockup could not be completed here.
+- Manual visual review should check whether the gallery feels closer to the approved dramatic mockup while the previous top-wall/cap band and greenish-grey movement tracer remain gone.
+
+## 2026-05-19 — Phase 8K Dramatic Lighting Target Refinement
+
+### Summary
+
+- Superseded Phase 8J before user acceptance to make a stronger attempt at the approved dramatic museum/private-archive lighting target.
+- Attempted a temporary no-local-URL Three.js visual harness by bundling inline browser code and rendering through Playwright `page.set_content()` instead of `localhost`, `file://`, or Vite dev-server navigation.
+- Confirmed Chromium could execute inline code but could not create a WebGL context in the sandbox, so exact screenshot iteration against the approved mockup was not available here.
+- Used the approved mockup, the user-provided current-gallery screenshot, luminance comparison, and conservative source-level Three.js tuning to guide the pass.
+- Darkened scene background/clear color, floor, ceiling, shell walls, trim, and ceiling detail to move the room away from the flat bright-grey baseline and closer to the warmer dramatic reference.
+- Added focused non-shadow-casting accent spotlights from curated artwork positions, capped at eight artworks.
+- Retained and warmed the Phase 8J non-shadowing ceiling-panel spotlight direction.
+- Refined dark stained-wood/walnut frame material values and added angled opaque lacquer-edge bevel geometry to help frames catch light without transparent shadow planes or dynamic shadows.
+- Kept procedural surface texture maps, transparent per-artwork shadow geometry, dynamic shadows, post-processing, new dependencies, new image assets, fog, room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+- `src/gallery/GalleryScene.ts`
+- `src/gallery/environment/galleryMaterials.ts`
+- `src/gallery/environment/galleryLighting.ts`
+- `docs/CURRENT_PROJECT_HANDOFF.md`
+- `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`
+- `docs/PROJECT_ROADMAP_CURRENT.md`
+- `docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md`
+- `docs/PHASE8K_DRAMATIC_LIGHTING_TARGET_REFINEMENT.md`
+- `docs/pack-notes/PACK_NOTES_PHASE8K.md`
+- `docs/pack-manifests/PACK_MANIFEST_PHASE8K.txt`
+- `PROJECT_CHANGELOG.md`
+
+### Validation
+
+- Attempted temporary no-local-URL Three.js screenshot harness with inline Playwright content.
+- Confirmed sandbox Chromium could not create a WebGL context for Three.js rendering.
+- `npm run build`
+- Static check that `src/gallery/environment/galleryMaterials.ts` does not create procedural `CanvasTexture` surface maps
+- Static check that no `shadowMap`, `castShadow`, or `receiveShadow` usage was added in `src/`
+- Root-relative pack structure check
+- `unzip -t`
+
+### Notes
+
+- This is a stronger dramatic-lighting pass than Phase 8J and requires local visual review after a hard refresh.
+- If it overshoots, tune light intensity and material brightness in a narrow follow-up rather than reintroducing procedural surface texture maps, transparent shadow geometry, dynamic shadows, post-processing, or room-layout changes.
+
+
+## 2026-05-19 — Phase 8L Dramatic Lighting Rollback to Phase 8J
+
+### Summary
+
+- Reverted the over-dark Phase 8K runtime lighting/material changes after user visual review found that Phase 8K made the room much too dark with basically no visible lighting.
+- Restored the Phase 8J runtime baseline for `GalleryScene.ts`, `galleryMaterials.ts`, and `galleryLighting.ts`.
+- Marked Phase 8K as rejected/superseded before acceptance.
+- Marked Phase 8J as the current runtime baseline after Phase 8L rollback.
+- Preserved the approved Phase 8 constraints: no dynamic shadow maps, no procedural surface texture maps, no transparent shadow geometry, no post-processing, no new dependencies, no new image assets, no room layout changes, no collision changes, no plaque fallback changes, no editor changes, and no mobile-control changes.
+
+### Files changed
+
+```text
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8L_DRAMATIC_LIGHTING_ROLLBACK.md
+docs/pack-notes/PACK_NOTES_PHASE8L.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8L.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+static no-shadow-map checks
+static no-CanvasTexture check in galleryMaterials.ts
+root-relative pack structure check
+unzip -t
+```
+
+### Notes
+
+External visual tools such as the Three.js Editor or CodePen may be useful for isolated lighting sketches, but they should not replace validation in the actual project because they do not mirror the project's data, camera, controls, frame geometry, wall placement, plaque fallback, or Vite build environment. The current sandbox can execute inline browser code but cannot create a WebGL context, so local user screenshots remain necessary for visual validation.
+
+## 2026-05-19 — Phase 8M Screenshot-Guided Lighting Rebalance
+
+### Summary
+
+- Continued Phase 8 dramatic-lighting work after Phase 8K was rejected for making the room much too dark and Phase 8L restored the Phase 8J runtime baseline.
+- Responded to the user's current screenshots by making a narrower lighting rebalance rather than another broad darkness/exposure swing.
+- Raised warm base visibility so the ceiling, floor, walls, fixtures, plaques, and frames remain readable.
+- Added a subtle warm emissive floor to the ceiling material so the overhead plane stays atmospheric but does not collapse into near-black.
+- Retuned ceiling-panel point lights and non-shadowing spotlights for warmer visible pools.
+- Added restrained non-shadowing artwork accent spotlights, capped at eight artworks, to improve artwork/frame presence without dynamic shadows.
+- Kept dark stained-wood frame material and catchlight values controlled so the frames remain wood-like rather than plastic, metallic, orange, or dominant.
+- Documented the normal-screenshot review workflow: wide main-artwork view, frame close-up, and corridor/depth view.
+- Kept procedural surface texture maps, transparent per-artwork shadow geometry, dynamic shadows, post-processing, new dependencies, new image assets, fog, room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+```text
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8M_SCREENSHOT_GUIDED_LIGHTING_REBALANCE.md
+docs/pack-notes/PACK_NOTES_PHASE8M.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8M.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+static no-shadow-map checks
+static no-CanvasTexture check in galleryMaterials.ts
+root-relative pack structure check
+unzip -t
+```
+
+### Notes
+
+Manual review should start with three normal screenshots after a hard refresh: a wide main-artwork view, a close frame/artwork/plaque view, and a corridor/depth view showing multiple fixtures. A capture-mode tool is not necessary yet because normal screenshots are sufficient for this stage of Phase 8 tuning.
+
+
+## 2026-05-19 — Phase 8N Light Volume and Ceiling Readability
+
+### Summary
+
+- Continued Phase 8 dramatic-lighting work after the user provided the three requested Phase 8M screenshots.
+- Screenshot review showed that Phase 8M kept the room readable, but the ceiling still collapsed toward black and the visible fixtures were not creating enough believable warm light volume on nearby architecture.
+- Added non-shadowing Three.js `RectAreaLight` fixture and artwork wall-wash lights through the existing `three` dependency, without adding a new package dependency.
+- Raised ceiling material emissive warmth so the ceiling should read as dark warm charcoal/brown rather than pure black.
+- Warmed and slightly lowered the base floor/wall palette so local lighting can define the room instead of broad ambient fill alone.
+- Strengthened ceiling-panel point/spot lighting for warmer visible pools.
+- Added capped artwork wall-wash lights to improve frame, wall, and artwork presence without dynamic shadows.
+- Kept procedural surface texture maps, transparent per-artwork shadow geometry, dynamic shadows, post-processing, fog, new image assets, new package dependencies, room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+```text
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8N_LIGHT_VOLUME_AND_CEILING_READABILITY.md
+docs/pack-notes/PACK_NOTES_PHASE8N.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8N.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+static no-shadow-map checks
+static no-CanvasTexture check in galleryMaterials.ts
+root-relative pack structure check
+unzip -t
+```
+
+### Notes
+
+Phase 8N should be reviewed using the same three normal screenshots: wide main-artwork exposure check, frame/material close-up, and corridor/depth lighting check. The expected improvement is not a darker room; it is a more believable warm light volume, a visible-but-atmospheric ceiling, and stronger fixture/artwork presence without dynamic shadows or texture-map artifacts.
+
+## 2026-05-19 — Phase 8O Gallery Polish and Future Lighting Backlog
+
+### Summary
+
+- Continued Phase 8 after the user confirmed Phase 8N looked great.
+- Preserved the successful Phase 8N dramatic-lighting architecture rather than making another aggressive exposure/darkness move.
+- Slightly calmed the golden/yellow cast of the wall, shell, floor, trim, fixture, and wall-wash palette.
+- Kept the ceiling dark and atmospheric, but nudged material values so it should remain more readable than the earlier near-black passes.
+- Softened the visible ceiling panel glow so fixtures should feel less like flat bright screens.
+- Tuned frame rail and catchlight colors away from copper/orange and toward restrained dark stained walnut.
+- Documented future local-editor basic/fast gallery lighting mode so editor curation can eventually avoid heavier dramatic lighting.
+- Documented future visible geometric spotlight/wall-wash fixture objects because the current artwork/wall illumination has no clear physical source.
+- Kept procedural surface texture maps, transparent per-artwork shadow geometry, dynamic shadows, post-processing, fog, new image assets, new package dependencies, room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8O_GALLERY_POLISH_AND_BACKLOG.md
+docs/pack-notes/PACK_NOTES_PHASE8O.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8O.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+static no-shadow-map checks
+static no-CanvasTexture check in galleryMaterials.ts
+root-relative pack structure check
+unzip -t
+```
+
+### Notes
+
+Phase 8O is a micro-polish pass, not a new lighting architecture. If local screenshots show Phase 8N was better, revert only these small color/intensity/material changes rather than rolling back the whole Phase 8 lighting direction.
+
+
+## 2026-05-19 — Phase 8P Refined Gallery Lighting Polish
+
+### Summary
+
+- Continued Phase 8 after the user provided Phase 8O screenshots and asked to keep refining toward the approved dramatic museum/private-archive mockup.
+- Preserved the successful Phase 8N/8O dramatic-lighting architecture and made a smaller material/fixture/color-balance pass rather than adding a new rendering technique.
+- Slightly neutralized wall, shell, floor, trim, mat, and plaque materials to reduce the remaining gold/yellow cast.
+- Raised ceiling and ceiling-detail material readability toward warm charcoal/brown without returning to the over-dark Phase 8K result.
+- Softened and slightly reduced the visible ceiling light panel surface inside a darker frame so the fixtures should feel less like flat bright screens.
+- Shifted fixture and artwork wall-wash colors toward refined warm museum tungsten rather than saturated amber/yellow.
+- Slightly reduced artwork wall-wash intensity so the illuminated wall field around featured works should feel more controlled.
+- Pulled frame rail and catchlight colors away from copper/orange and back toward restrained dark stained walnut.
+- Kept procedural surface texture maps, transparent per-artwork shadow geometry, dynamic shadows, post-processing, fog, new image assets, new package dependencies, room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+```text
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8P_REFINED_GALLERY_LIGHTING_POLISH.md
+docs/pack-notes/PACK_NOTES_PHASE8P.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8P.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+static no-shadow-map checks
+static no-CanvasTexture check in galleryMaterials.ts
+root-relative pack structure check
+unzip -t
+```
+
+### Notes
+
+Phase 8P should be reviewed with the same three screenshots: wide main-artwork exposure check, frame/material close-up, and corridor/depth lighting check. The intended change is subtle: less yellow/copper, a slightly more readable ceiling, and more recessed/architectural ceiling panels while preserving the Phase 8N/8O dramatic-lighting feel.
+
+
+## 2026-05-19 — Phase 8Q Cooled Lighting and Surface Texture Refinement
+
+### Summary
+
+- Continued Phase 8 after the user said they liked the direction but wanted a cooler overall room, more texture in the floor/walls, a mostly matte floor with only a hint of reflection, and lighting/shadow shaping closer to the approved mockup.
+- Preserved the accepted Phase 8N/8O/8P dramatic-lighting architecture instead of introducing a new rendering technique.
+- Shifted the wall, shell, floor, trim, mat, plaque, and fixture palette toward a more neutral museum greige balance rather than amber/gold.
+- Reintroduced subtle deterministic low-frequency wall/floor surface texture directly in `galleryMaterials.ts` with no external assets.
+- Tuned the floor material to stay mostly matte while catching a restrained reflective response under the dramatic lighting.
+- Cooled and slightly tightened the fixture/artwork lighting colors and intensities while keeping dynamic shadow maps, post-processing, and new dependencies out of scope.
+- Kept room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+```text
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8Q_COOLED_LIGHTING_AND_SURFACE_TEXTURE_REFINEMENT.md
+docs/pack-notes/PACK_NOTES_PHASE8Q.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8Q.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+root-relative pack structure check
+unzip -t
+```
+
+### Notes
+
+Phase 8Q should be reviewed with the same three screenshots: wide main-artwork exposure check, frame/material close-up, and corridor/depth lighting check. The intended change is a cooler, more neutral room with subtle wall/floor character and a mostly matte floor that still catches a restrained hint of reflection.
+
+
+## 2026-05-19 — Phase 8R Warmth and Texture Seam Cleanup
+
+### Summary
+
+- Continued Phase 8 after the user reported that Phase 8Q was too cool, showed visible floor/wall texture seam grids, made the dark frame areas read too flat/black, and exposed floating geometry under the frames.
+- Preserved the accepted Phase 8N/8O/8P/8Q dramatic-lighting architecture instead of introducing a new rendering technique.
+- Rebuilt the procedural wall/floor textures as lower-frequency tileable patterns to reduce visible repeat seams and grid artifacts.
+- Added a bit of warmth back into the room lighting and material palette while avoiding a return to the earlier gold/yellow cast.
+- Lightened the frame, rail, and catchlight palette so dark wood remains readable under low light and does not collapse into flat black.
+- Removed the bottom frame depth-edge strip so the floating geometry under frames no longer renders.
+- Kept room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+```text
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8R_WARMTH_AND_TEXTURE_SEAM_CLEANUP.md
+docs/pack-notes/PACK_NOTES_PHASE8R.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8R.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+root-relative pack structure check
+unzip -t
+```
+
+### Notes
+
+Phase 8R should be reviewed with the same wide main-artwork, frame/material close-up, corridor/depth, and artifact/floating-geometry screenshots. The intended change is a smoother surface treatment with less obvious grid/seam repetition, slightly warmer room balance, more readable frames, and no floating strip under the frames.
+
+
+## 2026-05-19 — Phase 8S Surface Texture Enhancement
+
+### Summary
+
+- Continued Phase 8 after the user said the gallery was getting closer but wanted more texture across all surfaces before the next warmth and shadow pass.
+- Preserved the accepted Phase 8R lighting balance, frame readability, seam cleanup, and floating-geometry fix instead of changing the lighting again.
+- Reworked the procedural floor texture toward a faint matte-marble / polished-stone treatment with low-contrast cloudy veining and restrained material response.
+- Added a very subtle gritty/chipped-paint ceiling texture using procedural color, roughness, and bump maps.
+- Slightly extended the existing wall texture treatment while keeping it restrained and tileable to avoid obvious seam/grid artifacts.
+- Kept room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8S_SURFACE_TEXTURE_ENHANCEMENT.md
+docs/pack-notes/PACK_NOTES_PHASE8S.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8S.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+root-relative pack structure check
+unzip -t
+```
+
+### Notes
+
+Phase 8S should be reviewed with the same wide main-artwork, frame/material close-up, and corridor/depth screenshots, plus any ceiling or floor close-up screenshots that help judge whether the new texture remains subtle rather than noisy. The intended result is richer material character without reintroducing visible repeat seams or materially shifting the lighting balance.
+
+
+## 2026-05-19 — Phase 8T Texture Visibility and Ceiling Readability
+
+### Summary
+
+- Continued Phase 8 after the user reported that Phase 8S textures were still not noticeable enough and that the ceiling remained too dark.
+- Made the procedural floor, wall, and ceiling texture maps more visible while keeping them low-frequency and restrained.
+- Pushed the floor further toward a faint matte-marble / polished-stone treatment with more visible cloudy veining.
+- Brightened the ceiling material and ceiling atmosphere lift so the ceiling reads as warm charcoal instead of near-black.
+- Made the ceiling gritty/chipped-paint shell texture more legible without adding new assets.
+- Kept object shadows deferred to the next focused pass.
+- Kept room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8T_TEXTURE_VISIBILITY_AND_CEILING_READABILITY.md
+docs/pack-notes/PACK_NOTES_PHASE8T.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8T.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+root-relative pack structure check
+unzip -t
+```
+
+### Notes
+
+Phase 8T should be reviewed with wide main-artwork, frame/material close-up, corridor/depth, and ceiling/floor texture screenshots. The intended result is not a new lighting architecture; it is more visible material character and a ceiling that can be read as textured warm charcoal before object-shadow work begins.
+
+
+## 2026-05-19 — Phase 8U Selective Shadows and Material Readability
+
+### Summary
+
+- Continued Phase 8 after the user reported that Phase 8T still did not show enough texture change, the ceiling remained too dark, and asked whether adding shadows would help the textures pop.
+- Introduced the first focused dynamic-shadow test in Phase 8 rather than enabling shadows globally.
+- Enabled `THREE.PCFSoftShadowMap` in the gallery renderer.
+- Configured only a capped set of ceiling-panel spotlights to cast shadows.
+- Marked floor, walls, trims, frame geometry, plaques, and relevant architecture to receive/cast shadows where appropriate.
+- Reimagined the floor procedural texture toward larger matte-marble / polished-stone movement and increased material response so glancing light and shadows can read more clearly.
+- Raised ceiling material color/emissive values so the texture should read as warm charcoal instead of near-black.
+- Kept post-processing, fog, transparent shadow planes, new image assets, new package dependencies, room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+```text
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8U_SELECTIVE_SHADOWS_AND_MATERIAL_READABILITY.md
+docs/pack-notes/PACK_NOTES_PHASE8U.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8U.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+root-relative pack structure check
+unzip -t
+```
+
+### Notes
+
+Phase 8U should be reviewed for both visual quality and performance. If the dynamic-shadow pass creates unacceptable load or movement cost, the next pack should reduce shadow map size/count or roll back the shadow-specific changes while preserving any successful material adjustments.
+
+
+## 2026-05-19 — Phase 8V Texture Reference and Loading Feedback Polish
+
+### Summary
+
+- Continued Phase 8 after the user provided marble, knockdown/venetian ceiling, and sand-textured wall references.
+- Preserved the Phase 8U selective-shadow architecture.
+- Removed explicit ceiling-grid strip geometry so the ceiling reads through material texture instead of visible panel lines.
+- Reworked procedural wall maps toward a more visible sand/plaster texture.
+- Reworked procedural floor maps toward a more visible faint matte-marble / polished-stone effect.
+- Lifted the ceiling material and strengthened its knockdown/venetian-plaster texture so it should read as textured warm charcoal rather than near-black.
+- Added idle module prewarming for the gallery renderer/texture loader and loading-phase text to make the gallery loading screen feel less frozen during larger module work.
+- It does not change room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile controls, image assets, routing, public copy, dependencies, post-processing, fog, transparent shadow planes, logo/favicon/social-preview work, or external texture assets.
+
+### Files changed
+
+```text
+src/app/galleryController.ts
+src/app/renderSite.ts
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+src/styles/global.css
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8V_TEXTURE_REFERENCE_AND_LOADING_FEEDBACK_POLISH.md
+docs/pack-notes/PACK_NOTES_PHASE8V.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8V.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+### Notes
+
+Phase 8V should be reviewed for texture visibility, ceiling readability, and loading feel. If the loading screen still appears frozen, the next technical pass should look at additional module splitting or deeper progress instrumentation rather than tying that concern to further material/lighting tuning.
+
+
+## 2026-05-19 — Phase 8W Gallery Lighting Import Recovery Hotfix
+
+### Summary
+
+- Responded to the Vite import-resolution failure reported after Phase 8V.
+- Assessed the uploaded current source and confirmed `src/gallery/GalleryScene.ts` imports `./environment/galleryLighting`, but `src/gallery/environment/galleryLighting.ts` was missing from the source tree.
+- Restored the missing `src/gallery/environment/galleryLighting.ts` module from the selective-shadow lighting baseline expected by the current gallery runtime.
+- Treated Phase 8W as a build/runtime recovery hotfix, not a new visual/material direction. Phase 8V remains the current visual/material/loading baseline pending local review.
+- Kept room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, and logo/favicon/social-preview work out of scope.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8W_GALLERY_LIGHTING_IMPORT_RECOVERY_HOTFIX.md
+docs/pack-notes/PACK_NOTES_PHASE8W.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8W.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+### Notes
+
+The failure was caused by a missing file in the Phase 8V applied source, not by a required folder restructuring. The import path in the uploaded source is correct as `./environment/galleryLighting`; the target module simply was not present.
+
+
+## 2026-05-19 — Phase 8X Texture Reference and Loading Prewarm Correction
+
+### Summary
+
+- Continued Phase 8 after the user confirmed Phase 8V + Phase 8W fixed the missing import and improved the loader, but the gallery wall/ceiling/floor textures still did not read clearly and the loader still appeared to freeze.
+- Reworked generated wall texture toward more visible sand/plaster color, roughness, and bump variation.
+- Reworked generated floor texture toward clearer faint matte-marble / polished-stone movement.
+- Reworked generated ceiling texture toward a brighter warm-charcoal knockdown/Venetian-plaster read and added a low emissive-map contribution so it can remain visible in low light.
+- Disabled ceiling shadow receiving so selective shadows do not create grid-like ceiling lines.
+- Added `prewarmGalleryEnvironmentMaterials()` and started material-module prewarming during idle time and on pointer/focus/touch intent for gallery-entry controls.
+- Kept room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, logo/favicon/social-preview work, transparent shadow planes, post-processing, fog, and new dependencies out of scope.
+
+### Files changed
+
+```text
+src/app/galleryController.ts
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8X_TEXTURE_REFERENCE_AND_LOADING_PREWARM_CORRECTION.md
+docs/pack-notes/PACK_NOTES_PHASE8X.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8X.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+### Notes
+
+Phase 8X should be reviewed for four things: texture visibility on gallery walls, matte-marble floor readability, ceiling texture/readability without grid-like shadow lines, and whether prewarming makes the loader feel less frozen. If the loader still pauses, the next technical step should be deeper gallery chunk splitting or a deliberate basic/fast lighting mode rather than only loading-message changes.
+
+
+## 2026-05-19 — Phase 8Z Gallery Runtime Recovery and Lightweight Textures
+
+### Summary
+
+- Created a recovery pack after Phase 8Y caused the gallery to briefly show the loading screen and then return to the welcome screen.
+- Restored `prewarmGalleryEnvironmentMaterials` in `src/gallery/environment/galleryMaterials.ts`, which is expected by the active gallery controller from the loading-prewarm work.
+- Replaced the expensive Phase 8Y per-pixel/fBM material generation with lower-cost Canvas-drawn texture maps.
+- Kept visible but less organized sand/plaster wall texture, the improved faint matte-marble floor direction, and a lighter warm-charcoal knockdown ceiling.
+- Preserved room footprint, wall placement, collision, plaque fallback, editor logic, mobile controls, image assets, routing, public copy, dependencies, post-processing boundaries, and external-texture deferrals.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/PHASE8Z_GALLERY_RUNTIME_RECOVERY_AND_LIGHTWEIGHT_TEXTURES.md
+docs/pack-notes/PACK_NOTES_PHASE8Z.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8Z.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+
+## 2026-05-19 — Phase 8AA surface restraint and ceiling balance
+
+### Summary
+
+- Continued Phase 8 after Phase 8Z successfully recovered the runtime but made the wall and floor material treatment too visible.
+- Kept the lightweight Canvas texture path and restored `prewarmGalleryEnvironmentMaterials` export from Phase 8Z.
+- Replaced large wall blotches with subtler organic sand/plaster grain.
+- Reduced wall bump and roughness contrast so the surface reads closer to refined gallery plaster.
+- Reined in floor marble contrast and directionality so the floor remains faint and matte rather than overtly patterned.
+- Balanced the ceiling texture so it remains readable without becoming the dominant surface.
+- No changes to room footprint, wall placement, collision, plaque fallback, editor logic, mobile controls, routing, image assets, public copy, dependencies, or post-processing.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/PHASE8AA_SURFACE_RESTRAINT_AND_CEILING_BALANCE.md
+docs/pack-notes/PACK_NOTES_PHASE8AA.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AA.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+
+## 2026-05-19 — Phase 8AB surface unification and floor restraint
+
+### Summary
+
+- Continued Phase 8 after local screenshots of Phase 8AA showed the runtime was stable and the heavy procedural look was restrained, but the floor still read too directional/patterned and the ceiling/walls needed more unified museum polish.
+- Kept the lightweight Canvas texture path and restored `prewarmGalleryEnvironmentMaterials` export.
+- Reduced floor marble vein count, opacity, bump response, and texture repeat so the floor reads more like quiet matte stone instead of a patterned/rippled surface.
+- Restrained wall plaster marks while keeping subtle organic texture present.
+- Toned the ceiling toward a darker but readable warm-charcoal finish with smaller knockdown texture marks.
+- Did not change lighting topology, shadow topology, room footprint, wall placement, collision, plaque fallback, editor logic, routing, mobile controls, package dependencies, image assets, post-processing, fog, or external texture assets.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AB_SURFACE_UNIFICATION_AND_FLOOR_RESTRAINT.md
+docs/pack-notes/PACK_NOTES_PHASE8AB.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AB.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+
+## 2026-05-19 — Phase 8AC Ceiling Texture Recovery and Overhead Lift
+
+### Summary
+
+- Continued Phase 8 after local screenshots of Phase 8AB showed the room was more stable, with floor and wall materials restrained, but the ceiling still read as a broad, flat, heavy plane.
+- Preserved the Phase 8AB wall/floor material direction instead of reworking all surfaces again.
+- Increased organic ceiling knockdown/chipped-paint variation and slightly lifted the ceiling base/material response.
+- Added a small overhead-wash and ceiling-atmosphere lighting lift without changing the broader selective-shadow architecture.
+- Kept room footprint changes, wall placement changes, collision changes, plaque fallback changes, editor/curation changes, mobile-control changes, routing changes, SEO changes, public-copy changes, logo/favicon/social-preview work, new dependencies, post-processing, fog, transparent shadow planes, and external texture assets out of scope.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AC_CEILING_TEXTURE_RECOVERY_AND_OVERHEAD_LIFT.md
+docs/pack-notes/PACK_NOTES_PHASE8AC.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AC.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+
+## 2026-05-19 — Phase 8AD Ceiling Integration and Fixture-Pool Rebalance
+
+### Summary
+
+- Continued Phase 8 after local review showed Phase 8AC made the ceiling readable but still left it too broad, uniform, and brown.
+- Kept the restrained wall and floor material direction intact.
+- Pulled the ceiling texture/material back toward darker warm charcoal.
+- Reduced broad uniform ceiling emissive/overhead wash so the ceiling does not read as a large flat brown plane.
+- Slightly strengthened localized ceiling-panel light pools so fixture-driven lighting remains visible.
+- Preserved the lightweight Canvas texture path, `prewarmGalleryEnvironmentMaterials`, selective-shadow architecture, room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile controls, image assets, routing, public copy, dependencies, post-processing boundaries, and external-asset avoidance.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AD_CEILING_INTEGRATION_AND_FIXTURE_POOL_REBALANCE.md
+docs/pack-notes/PACK_NOTES_PHASE8AD.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AD.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+
+## 2026-05-19 — Phase 8AE Surface Detail Visibility and Ceiling Finish
+
+### Summary
+
+- Continued Phase 8 after local review showed Phase 8AD was more integrated but wall and ceiling texture still read too restrained from normal viewing distance.
+- Kept the restrained floor material direction intact.
+- Increased organic sand/plaster wall readability without returning to the heavy mottled Phase 8Z look.
+- Made ceiling knockdown texture more visible through texture-modulated material response instead of a broad uniform brightness lift.
+- Slightly strengthened localized ceiling-panel pools so the ceiling texture can register near fixtures.
+- Preserved the lightweight Canvas texture path, `prewarmGalleryEnvironmentMaterials`, selective-shadow architecture, room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile controls, image assets, routing, public copy, dependencies, post-processing boundaries, and external-asset avoidance.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AE_SURFACE_DETAIL_VISIBILITY_AND_CEILING_FINISH.md
+docs/pack-notes/PACK_NOTES_PHASE8AE.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AE.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+
+## 2026-05-19 — Phase 8AF Ceiling Readability and Surface Microtexture
+
+### Summary
+
+- Continued Phase 8 after local review of Phase 8AE screenshots showed the overall room balance was stable, but the ceiling had dropped too far toward black again and wall texture still read too flat from normal viewing distance.
+- Kept the restrained floor direction intact.
+- Slightly increased wall sand/plaster microtexture visibility without returning to the heavy mottled Phase 8Z look.
+- Lightened the ceiling texture base and increased ceiling material response so knockdown texture can register around fixture pools.
+- Added a small overhead wash and ceiling-atmosphere lift increase so the ceiling finish remains visible without a broad exposure swing.
+- Preserved selective-shadow architecture, room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile controls, image assets, routing, public copy, dependencies, post-processing boundaries, and external-asset avoidance.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AF_CEILING_READABILITY_AND_SURFACE_MICROTEXTURE.md
+docs/pack-notes/PACK_NOTES_PHASE8AF.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AF.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+
+## 2026-05-19 — Phase 8AG Ceiling Finish Separation and Localized Rake Light
+
+### Summary
+
+- Continued Phase 8 after local screenshots of Phase 8AF showed that the room balance, wall finish, and floor direction were stable, but the ceiling still read too close to a black flat plane.
+- Preserved the current wall/floor material direction.
+- Increased ceiling knockdown texture contrast and bump response so finish detail can register near fixtures.
+- Added two very low-intensity localized ceiling rake/lift point lights and slightly strengthened localized ceiling-panel pools.
+- Avoided broad exposure changes, room layout changes, wall placement changes, collision changes, plaque fallback changes, editor/gallery curation changes, mobile-control changes, new dependencies, external texture assets, post-processing, fog, routing changes, and public-copy changes.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AG_CEILING_FINISH_SEPARATION_AND_RAKE_LIGHT.md
+docs/pack-notes/PACK_NOTES_PHASE8AG.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AG.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+
+## 2026-05-19 — Phase 8AH loading cost rollback and ceiling lift
+
+### Summary
+
+- Continued Phase 8 after the user reported that Phase 8AG loaded slower than the previous update and that the ceiling should be lighter overall.
+- Removed the two added Phase 8AG ceiling rake point lights because they increased runtime cost without producing enough ceiling readability.
+- Reduced selective shadow cost by limiting shadow-casting ceiling spots to the entry/rear pair and lowering shadow map size from `1024` to `512`.
+- Reduced procedural material generation cost by lowering texture canvas sizes and mark counts for the current environment material path.
+- Lightened the ceiling base texture and ceiling material response while keeping wall/floor direction and room layout unchanged.
+- Kept room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile controls, image assets, routing, public copy, dependencies, post-processing, fog, and external texture assets out of scope.
+
+### Files changed
+
+```text
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AH_LOADING_COST_ROLLBACK_AND_CEILING_LIFT.md
+docs/pack-notes/PACK_NOTES_PHASE8AH.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AH.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+### Notes
+
+If gallery loading still appears to freeze, the next pass should move away from material/light tweaks and focus on staged gallery scene initialization or a basic/fast gallery lighting mode for editor use.
+
+
+## 2026-05-19 — Phase 8AI staged texture open and ceiling lift
+
+### Summary
+
+- Continued Phase 8 after the user reported that Phase 8AH still opened slower than the previous update and that the overall ceiling should be lighter.
+- Reviewed the uploaded Chrome trace at a high level. The main gallery-open issue appears to be a long first animation-frame/opening path with image decode/GPU work, not a small static CSS/layout issue.
+- Changed gallery texture preloading so the opening path waits only for priority preview textures, then streams remaining preview and full artwork textures in small idle batches.
+- Disabled mipmap generation for preview/thumb textures to reduce early GPU upload cost.
+- Updated `GalleryScene` so deferred preview textures can populate artwork placeholders and so full-resolution textures are not overwritten by late previews.
+- Reduced selective dynamic shadow cost from the previous entry/rear pair to one low-cost shadow-casting ceiling spotlight with a `384` shadow map.
+- Lightened the ceiling through material and existing light response while keeping the current floor/wall/gallery balance intact.
+- Kept room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile controls, image assets, routing, public copy, dependencies, post-processing, fog, and external texture assets out of scope.
+
+### Files changed
+
+```text
+src/gallery/artwork/galleryTextureLoader.ts
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+src/gallery/environment/galleryLighting.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AI_STAGED_TEXTURE_OPEN_AND_CEILING_LIFT.md
+docs/pack-notes/PACK_NOTES_PHASE8AI.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AI.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+unzip -t
+```
+
+### Notes
+
+If gallery loading still appears to freeze after this pass, the next pass should implement a true fast/basic gallery lighting mode or staged scene construction. Additional small material-only changes are unlikely to address the trace-indicated opening bottleneck.
+
+## 2026-05-19 — Phase 8AJ ceiling architecture and modern fixture geometry
+
+### Summary
+
+- Continued Phase 8 after the user approved the proposed next direction for ceiling interest, sleeker ceiling light models, and restrained room fullness while preserving the liked Phase 8AI lighting direction.
+- Added shallow ceiling architectural fields and thin dark border lips so the ceiling no longer reads as a completely flat empty slab.
+- Replaced the previous simple ceiling-light panel geometry with layered recessed fixture wells: dark recess plate, inner well, thin trim frame, and frosted diffuser.
+- Added subtle room-shell base reveals, floor-edge shadow strips, and freestanding gallery-wall end caps to make the room feel more architecturally finished without adding furniture clutter.
+- Added dedicated fixture-recess and wall-reveal materials while preserving the current Phase 8AI floor/wall/ceiling/frame/artwork material direction.
+- Kept gallery lighting architecture, room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile controls, image assets, routing, SEO, public copy, dependencies, fog, post-processing, and external texture assets out of scope.
+
+### Files changed
+
+```text
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AJ_CEILING_ARCHITECTURE_AND_MODERN_FIXTURES.md
+docs/pack-notes/PACK_NOTES_PHASE8AJ.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AJ.txt
+PROJECT_CHANGELOG.md
+```
+
+### Validation
+
+```text
+npm run build
+```
+
+Browser screenshot validation was attempted with a local Vite dev server, but sandbox Chromium blocked localhost navigation with `net::ERR_BLOCKED_BY_ADMINISTRATOR`.
+
+### Notes
+
+Phase 8AJ should be reviewed visually before additional room-shell changes. The next adjustment should be based on screenshots: simplify ceiling fields if the ceiling feels patterned, lighten fixture recess/trim materials if the wells feel heavy, or defer fixture/wall-wash physical source models until the room-shell direction is accepted.
+
+
+## 2026-05-19 — Phase 8AK remove rejected Phase 8AJ geometry
+
+Phase 8AJ was rejected after local visual review because the added ceiling fields, recessed fixture-well geometry, base/floor reveal strips, and freestanding-wall end caps created intrusive black geometry and did not match the provided dramatic gallery reference.
+
+Phase 8AK is a corrective rollback pack. It restores the Phase 8AI uploaded-source versions of:
+
+```text
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryMaterials.ts
+```
+
+The pack removes the rejected Phase 8AJ runtime geometry and preserves the Phase 8AI lighting/material direction that the user liked before Phase 8AJ.
+
+Out of scope:
+
+- no gallery lighting architecture changes;
+- no room footprint changes;
+- no wall placement, collision, or plaque fallback changes;
+- no editor or curation changes;
+- no mobile controls changes;
+- no image asset, routing, SEO, public copy, dependency, fog, or post-processing changes.
+
+Docs updated:
+
+```text
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AJ_CEILING_ARCHITECTURE_AND_MODERN_FIXTURES.md
+docs/PHASE8AK_REMOVE_REJECTED_AJ_GEOMETRY.md
+docs/pack-notes/PACK_NOTES_PHASE8AK.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AK.txt
+```
+
+Validation:
+
+```text
+npm run build
+```
+
+Result: passed.
+
+
+## 2026-05-19 — Phase 8AL reference-led surface and light calibration
+
+Phase 8AL builds from the Phase 8AK rollback baseline after Phase 8AJ was rejected. It does not add new architectural geometry. The pass focuses on moving the current room closer to the provided dramatic gallery reference through smaller calibration changes.
+
+Runtime changes:
+
+```text
+src/gallery/GalleryScene.ts
+src/gallery/environment/galleryLighting.ts
+src/gallery/environment/galleryMaterials.ts
+```
+
+Summary:
+
+- reduced the visual mass of the existing ceiling light-panel geometry by making the diffuser and frame thinner, smaller, and closer to the ceiling;
+- warmed/darkened the floor procedural material so the room reads less like a flat gray game plane;
+- added subtle floor slab/reveal lines inside the floor texture only, with no floor geometry additions;
+- warmed and restrained sand/plaster wall texture values;
+- darkened and smoothed the ceiling material/emissive balance so the ceiling remains atmospheric without relying on added ceiling geometry;
+- made small lighting calibration changes that lower broad fill while preserving localized warm artwork illumination;
+- preserved room footprint, wall placement, collision, plaque fallback, editor/curation logic, image assets, routing, public copy, dependencies, post-processing boundaries, fog avoidance, and logo/favicon/social-preview deferrals.
+
+Docs updated:
+
+```text
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/PHASE8AL_REFERENCE_LED_SURFACE_AND_LIGHT_CALIBRATION.md
+docs/pack-notes/PACK_NOTES_PHASE8AL.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8AL.txt
+```
+
+Validation:
+
+```text
+npm run build
+```
+
+Result: passed.
+
+A sandbox browser screenshot/runtime check was attempted with a temporary Vite test page, but Chromium could not initialize a usable headless WebGL/GPU path in this environment. The temporary test page was removed and is not included in the pack.

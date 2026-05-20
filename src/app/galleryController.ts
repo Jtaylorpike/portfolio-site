@@ -27,6 +27,10 @@ type GallerySceneInstance = {
 let activeGallery: GallerySceneInstance | null = null;
 let activeGalleryInputMode: GalleryInputMode = 'desktop';
 let galleryPreloadPromise: Promise<void> | null = null;
+let gallerySceneModulePromise: Promise<typeof import('../gallery/GalleryScene')> | null = null;
+let galleryTextureLoaderModulePromise: Promise<typeof import('../gallery/artwork/galleryTextureLoader')> | null = null;
+let galleryMaterialsModulePromise: Promise<typeof import('../gallery/environment/galleryMaterials')> | null = null;
+let galleryPrewarmStarted = false;
 let isGalleryOpening = false;
 let hasMovedMouseInGallery = false;
 let galleryInputListenersBound = false;
@@ -62,9 +66,44 @@ function waitForNextFrame() {
   });
 }
 
+function waitForGalleryIdle() {
+  return new Promise<void>((resolve) => {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(() => resolve(), { timeout: 1400 });
+      return;
+    }
+
+    globalThis.setTimeout(() => resolve(), 160);
+  });
+}
+
+function loadGalleryTextureLoaderModule() {
+  if (!galleryTextureLoaderModulePromise) {
+    galleryTextureLoaderModulePromise = import('../gallery/artwork/galleryTextureLoader');
+  }
+
+  return galleryTextureLoaderModulePromise;
+}
+
+function loadGallerySceneModule() {
+  if (!gallerySceneModulePromise) {
+    gallerySceneModulePromise = import('../gallery/GalleryScene');
+  }
+
+  return gallerySceneModulePromise;
+}
+
+function loadGalleryMaterialsModule() {
+  if (!galleryMaterialsModulePromise) {
+    galleryMaterialsModulePromise = import('../gallery/environment/galleryMaterials');
+  }
+
+  return galleryMaterialsModulePromise;
+}
+
 function preloadGalleryImages() {
   if (!galleryPreloadPromise) {
-    galleryPreloadPromise = import('../gallery/artwork/galleryTextureLoader').then(
+    galleryPreloadPromise = loadGalleryTextureLoaderModule().then(
       ({ preloadGalleryTextures }) => preloadGalleryTextures(galleryArtworks)
     );
   }
@@ -72,10 +111,37 @@ function preloadGalleryImages() {
   return galleryPreloadPromise;
 }
 
+function prewarmGalleryModules() {
+  if (galleryPrewarmStarted) {
+    return;
+  }
+
+  galleryPrewarmStarted = true;
+
+  window.setTimeout(() => {
+    void waitForGalleryIdle().then(() => {
+      void loadGalleryTextureLoaderModule();
+      void loadGallerySceneModule();
+      void loadGalleryMaterialsModule().then(({ prewarmGalleryEnvironmentMaterials }) => {
+        window.setTimeout(() => prewarmGalleryEnvironmentMaterials(), 0);
+      });
+    });
+  }, 420);
+}
+
+function prewarmGalleryFromIntent() {
+  void loadGalleryTextureLoaderModule();
+  void loadGallerySceneModule();
+  void loadGalleryMaterialsModule().then(({ prewarmGalleryEnvironmentMaterials }) => {
+    window.setTimeout(() => prewarmGalleryEnvironmentMaterials(), 0);
+  });
+}
+
 export function setupGalleryController() {
   const galleryOverlay = document.querySelector<HTMLDivElement>('#galleryOverlay');
   const galleryCanvas = document.querySelector<HTMLDivElement>('#galleryCanvas');
   const galleryLoading = document.querySelector<HTMLDivElement>('#galleryLoading');
+  const galleryLoadingPhase = document.querySelector<HTMLElement>('#galleryLoadingPhase');
   const galleryControlCard = document.querySelector<HTMLElement>('#galleryControlCard');
   const galleryTouchControls = document.querySelector<HTMLElement>('#galleryTouchControls');
   const galleryTouchMove = document.querySelector<HTMLElement>('#galleryTouchMove');
@@ -407,6 +473,15 @@ export function setupGalleryController() {
     galleryInfoNote.textContent = '';
   }
 
+
+  function setGalleryLoadingPhase(message: string) {
+    if (!galleryLoadingPhase) {
+      return;
+    }
+
+    galleryLoadingPhase.textContent = message;
+  }
+
   async function openGallery() {
     if (!galleryOverlay || !galleryCanvas) {
       return;
@@ -427,14 +502,29 @@ export function setupGalleryController() {
     resetControlCardState();
     clearArtworkInfo();
     galleryLoading?.classList.add('is-active');
+    setGalleryLoadingPhase('Preparing image textures');
 
     await waitForNextFrame();
 
     try {
-      await preloadGalleryImages();
+      const imagePreloadPromise = preloadGalleryImages();
+      const sceneModulePromise = loadGallerySceneModule();
+      const materialsPrewarmPromise = loadGalleryMaterialsModule().then(({ prewarmGalleryEnvironmentMaterials }) => {
+        setGalleryLoadingPhase('Preparing room surfaces');
+        prewarmGalleryEnvironmentMaterials();
+      });
+
+      await imagePreloadPromise;
+      setGalleryLoadingPhase('Loading the gallery renderer');
       await waitForNextFrame();
 
-      const { GalleryScene } = await import('../gallery/GalleryScene');
+      await materialsPrewarmPromise;
+      setGalleryLoadingPhase('Building the room');
+      await waitForNextFrame();
+
+      const { GalleryScene } = await sceneModulePromise;
+      setGalleryLoadingPhase('Activating lighting and shadows');
+      await waitForNextFrame();
 
       activeGallery = new GalleryScene({
         container: galleryCanvas,
@@ -450,9 +540,11 @@ export function setupGalleryController() {
         bindTouchControls();
       }
 
+      setGalleryLoadingPhase('Entering the room');
       await waitForNextFrame();
 
       galleryLoading?.classList.remove('is-active');
+      setGalleryLoadingPhase('Preparing image textures');
     } catch (error) {
       console.error('Gallery failed to open:', error);
       closeGallery();
@@ -468,6 +560,7 @@ export function setupGalleryController() {
 
     isGalleryOpening = false;
     galleryLoading?.classList.remove('is-active');
+    setGalleryLoadingPhase('Preparing image textures');
 
     if (activeGallery) {
       activeGallery.destroy();
@@ -485,6 +578,35 @@ export function setupGalleryController() {
     document.body.classList.remove('gallery-is-open');
     activeGalleryInputMode = 'desktop';
   }
+
+  prewarmGalleryModules();
+
+  document.addEventListener('pointerenter', (event) => {
+    const target = event.target as HTMLElement | null;
+    const trigger = target?.closest<HTMLElement>('[data-open-virtual-gallery]');
+
+    if (trigger) {
+      prewarmGalleryFromIntent();
+    }
+  }, true);
+
+  document.addEventListener('focusin', (event) => {
+    const target = event.target as HTMLElement | null;
+    const trigger = target?.closest<HTMLElement>('[data-open-virtual-gallery]');
+
+    if (trigger) {
+      prewarmGalleryFromIntent();
+    }
+  });
+
+  document.addEventListener('touchstart', (event) => {
+    const target = event.target as HTMLElement | null;
+    const trigger = target?.closest<HTMLElement>('[data-open-virtual-gallery]');
+
+    if (trigger) {
+      prewarmGalleryFromIntent();
+    }
+  }, { passive: true });
 
   document.addEventListener('click', (event) => {
     const target = event.target as HTMLElement | null;

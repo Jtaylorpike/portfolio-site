@@ -51,6 +51,7 @@ export function renderSite(app: HTMLElement) {
           <p class="eyebrow">Loading Gallery</p>
           <h2>Preparing the room</h2>
           <p>Images are loading before the gallery opens so the first movement feels smoother.</p>
+          <p class="gallery-loading-phase" id="galleryLoadingPhase">Preparing image textures</p>
           <div class="gallery-loading-bar" aria-hidden="true">
             <span></span>
           </div>

@@ -1,0 +1,16 @@
+TaylorPikePortfolio-Phase8O-GalleryPolishAndBacklog-RootFormat-Pack.zip
+
+Root-relative replacement pack. Copy/extract contents directly into the project root.
+
+Files included:
+
+PROJECT_CHANGELOG.md
+docs/CHAT_TRANSFER_AND_UPLOAD_WORKFLOW.md
+docs/CURRENT_PROJECT_HANDOFF.md
+docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md
+docs/PHASE8O_GALLERY_POLISH_AND_BACKLOG.md
+docs/PROJECT_ROADMAP_CURRENT.md
+docs/pack-manifests/PACK_MANIFEST_PHASE8O.txt
+docs/pack-notes/PACK_NOTES_PHASE8O.md
+src/gallery/environment/galleryLighting.ts
+src/gallery/environment/galleryMaterials.ts

@@ -68,6 +68,6 @@ Deferred by roadmap placement:
 
 ## Next phase
 
-Phase 8 is the next available future phase: advanced 3D gallery expansion, texture, and lighting.
+Historical Phase 7E note: Phase 8 was the next future phase at closeout time. Current project status is superseded by the active handoff docs; Phase 8 is now active and Phase 8B has implemented the first materials/lighting foundation.
 
 Phase 8 should be careful, incremental work that preserves collision behavior, wall placement, plaque fallback logic, gallery curation/editor data flow, and accepted mobile controls.

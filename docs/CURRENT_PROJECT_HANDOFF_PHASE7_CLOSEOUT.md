@@ -126,7 +126,7 @@ Do not reopen Phase 7 for these unless the user asks:
 
 ## Next available phase
 
-Phase 8 is the next available future phase: advanced 3D gallery expansion, texture, and lighting. It has not started.
+Historical Phase 7 note: at Phase 7 closeout, Phase 8 had not yet started. Current project status is superseded by `docs/CURRENT_PROJECT_HANDOFF.md` and `docs/CURRENT_PROJECT_HANDOFF_PHASE8_ACTIVE.md`; Phase 8 is now active and Phase 8B has implemented the first materials/lighting foundation.
 
 Phase 8 should preserve the accepted gallery/editor foundations: collision behavior, wall placement, plaque fallback, gallery curation data flow, and mobile touch controls.
 

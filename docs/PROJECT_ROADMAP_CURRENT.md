@@ -1,12 +1,14 @@
 # Taylor Pike Portfolio — Current Roadmap
 
-Updated: 2026-05-18
+Updated: 2026-05-19
 
 ## Current project state
 
+The portfolio is currently in Phase 8AK, a corrective rollback that removes the rejected Phase 8AJ architectural geometry and restores the Phase 8AI gallery scene/material runtime files.
+
 The portfolio has completed Phase 7: SEO/discoverability and launch-readiness infrastructure as of Phase 7E. Phase 7A added the SEO metadata infrastructure, Phase 7B set the canonical/search baseline to `https://taylorpike.com/` and added the repeatable Lighthouse runner, Phase 7C fixed the homepage CTA accessible-name/touch-target issue and added first-hero LCP preload hints, Phase 7D raised primary navigation font sizing to the 12px Lighthouse mobile legibility threshold, and Phase 7E records the accepted closeout state. The accepted post-Phase 7D Lighthouse baseline is Performance 98, Accessibility 100, Best Practices 93, and SEO 100. Hash routing remains accepted for now.
 
-Phase 8: Advanced 3D gallery expansion, texture, and lighting is the next available future phase, but it has not started.
+Phase 8AK is the current 3D gallery baseline. It restores the Phase 8AI runtime after Phase 8AJ was rejected in local visual review. The next visual pass should pursue the provided dramatic gallery reference more directly through smaller changes, preserving the liked Phase 8AI lighting balance and avoiding broad new architectural geometry unless approved first.
 
 The public design baseline is stable. The user is happy with the current portfolio direction. Future work should avoid broad visual churn unless a specific problem is identified.
 
@@ -207,11 +209,35 @@ Deferred by user preference:
 - final image/gallery curation;
 - homepage thumbnail rendition efficiency until the pre-launch image pipeline/performance pass after final image/gallery/homepage curation.
 
-## Phase 8 — Advanced 3D gallery expansion, texture, and lighting
+## Phase 8 — Advanced 3D gallery expansion, texture, lighting, atmosphere, and room realism
 
-Status: future / next available phase, not started.
+Status: active as of Phase 8A.
 
 Long-term direction: museum/private archive feeling.
+
+Phase 8 should proceed in controlled passes because the current gallery has accepted collision, wall placement, plaque fallback, editor curation logic, and mobile touch controls.
+
+Recommended ordering:
+
+1. **Phase 8A — Direction and constraint start.** Define the gallery environment target and record what should not change yet. Complete in this docs-only pack.
+2. **Phase 8B — Materials and lighting foundation.** Implemented, then mostly superseded. Added deterministic procedural wall/floor/ceiling/paper textures and warmer low-cost lighting balance. The static contact-shadow mesh experiment from this phase is superseded by Phase 8C, the wall/ceiling texture-map treatment is superseded by Phase 8E, and the remaining procedural floor/paper texture-map treatment is superseded by Phase 8F.
+3. **Phase 8C — Gallery load recovery hotfix.** Implemented and accepted after a proper browser refresh. Restores the pre-Phase-8B `GalleryScene.ts` scene-construction flow and removes the experimental contact-shadow mesh/material code.
+4. **Phase 8D — Full runtime rollback fallback.** Generated during troubleshooting but not accepted/current after the user clarified Phase 8C worked. Do not treat this as the active source state unless the user explicitly says it was applied.
+5. **Phase 8E — Gallery surface tone correction.** Implemented, then superseded by Phase 8F after visual review. Removed wall and ceiling texture maps that caused the unappealing darker top-wall/cap band.
+6. **Phase 8F — Gallery motion artifact cleanup.** Accepted correction pass. Removed remaining procedural floor/paper texture maps, restored stable flat matte material values and the pre-Phase-8B lighting balance, restored safer ceiling light panel behavior, and explicitly set renderer frame-clear flags.
+7. **Phase 8G — Gallery tonal refinement restart.** Accepted conservative visual baseline. Refined flat material tones, low-cost lighting balance, scene/clear color, tone-mapping exposure, and ceiling-light fixture geometry without procedural texture maps or shadow geometry.
+8. **Phase 8H — Frame and ceiling refinement.** Implemented deeper artwork frames, modest dark-wood frame material response, four-piece frame rail geometry, and subtle ceiling relief through opaque geometry rather than texture maps. User visual review found the frame material too dark and not visibly glossy enough.
+9. **Phase 8I — Frame sheen tuning.** Partial refinement pass. Lightens the Phase 8H frame palette modestly, increases clearcoat response, and adds a narrow inner-sheen rail layer while preserving no texture maps, no shadow geometry, no collision changes, and no room layout changes. User reported it felt a little bit better, but frame refinement remained open.
+10. **Phase 8J — Dramatic lighting and frame highlights.** Previous runtime baseline after Phase 8L rollback. Lowered ambient fill, added focused non-shadow-casting ceiling spotlights, darkened ceiling atmosphere, and added opaque frame catchlight/depth-edge rail geometry while avoiding dynamic shadows, procedural texture maps, post-processing, new assets, and layout/control changes.
+11. **Phase 8K — Dramatic lighting target refinement.** Rejected/superseded before acceptance. Attempted a no-local-URL browser/WebGL test harness; Chromium could load inline code but could not create a WebGL context in the sandbox, so the final pass used target-image luminance analysis and source-level Three.js changes. User visual review found this pass much too dark with basically no visible lighting.
+12. **Phase 8L — Dramatic lighting rollback to Phase 8J.** Corrective rollback. Restored the Phase 8J runtime files and records Phase 8K as rejected/superseded.
+13. **Phase 8M — Screenshot-guided lighting rebalance.** Superseded by Phase 8N after local screenshots showed the ceiling still read too black and fixture lighting did not create enough visible surface illumination.
+14. **Phase 8N — Light volume and ceiling readability.** Accepted runtime refinement. Added non-shadowing Three.js RectAreaLight fixture/artwork wall washes through the existing `three` dependency, raised warm ceiling readability, strengthened fixture-driven pools, and kept texture maps, dynamic shadows, post-processing, fog, new assets, package dependency changes, layout changes, control changes, and editor changes out of scope.
+15. **Phase 8O through Phase 8AI — Gallery texture/readability, loading, and ceiling-lift iteration.** These passes refined the Phase 8N lighting architecture, recovered from a gallery import/runtime break, staged gallery texture opening, reduced early texture upload cost, reduced shadow cost to one low-cost ceiling spotlight, and lifted the ceiling while preserving the accepted lighting direction.
+16. **Phase 8AJ — Ceiling architecture and modern fixture geometry.** Rejected after local visual review. Added ceiling fields, recessed fixture wells, base/floor reveals, and freestanding-wall end caps, but the result created intrusive black geometry and moved away from the provided dramatic gallery reference.
+17. **Phase 8AK — Remove rejected Phase 8AJ geometry.** Current corrective baseline. Restores the Phase 8AI `GalleryScene.ts` and `galleryMaterials.ts` runtime files while preserving the documentation trail.
+21. **Phase 8W/Future — Room expansion feasibility.** Evaluate larger/non-square room models, boundary modeling, and editor/runtime footprint sync before any permanent wall movement.
+22. **Phase 8X — Optional window/time-of-day concept.** Treat windows and time-of-day behavior as later environmental storytelling after the room, materials, lighting, and performance behavior are stable.
 
 Potential future work:
 
@@ -225,7 +251,9 @@ Potential future work:
 - realistic or stylized lighting design;
 - lighting performance strategy for the Three.js gallery;
 - formalized room model from `galleryRoom.json`;
-- careful preservation of collision, wall placement, plaque fallback, and editor curation logic.
+- careful preservation of collision, wall placement, plaque fallback, editor curation logic, and mobile gallery controls.
+
+Phase 8 visual direction should be run by the user before major visible changes.
 
 ## Phase 4G v5 note
 
@@ -366,4 +394,95 @@ Deferred until pre-launch:
 - final About photo curation;
 - final public/3D gallery curation.
 
-Current phase after Phase 7E closeout: Phase 8 is the next available future phase, but it has not started. Final content curation, final copy, logo/favicon/social-preview work, and thumbnail rendition efficiency remain deferred until their appropriate pre-launch or redesign points.
+Current phase after Phase 8P: Phase 8 is active. Phase 8T is the current texture-and-ceiling-readability baseline pending local review unless local visual review rejects it. Future Phase 8/editor backlog includes a basic/fast local-editor gallery lighting toggle after the dramatic lighting target is stable, and restrained visible spotlight/wall-wash fixture geometry for the currently invisible wall-wash/artwork accent lights. Final content curation, final copy, logo/favicon/social-preview work, and thumbnail rendition efficiency remain deferred until their appropriate pre-launch or redesign points.
+
+
+### Phase 8V status update — texture reference and loading feedback polish
+
+Phase 8AH is the current runtime baseline pending local visual review. It follows Phase 8AG after local screenshots showed slower loading and a ceiling that still read too dark. It removes the extra Phase 8AG ceiling rake point lights, reduces selective shadow-map cost, reduces procedural texture-generation footprint by moving color maps to smaller canvases and fewer marks, and lightens the ceiling through material and existing broad/local light balance rather than adding more light objects. It continues after Phase 8AF stabilized the wall/floor direction but screenshots still showed the ceiling reading too close to a black flat plane. Phase 8AG keeps the current wall/floor restraint, increases the ceiling knockdown/bump response, and adds very small localized ceiling rake/lift lighting rather than making broad room/exposure changes. It does not change room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile controls, image assets, routing, public copy, dependencies, post-processing, fog, transparent shadow planes, logo/favicon/social-preview work, or external texture assets.
+
+
+### Phase 8V status update — texture reference and loading feedback polish
+
+Phase 8AH is the current runtime baseline pending local visual review. It follows Phase 8AG after local screenshots showed slower loading and a ceiling that still read too dark. It removes the extra Phase 8AG ceiling rake point lights, reduces selective shadow-map cost, reduces procedural texture-generation footprint by moving color maps to smaller canvases and fewer marks, and lightens the ceiling through material and existing broad/local light balance rather than adding more light objects. It continues after Phase 8AF stabilized the wall/floor direction but screenshots still showed the ceiling reading too close to a black flat plane. Phase 8AG keeps the current wall/floor restraint, increases the ceiling knockdown/bump response, and adds very small localized ceiling rake/lift lighting rather than making broad room/exposure changes. It does not change room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile controls, image assets, routing, public copy, dependencies, post-processing, fog, transparent shadow planes, logo/favicon/social-preview work, or external texture assets.
+
+
+### Phase 8W — Gallery lighting import recovery hotfix
+
+Status: build/runtime recovery hotfix. Phase 8V remains the current visual/material baseline pending local review.
+
+- responds to a Vite import-resolution failure after Phase 8V: `Failed to resolve import "./environment/galleryLighting" from "src/gallery/GalleryScene.ts"`;
+- root cause in the uploaded source: `src/gallery/GalleryScene.ts` imports `./environment/galleryLighting`, but `src/gallery/environment/galleryLighting.ts` was missing from the applied source tree;
+- restores `src/gallery/environment/galleryLighting.ts` from the selective-shadow lighting baseline used by Phase 8U and expected by the current `GalleryScene.ts`;
+- does not change room layout, wall placement, collision, plaque fallback, image assets, editor logic, public copy, routing, SEO, or the Phase 8V material/loading polish direction.
+
+
+### Phase 8X status update — texture reference and loading prewarm correction
+
+Phase 8X is the current runtime baseline pending local visual review. It keeps the Phase 8U/V selective-shadow architecture, removes ceiling shadow receiving to avoid grid-like ceiling lines, makes the generated wall/floor/ceiling textures significantly more legible, and adds material-module prewarming so generated environment textures are prepared before or during the loading phase rather than only during room construction. It does not change room geometry, wall placement, collision, plaque fallback, editor curation logic, controls, image assets, routing, public copy, package dependencies, transparent shadow geometry, post-processing, or fog.
+
+
+### Phase 8Z status update — gallery runtime recovery and lightweight textures
+
+Phase 8AA is the current surface-restraint baseline pending local review. It responds to the Phase 8Y runtime failure where the loading screen appeared briefly and then returned to the welcome screen. The pack restores the material prewarm export expected by the current gallery controller and replaces the heavier Phase 8Y procedural texture generation with lower-cost Canvas-drawn texture maps. It preserves the room footprint, wall placement, collision, plaque fallback, editor logic, mobile controls, routing, public copy, dependencies, post-processing boundaries, and external-asset deferrals.
+
+
+### Phase 8AA — Surface restraint and ceiling balance
+
+Status: current runtime baseline pending local visual review.
+
+Phase 8AA responds to local screenshots after Phase 8Z. Phase 8Z successfully recovered the gallery runtime and made wall/floor/ceiling surfaces visible, but the result overshot: the wall surface read too blotchy, the floor marble became too visibly patterned, and the ceiling was readable but still needed restraint. Phase 8AA keeps the lightweight Canvas texture path and restored `prewarmGalleryEnvironmentMaterials` export, but reduces large wall blotches, replaces them with subtler organic sand/plaster grain, reins in floor marble contrast and directionality, and balances the ceiling texture so it remains readable without dominating the room.
+
+
+### Phase 8AC status update — ceiling texture recovery and overhead lift
+
+Phase 8AH is the current runtime baseline pending local visual review. It follows Phase 8AG after local screenshots showed slower loading and a ceiling that still read too dark. It removes the extra Phase 8AG ceiling rake point lights, reduces selective shadow-map cost, reduces procedural texture-generation footprint by moving color maps to smaller canvases and fewer marks, and lightens the ceiling through material and existing broad/local light balance rather than adding more light objects. It continues after Phase 8AF stabilized the wall/floor direction but screenshots still showed the ceiling reading too close to a black flat plane. Phase 8AG keeps the current wall/floor restraint, increases the ceiling knockdown/bump response, and adds very small localized ceiling rake/lift lighting rather than making broad room/exposure changes.
+
+Next likely Phase 8 work should be screenshot-guided: either object-shadow refinement, visible spotlight/wall-wash fixture geometry, a restrained warmth pass, or a deeper loader/chunk-splitting pass if the gallery still appears to freeze during first open.
+
+
+### Phase 8AF — Surface detail visibility and ceiling finish
+
+Status: current runtime baseline pending local visual review.
+
+- continues from Phase 8AC after screenshots showed the gallery was coherent and readable, but the ceiling still felt too broad, uniform, and brown;
+- keeps the restrained wall and floor material direction intact;
+- pulls the ceiling material back toward darker warm charcoal;
+- reduces broad uniform ceiling emissive/overhead wash so the ceiling does not read as one flat brown plane;
+- slightly strengthens localized ceiling-panel light pools so fixture-driven lighting remains visible;
+- preserves the lightweight Canvas texture path, `prewarmGalleryEnvironmentMaterials`, selective-shadow architecture, room footprint, wall placement, collision, plaque fallback, gallery curation/editor logic, mobile controls, image assets, routing, public copy, dependencies, post-processing boundaries, and external-asset avoidance.
+
+
+### Phase 8AG — Ceiling finish separation and localized rake light
+
+Status: current runtime baseline pending local visual review.
+
+- follows Phase 8AF screenshots where the room balance looked stable but the ceiling still read too black/flat;
+- keeps the current floor and wall material direction;
+- increases ceiling texture/bump response and adds two very low-intensity localized ceiling rake/lift lights;
+- intentionally avoids broad exposure changes or another global material rewrite.
+
+
+---
+
+## 2026-05-19 — Phase 8AI staged texture open and ceiling lift
+
+Phase 8AI is the latest Phase 8 gallery visual/performance pass. It responds to local review after Phase 8AH: gallery first-open loading was still slower than desired and the ceiling still needed to read lighter. A Chrome trace from the user showed a long gallery-open frame with image decode/GPU work during the opening path.
+
+Current Phase 8AI source changes:
+
+- `src/gallery/artwork/galleryTextureLoader.ts` now waits only on priority preview textures before scene construction and streams deferred preview/full artwork textures in small idle batches.
+- Preview/thumb texture uploads no longer generate mipmaps, reducing early GPU cost.
+- `src/gallery/GalleryScene.ts` can accept deferred preview texture updates and prevents a later preview from replacing an already-loaded full texture.
+- `src/gallery/environment/galleryLighting.ts` keeps only one low-cost shadow-casting ceiling spotlight and lowers the shadow map size to `384`.
+- `src/gallery/environment/galleryMaterials.ts` keeps the floor/wall direction while making the ceiling lighter and reducing procedural texture generation counts.
+
+The intended visual direction remains the dramatic museum/private-archive lighting reference: dark controlled ceiling atmosphere, focused warm artwork illumination, restrained surface texture, matte stone/marble-like floor, and frames with depth. If loading still feels frozen, the next pass should add a true fast/basic gallery lighting mode or staged scene construction rather than more small material-only tweaks.
+
+
+### Phase 8AL — Reference-led surface and light calibration
+
+Status: current runtime baseline pending local visual review.
+
+Phase 8AL follows the Phase 8AK rollback and avoids repeating the rejected Phase 8AJ geometry approach. It makes smaller, reference-led changes inside the existing gallery shell: warmer floor and wall material values, darker smoother ceiling atmosphere, thinner/smaller existing light-panel geometry, and mild lighting recalibration that lowers broad fill while preserving warm artwork pools. It does not change room footprint, wall placement, collision, plaque fallback, editor/curation logic, mobile controls, routing, public copy, image assets, dependencies, fog, post-processing, or external texture assets.
+

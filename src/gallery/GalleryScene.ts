@@ -36,10 +36,16 @@ import { MovementController } from './controls/movementController';
 import { LookController } from './controls/lookController';
 import {
   createArtworkImageMaterial,
+  createCeilingDetailMaterial,
+  createCeilingLightPanelFrameMaterial,
   createCeilingLightPanelMaterial,
   createCeilingMaterial,
   createFloorMaterial,
   createFrameMaterial,
+  createFrameRailCatchlightMaterial,
+  createFrameRailHighlightMaterial,
+  createFrameRailMaterial,
+  createFrameRailShadowEdgeMaterial,
   createMatMaterial,
   createPlaqueBodyMaterial,
   createPlaqueMaterial,
@@ -67,6 +73,7 @@ type FrameDimensions = {
 type ArtworkMeshSet = {
   artwork: GalleryArtwork;
   frame: THREE.Mesh;
+  frameRails: THREE.Group;
   mat: THREE.Mesh;
   image: THREE.Mesh;
   plaque?: THREE.Mesh;
@@ -90,9 +97,9 @@ export class GalleryScene {
   private artworkMeshSets: ArtworkMeshSet[] = [];
   private focusedArtworkId: string | null = null;
   private readonly artworkFocusMaxDistance = 8.75;
-  private readonly artworkFrameDepth = 0.052;
-  private readonly artworkFrameBorder = 0.2;
-  private readonly artworkMatBorder = 0.072;
+  private readonly artworkFrameDepth = 0.078;
+  private readonly artworkFrameBorder = 0.24;
+  private readonly artworkMatBorder = 0.07;
   private readonly artworkPlaqueWidth = 0.74;
   private readonly artworkPlaqueHeight = 0.22;
   private readonly artworkPlaqueDepth = 0.012;
@@ -138,7 +145,7 @@ export class GalleryScene {
   private createScene() {
     const scene = new THREE.Scene();
 
-    scene.background = new THREE.Color(0xf8f7f3);
+    scene.background = new THREE.Color(0x1d1814);
 
     return scene;
   }
@@ -164,10 +171,22 @@ export class GalleryScene {
       Math.max(1, this.container.clientWidth),
       Math.max(1, this.container.clientHeight)
     );
-    renderer.setClearColor(0xf8f7f3, 1);
+    renderer.setClearColor(0x1d1814, 1);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // Keep the gallery canvas fully frame-cleared during camera movement. This
+    // is normally Three.js' default behavior, but setting it explicitly helps
+    // prevent future material/renderer experiments from leaving visual residue
+    // between frames.
+    renderer.autoClear = true;
+    renderer.autoClearColor = true;
+    renderer.autoClearDepth = true;
+    renderer.autoClearStencil = true;
+
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.98;
+    renderer.toneMappingExposure = 1.03;
 
     return renderer;
   }
@@ -180,6 +199,7 @@ export class GalleryScene {
 
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
+    floor.receiveShadow = true;
     floor.userData = {
       gallerySurface: 'floor'
     };
@@ -233,11 +253,14 @@ export class GalleryScene {
     );
 
     ceiling.position.set(0, galleryRoom.height + galleryRoom.ceilingThickness / 2, 0);
+    ceiling.receiveShadow = true;
     ceiling.userData = {
       gallerySurface: 'ceiling'
     };
 
     this.scene.add(ceiling);
+    // Phase 8V removes the explicit ceiling-grid strip geometry so the
+    // ceiling reads through material texture instead of visible panel lines.
     this.createRoomBaseTrim();
     this.createCeilingLightPanels();
   }
@@ -277,6 +300,8 @@ export class GalleryScene {
     trims[3].position.set(eastX, trimY, 0);
 
     trims.forEach((trim, index) => {
+      trim.castShadow = true;
+      trim.receiveShadow = true;
       trim.userData = {
         roomTrimId: `room-shell-trim-${index + 1}`,
         gallerySurface: 'room-shell-trim'
@@ -300,6 +325,8 @@ export class GalleryScene {
     );
 
     wall.position.set(...options.position);
+    wall.castShadow = true;
+    wall.receiveShadow = true;
     wall.userData = {
       wallId: options.id,
       gallerySurface: 'room-shell-wall'
@@ -309,23 +336,124 @@ export class GalleryScene {
     this.scene.add(wall);
   }
 
-  private createCeilingLightPanels() {
-    const material = createCeilingLightPanelMaterial();
+  private createCeilingSurfaceDetails() {
+    const material = createCeilingDetailMaterial();
+    const ceilingY = galleryRoom.height - 0.026;
+    const inset = 0.9;
+    const stripHeight = 0.005;
+    const stripWidth = 0.014;
+    const usableWidth = galleryRoom.width - inset * 2;
+    const usableDepth = galleryRoom.depth - inset * 2;
+    const longitudinalXPositions = [
+      -galleryRoom.width * 0.28,
+      0,
+      galleryRoom.width * 0.28
+    ];
+    const crossZPositions = [
+      -galleryRoom.depth * 0.27,
+      0,
+      galleryRoom.depth * 0.27
+    ];
 
-    ceilingLightPanels.forEach((panel) => {
-      const lightPanel = new THREE.Mesh(
-        new THREE.BoxGeometry(panel.width, 0.018, panel.depth),
+    longitudinalXPositions.forEach((x, index) => {
+      const strip = new THREE.Mesh(
+        new THREE.BoxGeometry(stripWidth, stripHeight, usableDepth),
         material
       );
 
-      lightPanel.position.set(panel.position[0], galleryRoom.height - 0.065, panel.position[1]);
-      lightPanel.rotation.y = panel.rotationY;
+      strip.position.set(x, ceilingY, 0);
+      strip.receiveShadow = true;
+      strip.userData = {
+        ceilingDetailId: `ceiling-longitudinal-${index + 1}`,
+        gallerySurface: 'ceiling-detail'
+      };
+
+      this.scene.add(strip);
+    });
+
+    crossZPositions.forEach((z, index) => {
+      const strip = new THREE.Mesh(
+        new THREE.BoxGeometry(usableWidth, stripHeight, stripWidth),
+        material
+      );
+
+      strip.position.set(0, ceilingY - 0.002, z);
+      strip.receiveShadow = true;
+      strip.userData = {
+        ceilingDetailId: `ceiling-cross-${index + 1}`,
+        gallerySurface: 'ceiling-detail'
+      };
+
+      this.scene.add(strip);
+    });
+  }
+
+  private createCeilingLightPanels() {
+    const panelMaterial = createCeilingLightPanelMaterial();
+    const frameMaterial = createCeilingLightPanelFrameMaterial();
+    const frameThickness = 0.038;
+    const frameOverhang = 0.095;
+
+    ceilingLightPanels.forEach((panel) => {
+      const fixture = new THREE.Group();
+      const fixtureY = galleryRoom.height - 0.032;
+      const outerWidth = panel.width + frameOverhang;
+      const outerDepth = panel.depth + frameOverhang;
+
+      fixture.position.set(panel.position[0], fixtureY, panel.position[1]);
+      fixture.rotation.y = panel.rotationY;
+      fixture.userData = {
+        lightPanelId: panel.id,
+        gallerySurface: 'ceiling-light-fixture'
+      };
+
+      const lightPanel = new THREE.Mesh(
+        new THREE.BoxGeometry(panel.width * 0.68, 0.009, panel.depth * 0.68),
+        panelMaterial
+      );
+
       lightPanel.userData = {
         lightPanelId: panel.id,
         gallerySurface: 'ceiling-light-panel'
       };
 
-      this.scene.add(lightPanel);
+      const frameBars = [
+        new THREE.Mesh(
+          new THREE.BoxGeometry(outerWidth, 0.01, frameThickness),
+          frameMaterial
+        ),
+        new THREE.Mesh(
+          new THREE.BoxGeometry(outerWidth, 0.01, frameThickness),
+          frameMaterial
+        ),
+        new THREE.Mesh(
+          new THREE.BoxGeometry(frameThickness, 0.01, panel.depth + frameOverhang * 0.52),
+          frameMaterial
+        ),
+        new THREE.Mesh(
+          new THREE.BoxGeometry(frameThickness, 0.01, panel.depth + frameOverhang * 0.52),
+          frameMaterial
+        )
+      ];
+
+      frameBars[0].position.z = outerDepth / 2 - frameThickness / 2;
+      frameBars[1].position.z = -outerDepth / 2 + frameThickness / 2;
+      frameBars[2].position.x = -outerWidth / 2 + frameThickness / 2;
+      frameBars[3].position.x = outerWidth / 2 - frameThickness / 2;
+
+      frameBars.forEach((frameBar, index) => {
+        frameBar.castShadow = true;
+        frameBar.receiveShadow = true;
+        frameBar.userData = {
+          lightPanelId: panel.id,
+          lightPanelFramePart: index + 1,
+          gallerySurface: 'ceiling-light-panel-frame'
+        };
+        fixture.add(frameBar);
+      });
+
+      fixture.add(lightPanel);
+      this.scene.add(fixture);
     });
   }
 
@@ -345,6 +473,8 @@ export class GalleryScene {
 
       wallMesh.position.set(...wall.position);
       wallMesh.rotation.y = wall.rotationY;
+      wallMesh.castShadow = true;
+      wallMesh.receiveShadow = true;
       wallMesh.userData = {
         wallId: wall.id,
         gallerySurface: 'wall'
@@ -367,6 +497,8 @@ export class GalleryScene {
     trim.position.set(...wall.position);
     trim.position.y = 0.11;
     trim.rotation.y = wall.rotationY;
+    trim.castShadow = true;
+    trim.receiveShadow = true;
     trim.userData = {
       wallTrimId: wall.id,
       gallerySurface: 'wall-trim'
@@ -378,6 +510,10 @@ export class GalleryScene {
 
   private createArtwork() {
     const frameMaterial = createFrameMaterial();
+    const frameRailMaterial = createFrameRailMaterial();
+    const frameRailHighlightMaterial = createFrameRailHighlightMaterial();
+    const frameRailCatchlightMaterial = createFrameRailCatchlightMaterial();
+    const frameRailShadowEdgeMaterial = createFrameRailShadowEdgeMaterial();
     const matMaterial = createMatMaterial();
 
     galleryArtworks.forEach((artwork) => {
@@ -387,14 +523,29 @@ export class GalleryScene {
         : null;
 
       const initialTexture = highResolutionTexture ?? previewTexture;
+      const initialTextureUrl = highResolutionTexture
+        ? artwork.image
+        : previewTexture
+          ? artwork.previewImage ?? artwork.image
+          : null;
       const dimensions = this.resolveArtworkDimensions(artwork, initialTexture);
 
       const frame = this.createArtworkFrame(artwork, dimensions, frameMaterial);
+      const frameRails = this.createArtworkFrameRails(
+        artwork,
+        dimensions,
+        frameRailMaterial,
+        frameRailHighlightMaterial,
+        frameRailCatchlightMaterial,
+        frameRailShadowEdgeMaterial,
+        frame
+      );
       const mat = this.createArtworkMat(artwork, dimensions, matMaterial, frame);
-      const image = this.createArtworkImage(artwork, dimensions, initialTexture, frame);
+      const image = this.createArtworkImage(artwork, dimensions, initialTexture, initialTextureUrl, frame);
       const plaque = this.createArtworkPlaque(artwork, dimensions, frame);
 
       this.scene.add(frame);
+      this.scene.add(frameRails);
       this.scene.add(mat);
       this.scene.add(image);
 
@@ -406,6 +557,7 @@ export class GalleryScene {
       this.artworkMeshSets.push({
         artwork,
         frame,
+        frameRails,
         mat,
         image,
         plaque
@@ -429,12 +581,225 @@ export class GalleryScene {
 
     frame.position.set(...artwork.position);
     frame.rotation.y = artwork.rotationY;
+    frame.castShadow = true;
+    frame.receiveShadow = true;
     frame.userData = {
       artworkFrameId: artwork.id
     };
     this.offsetArtworkFromWall(frame, artwork.rotationY, this.artworkFrameDepth / 2 + 0.006);
 
     return frame;
+  }
+
+  private createArtworkFrameRails(
+    artwork: GalleryArtwork,
+    dimensions: FrameDimensions,
+    railMaterial: THREE.Material,
+    highlightMaterial: THREE.Material,
+    catchlightMaterial: THREE.Material,
+    shadowEdgeMaterial: THREE.Material,
+    frame: THREE.Mesh
+  ) {
+    const frameRails = new THREE.Group();
+
+    frameRails.position.copy(frame.position);
+    frameRails.rotation.copy(frame.rotation);
+    frameRails.userData = {
+      artworkFrameRailId: artwork.id,
+      gallerySurface: 'artwork-frame-rails'
+    };
+
+    this.populateArtworkFrameRails(
+      frameRails,
+      dimensions,
+      railMaterial,
+      highlightMaterial,
+      catchlightMaterial,
+      shadowEdgeMaterial,
+      artwork.id
+    );
+
+    return frameRails;
+  }
+
+  private populateArtworkFrameRails(
+    frameRails: THREE.Group,
+    dimensions: FrameDimensions,
+    railMaterial: THREE.Material,
+    highlightMaterial: THREE.Material,
+    catchlightMaterial: THREE.Material,
+    shadowEdgeMaterial: THREE.Material,
+    artworkId: string
+  ) {
+    const outerWidth = dimensions.width + this.artworkFrameBorder;
+    const outerHeight = dimensions.height + this.artworkFrameBorder;
+    const railWidth = Math.max(0.062, (this.artworkFrameBorder - this.artworkMatBorder) / 2 + 0.014);
+    const railDepth = Math.min(0.044, this.artworkFrameDepth * 0.58);
+    const railZ = this.artworkFrameDepth * 0.22;
+    const verticalHeight = Math.max(0.1, outerHeight - railWidth * 2);
+
+    const railDefinitions = [
+      { id: 'top', width: outerWidth, height: railWidth, x: 0, y: outerHeight / 2 - railWidth / 2 },
+      { id: 'bottom', width: outerWidth, height: railWidth, x: 0, y: -outerHeight / 2 + railWidth / 2 },
+      { id: 'left', width: railWidth, height: verticalHeight, x: -outerWidth / 2 + railWidth / 2, y: 0 },
+      { id: 'right', width: railWidth, height: verticalHeight, x: outerWidth / 2 - railWidth / 2, y: 0 }
+    ];
+
+    railDefinitions.forEach((railDefinition) => {
+      const rail = new THREE.Mesh(
+        new THREE.BoxGeometry(railDefinition.width, railDefinition.height, railDepth),
+        railMaterial
+      );
+
+      rail.position.set(railDefinition.x, railDefinition.y, railZ);
+      rail.castShadow = true;
+      rail.receiveShadow = true;
+      rail.userData = {
+        artworkFrameRailId: artworkId,
+        artworkFrameRailPart: railDefinition.id,
+        artworkFrameRailLayer: 'base',
+        gallerySurface: 'artwork-frame-rail'
+      };
+
+      frameRails.add(rail);
+    });
+
+    const highlightWidth = Math.max(0.014, railWidth * 0.24);
+    const highlightDepth = Math.min(0.014, this.artworkFrameDepth * 0.2);
+    const highlightZ = railZ + railDepth / 2 + highlightDepth / 2 + 0.002;
+    const highlightHorizontalWidth = Math.max(0.1, outerWidth - railWidth * 2 + highlightWidth * 2);
+    const highlightVerticalHeight = Math.max(0.1, outerHeight - railWidth * 2 + highlightWidth * 2);
+    const highlightDefinitions = [
+      {
+        id: 'top-inner-sheen',
+        width: highlightHorizontalWidth,
+        height: highlightWidth,
+        x: 0,
+        y: outerHeight / 2 - railWidth + highlightWidth / 2
+      },
+      {
+        id: 'bottom-inner-sheen',
+        width: highlightHorizontalWidth,
+        height: highlightWidth,
+        x: 0,
+        y: -outerHeight / 2 + railWidth - highlightWidth / 2
+      },
+      {
+        id: 'left-inner-sheen',
+        width: highlightWidth,
+        height: highlightVerticalHeight,
+        x: -outerWidth / 2 + railWidth - highlightWidth / 2,
+        y: 0
+      },
+      {
+        id: 'right-inner-sheen',
+        width: highlightWidth,
+        height: highlightVerticalHeight,
+        x: outerWidth / 2 - railWidth + highlightWidth / 2,
+        y: 0
+      }
+    ];
+
+    highlightDefinitions.forEach((highlightDefinition) => {
+      const highlight = new THREE.Mesh(
+        new THREE.BoxGeometry(highlightDefinition.width, highlightDefinition.height, highlightDepth),
+        highlightMaterial
+      );
+
+      highlight.position.set(highlightDefinition.x, highlightDefinition.y, highlightZ);
+      highlight.castShadow = true;
+      highlight.receiveShadow = true;
+      highlight.userData = {
+        artworkFrameRailId: artworkId,
+        artworkFrameRailPart: highlightDefinition.id,
+        artworkFrameRailLayer: 'inner-sheen',
+        gallerySurface: 'artwork-frame-rail-highlight'
+      };
+
+      frameRails.add(highlight);
+    });
+
+    const catchlightWidth = Math.max(0.01, railWidth * 0.15);
+    const catchlightDepth = Math.min(0.011, this.artworkFrameDepth * 0.16);
+    const catchlightZ = highlightZ + highlightDepth / 2 + catchlightDepth / 2 + 0.0015;
+    const catchlightDefinitions = [
+      {
+        id: 'top-lacquer-catchlight',
+        width: Math.max(0.1, outerWidth - catchlightWidth * 4),
+        height: catchlightWidth,
+        x: 0,
+        y: outerHeight / 2 - catchlightWidth * 1.6,
+        material: catchlightMaterial,
+        layer: 'lacquer-catchlight',
+        surface: 'artwork-frame-rail-catchlight'
+      },
+      {
+        id: 'left-lacquer-catchlight',
+        width: catchlightWidth,
+        height: Math.max(0.1, outerHeight - railWidth * 2.2),
+        x: -outerWidth / 2 + catchlightWidth * 1.7,
+        y: 0,
+        material: catchlightMaterial,
+        layer: 'lacquer-catchlight',
+        surface: 'artwork-frame-rail-catchlight'
+      },
+      {
+        id: 'right-lacquer-catchlight',
+        width: catchlightWidth,
+        height: Math.max(0.1, outerHeight - railWidth * 2.2),
+        x: outerWidth / 2 - catchlightWidth * 1.7,
+        y: 0,
+        material: catchlightMaterial,
+        layer: 'lacquer-catchlight',
+        surface: 'artwork-frame-rail-catchlight'
+      }
+    ];
+
+    catchlightDefinitions.forEach((definition) => {
+      const catchlight = new THREE.Mesh(
+        new THREE.BoxGeometry(definition.width, definition.height, catchlightDepth),
+        definition.material
+      );
+
+      catchlight.position.set(definition.x, definition.y, catchlightZ);
+      catchlight.castShadow = true;
+      catchlight.receiveShadow = true;
+      catchlight.userData = {
+        artworkFrameRailId: artworkId,
+        artworkFrameRailPart: definition.id,
+        artworkFrameRailLayer: definition.layer,
+        gallerySurface: definition.surface
+      };
+
+      frameRails.add(catchlight);
+    });
+  }
+
+  private updateArtworkFrameRails(
+    frameRails: THREE.Group,
+    dimensions: FrameDimensions,
+    railMaterial: THREE.Material,
+    highlightMaterial: THREE.Material,
+    catchlightMaterial: THREE.Material,
+    shadowEdgeMaterial: THREE.Material,
+    artworkId: string
+  ) {
+    [...frameRails.children].forEach((child) => {
+      const mesh = child as THREE.Mesh;
+
+      mesh.geometry?.dispose();
+      frameRails.remove(child);
+    });
+
+    this.populateArtworkFrameRails(
+      frameRails,
+      dimensions,
+      railMaterial,
+      highlightMaterial,
+      catchlightMaterial,
+      shadowEdgeMaterial,
+      artworkId
+    );
   }
 
   private createArtworkMat(
@@ -450,6 +815,7 @@ export class GalleryScene {
 
     mat.position.copy(frame.position);
     mat.rotation.copy(frame.rotation);
+    mat.receiveShadow = true;
     mat.userData = {
       artworkMatId: artwork.id
     };
@@ -561,6 +927,8 @@ export class GalleryScene {
     );
 
     plaque.rotation.copy(frame.rotation);
+    plaque.castShadow = true;
+    plaque.receiveShadow = true;
     plaque.userData = {
       artworkPlaqueId: artwork.id,
       gallerySurface: 'artwork-plaque'
@@ -677,6 +1045,7 @@ export class GalleryScene {
     artwork: GalleryArtwork,
     dimensions: FrameDimensions,
     sourceTexture: THREE.Texture | null,
+    sourceTextureUrl: string | null,
     frame: THREE.Mesh
   ) {
     if (!sourceTexture) {
@@ -694,9 +1063,12 @@ export class GalleryScene {
 
     image.position.copy(frame.position);
     image.rotation.copy(frame.rotation);
+    image.castShadow = true;
     image.userData = {
       artworkId: artwork.id,
-      textureUrl: artwork.image
+      textureUrl: artwork.image,
+      previewTextureUrl: artwork.previewImage,
+      activeTextureUrl: sourceTextureUrl
     };
     this.offsetArtworkFromWall(image, artwork.rotationY, this.artworkFrameDepth / 2 + 0.03);
 
@@ -811,7 +1183,14 @@ export class GalleryScene {
 
   private applyHighResolutionTexture(url: string, texture: THREE.Texture) {
     this.artworkMeshSets.forEach((meshSet) => {
-      if (meshSet.image.userData.textureUrl !== url) {
+      const isFullTexture = meshSet.image.userData.textureUrl === url;
+      const isPreviewTexture = meshSet.image.userData.previewTextureUrl === url;
+
+      if (!isFullTexture && !isPreviewTexture) {
+        return;
+      }
+
+      if (isPreviewTexture && meshSet.image.userData.activeTextureUrl === meshSet.image.userData.textureUrl) {
         return;
       }
 
@@ -824,6 +1203,24 @@ export class GalleryScene {
         meshSet.frame,
         dimensions.width + this.artworkFrameBorder,
         dimensions.height + this.artworkFrameBorder
+      );
+      const frameRailMaterial = (meshSet.frameRails.children.find((child) => child.userData.artworkFrameRailLayer === 'base') as THREE.Mesh | undefined)
+        ?.material as THREE.Material | undefined;
+      const frameRailHighlightMaterial = (meshSet.frameRails.children.find((child) => child.userData.artworkFrameRailLayer === 'inner-sheen') as THREE.Mesh | undefined)
+        ?.material as THREE.Material | undefined;
+      const frameRailCatchlightMaterial = (meshSet.frameRails.children.find((child) => child.userData.artworkFrameRailLayer === 'lacquer-catchlight') as THREE.Mesh | undefined)
+        ?.material as THREE.Material | undefined;
+      const frameRailShadowEdgeMaterial = (meshSet.frameRails.children.find((child) => child.userData.artworkFrameRailLayer === 'depth-shadow-edge') as THREE.Mesh | undefined)
+        ?.material as THREE.Material | undefined;
+
+      this.updateArtworkFrameRails(
+        meshSet.frameRails,
+        dimensions,
+        frameRailMaterial ?? createFrameRailMaterial(),
+        frameRailHighlightMaterial ?? createFrameRailHighlightMaterial(),
+        frameRailCatchlightMaterial ?? createFrameRailCatchlightMaterial(),
+        frameRailShadowEdgeMaterial ?? createFrameRailShadowEdgeMaterial(),
+        meshSet.artwork.id
       );
       this.updatePlaneGeometry(
         meshSet.mat,
@@ -840,6 +1237,7 @@ export class GalleryScene {
       const material = meshSet.image.material as THREE.MeshBasicMaterial | THREE.MeshStandardMaterial;
 
       this.replaceMaterialTexture(material, framedTexture);
+      meshSet.image.userData.activeTextureUrl = url;
     });
   }
 
