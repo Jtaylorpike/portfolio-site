@@ -1,15 +1,16 @@
 // Lighting setup for the 3D gallery.
 //
-// Phase 8AL builds from the Phase 8AK rollback baseline. It preserves the accepted
-// dramatic-lighting structure and avoids new scene geometry, post-processing, fog,
-// transparent shadow planes, image assets, and package dependencies. The changes here
-// are small intensity/color calibrations to make unlit space calmer, keep artwork
-// pools warm, and reduce the flat gray-room read from the screenshots.
+// Phase 8AM builds from the Phase 8AL screenshot baseline. It preserves the
+// accepted dramatic-lighting structure and avoids new scene geometry, post-processing,
+// fog, transparent shadow planes, image assets, and package dependencies. The
+// changes here are small readability calibrations because Phase 8AL made the
+// ceiling read too close to a black void in review screenshots.
 
 import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 import { ceilingLightPanels, galleryRoom } from './galleryBlueprint';
 import { galleryArtworks } from '../artwork/galleryLayout';
+import type { GalleryQualityTier } from '../performance/galleryQuality';
 
 let rectAreaLightsInitialized = false;
 
@@ -90,12 +91,15 @@ function addPanelSpotlight(
   light.userData = {
     galleryLighting: 'ceiling-artwork-spot',
     lightPanelId: panel.id,
-    phase8U: 'readable-ceiling-warmed-fixture-spot'
+    phase8U: 'readable-ceiling-warmed-fixture-spot',
+    minimumGalleryQuality: 'low',
+    adaptiveGalleryShadow: shouldPanelCastShadow(panel)
   };
   target.userData = {
     galleryLighting: 'ceiling-artwork-spot-target',
     lightPanelId: panel.id,
-    phase8U: 'readable-ceiling-warmed-fixture-spot-target'
+    phase8U: 'readable-ceiling-warmed-fixture-spot-target',
+    minimumGalleryQuality: 'low'
   };
 
   scene.add(target);
@@ -123,7 +127,8 @@ function addPanelAreaWash(
   light.userData = {
     galleryLighting: 'ceiling-area-wash',
     lightPanelId: panel.id,
-    phase8U: 'readable-ceiling-fixture-surface-wash'
+    phase8U: 'readable-ceiling-fixture-surface-wash',
+    minimumGalleryQuality: 'low'
   };
 
   scene.add(light);
@@ -182,12 +187,14 @@ function addArtworkAccentSpotlight(scene: THREE.Scene, artwork: typeof galleryAr
   light.userData = {
     galleryLighting: 'artwork-accent-spot',
     artworkId: artwork.id,
-    phase8U: 'readable-ceiling-artwork-presence'
+    phase8U: 'readable-ceiling-artwork-presence',
+    minimumGalleryQuality: 'balanced'
   };
   target.userData = {
     galleryLighting: 'artwork-accent-spot-target',
     artworkId: artwork.id,
-    phase8U: 'readable-ceiling-artwork-presence-target'
+    phase8U: 'readable-ceiling-artwork-presence-target',
+    minimumGalleryQuality: 'balanced'
   };
 
   scene.add(target);
@@ -216,7 +223,8 @@ function addArtworkWallWash(scene: THREE.Scene, artwork: typeof galleryArtworks[
   light.userData = {
     galleryLighting: 'artwork-wall-wash',
     artworkId: artwork.id,
-    phase8U: 'readable-ceiling-wall-and-frame-wash'
+    phase8U: 'readable-ceiling-wall-and-frame-wash',
+    minimumGalleryQuality: 'high'
   };
 
   scene.add(light);
@@ -228,28 +236,28 @@ export function addGalleryLighting(scene: THREE.Scene) {
   const ambientLight = new THREE.HemisphereLight(
     0xf3eadc,
     0x65594d,
-    0.405
+    0.425
   );
 
   scene.add(ambientLight);
 
-  const overheadWash = new THREE.DirectionalLight(0xffefde, 0.205);
+  const overheadWash = new THREE.DirectionalLight(0xffefde, 0.235);
   overheadWash.position.set(0, galleryRoom.height + 2.2, 2.8);
   scene.add(overheadWash);
 
-  const entryFillLight = new THREE.DirectionalLight(0xffead2, 0.068);
+  const entryFillLight = new THREE.DirectionalLight(0xffead2, 0.076);
   entryFillLight.position.set(0, 3.8, 10.5);
   scene.add(entryFillLight);
 
-  const rearFillLight = new THREE.DirectionalLight(0xd2bfa9, 0.052);
+  const rearFillLight = new THREE.DirectionalLight(0xd2bfa9, 0.058);
   rearFillLight.position.set(0, 3.8, -10.5);
   scene.add(rearFillLight);
 
-  const lowWarmRoomFill = new THREE.PointLight(0x9a8068, 0.115, 14.5, 2.05);
+  const lowWarmRoomFill = new THREE.PointLight(0x9a8068, 0.128, 14.5, 2.05);
   lowWarmRoomFill.position.set(0, 1.05, 0.8);
   scene.add(lowWarmRoomFill);
 
-  const ceilingAtmosphereLift = new THREE.PointLight(0xcaa984, 0.44, 17.5, 2.28);
+  const ceilingAtmosphereLift = new THREE.PointLight(0xcaa984, 0.62, 17.5, 2.28);
   ceilingAtmosphereLift.position.set(0, galleryRoom.height - 0.36, 0);
   scene.add(ceilingAtmosphereLift);
 
@@ -259,7 +267,7 @@ export function addGalleryLighting(scene: THREE.Scene) {
   ceilingLightPanels.forEach((panel) => {
     const light = new THREE.PointLight(
       0xffdfbf,
-      panel.intensity * 3.22,
+      panel.intensity * 3.34,
       panel.distance + 0.6,
       1.82
     );
@@ -284,5 +292,26 @@ export function addGalleryLighting(scene: THREE.Scene) {
   galleryArtworks.slice(0, 8).forEach((artwork, index) => {
     addArtworkWallWash(scene, artwork);
     addArtworkAccentSpotlight(scene, artwork, index);
+  });
+}
+
+
+const galleryQualityRank: Record<GalleryQualityTier, number> = {
+  low: 0,
+  balanced: 1,
+  high: 2
+};
+
+export function applyGalleryLightingQuality(scene: THREE.Scene, tier: GalleryQualityTier) {
+  scene.traverse((object) => {
+    const minimumQuality = object.userData.minimumGalleryQuality as GalleryQualityTier | undefined;
+
+    if (minimumQuality) {
+      object.visible = galleryQualityRank[tier] >= galleryQualityRank[minimumQuality];
+    }
+
+    if (object.userData.adaptiveGalleryShadow && object instanceof THREE.SpotLight) {
+      object.castShadow = tier === 'high';
+    }
   });
 }

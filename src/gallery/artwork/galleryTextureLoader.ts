@@ -1,15 +1,17 @@
-// Three.js gallery texture loader.
+// Three.js gallery texture loader and browser-cache prewarmer.
 //
-// The loader caches textures by image path so the gallery does not keep
-// creating new GPU texture resources for the same files.
-//
-// Phase 8AI keeps the first visible room responsive by loading only the
-// priority preview textures before scene construction, then streaming the
-// remaining previews and full artwork textures in small idle batches. This
-// prevents the fullscreen loader from feeling frozen while larger WebP
-// textures decode and upload to the GPU.
+// Phase 8AO separates two jobs:
+// 1. browser-cache warming begins after the public site opens without creating
+//    GPU textures or blocking the homepage;
+// 2. Three.js textures are created according to the active gallery quality
+//    tier when the gallery opens, then promoted in controlled idle batches.
 
 import * as THREE from 'three';
+import {
+  getGalleryQualitySettings,
+  markGalleryCacheTierReady,
+  type GalleryQualityTier
+} from '../performance/galleryQuality';
 
 type TextureSource = {
   image: string;
@@ -23,13 +25,11 @@ type IdleWindow = Window & {
 };
 
 const textureLoader = new THREE.TextureLoader();
-
 const textureCache = new Map<string, THREE.Texture>();
 const texturePromiseCache = new Map<string, Promise<THREE.Texture | null>>();
 const textureUpdateListeners = new Set<TextureUpdateListener>();
-
-const initialPreviewTextureCount = 4;
-const textureLoadBatchSize = 2;
+const browserWarmCache = new Set<string>();
+const browserWarmPromiseCache = new Map<string, Promise<boolean>>();
 
 function isPreviewTextureSource(src: string) {
   return src.includes('/thumb/') || src.includes('thumb') || src.includes('/display/');
@@ -57,18 +57,24 @@ function waitForNextPaint() {
   });
 }
 
-function requestGalleryIdle(callback: () => void, timeout = 1200) {
-  const idleWindow = window as IdleWindow;
+function waitForGalleryIdle(timeout = 1400) {
+  return new Promise<void>((resolve) => {
+    const idleWindow = window as IdleWindow;
 
-  if (idleWindow.requestIdleCallback) {
-    idleWindow.requestIdleCallback(callback, { timeout });
-    return;
-  }
+    if (idleWindow.requestIdleCallback) {
+      idleWindow.requestIdleCallback(resolve, { timeout });
+      return;
+    }
 
-  window.setTimeout(callback, 120);
+    window.setTimeout(resolve, 160);
+  });
 }
 
-function scheduleTextureBatchLoad(sources: string[], delay = 0) {
+function scheduleTextureBatchLoad(
+  sources: string[],
+  batchSize: number,
+  delay = 0
+) {
   const queue = [...sources];
 
   if (queue.length === 0) {
@@ -76,32 +82,92 @@ function scheduleTextureBatchLoad(sources: string[], delay = 0) {
   }
 
   const loadNextBatch = () => {
-    queue.splice(0, textureLoadBatchSize).forEach((source) => {
+    queue.splice(0, batchSize).forEach((source) => {
       void loadGalleryTexture(source);
     });
 
     if (queue.length > 0) {
       window.setTimeout(() => {
-        requestGalleryIdle(loadNextBatch);
-      }, 120);
+        void waitForGalleryIdle().then(loadNextBatch);
+      }, 140);
     }
   };
 
   window.setTimeout(() => {
-    requestGalleryIdle(loadNextBatch);
+    void waitForGalleryIdle().then(loadNextBatch);
   }, delay);
 }
 
-async function loadPreviewTexturesInBatches(sources: string[]) {
-  for (let index = 0; index < sources.length; index += textureLoadBatchSize) {
-    const batch = sources.slice(index, index + textureLoadBatchSize);
+async function loadPreviewTexturesInBatches(sources: string[], batchSize: number) {
+  for (let index = 0; index < sources.length; index += batchSize) {
+    const batch = sources.slice(index, index + batchSize);
 
     await Promise.all(batch.map((source) => loadGalleryTexture(source)));
 
-    if (index + textureLoadBatchSize < sources.length) {
+    if (index + batchSize < sources.length) {
       await waitForNextPaint();
     }
   }
+}
+
+async function warmBrowserSource(source: string) {
+  if (browserWarmCache.has(source)) {
+    return true;
+  }
+
+  const cachedPromise = browserWarmPromiseCache.get(source);
+  if (cachedPromise) {
+    return cachedPromise;
+  }
+
+  const promise = fetch(source, {
+    cache: 'force-cache',
+    credentials: 'same-origin'
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        return false;
+      }
+
+      // Reading the body completes the request so the browser HTTP cache can
+      // satisfy the later Three.TextureLoader request without retaining a Blob.
+      await response.arrayBuffer();
+      browserWarmCache.add(source);
+      return true;
+    })
+    .catch(() => false)
+    .finally(() => {
+      browserWarmPromiseCache.delete(source);
+    });
+
+  browserWarmPromiseCache.set(source, promise);
+  return promise;
+}
+
+async function warmBrowserSourcesInBatches(
+  sources: string[],
+  batchSize: number,
+  delayBetweenBatches: number
+) {
+  let successCount = 0;
+
+  for (let index = 0; index < sources.length; index += batchSize) {
+    if (document.hidden) {
+      await waitForGalleryIdle(2400);
+    } else {
+      await waitForGalleryIdle();
+    }
+
+    const batch = sources.slice(index, index + batchSize);
+    const results = await Promise.all(batch.map((source) => warmBrowserSource(source)));
+    successCount += results.filter(Boolean).length;
+
+    if (index + batchSize < sources.length) {
+      await new Promise<void>((resolve) => window.setTimeout(resolve, delayBetweenBatches));
+    }
+  }
+
+  return sources.length === 0 || successCount === sources.length;
 }
 
 export function loadGalleryTexture(src: string) {
@@ -144,18 +210,61 @@ export function loadGalleryTexture(src: string) {
   return texturePromise;
 }
 
-export async function preloadGalleryTextures(sources: TextureSource[]) {
+export async function preloadGalleryTextures(
+  sources: TextureSource[],
+  tier: GalleryQualityTier
+) {
+  const settings = getGalleryQualitySettings(tier);
   const previewSources = getUniqueSources(sources.map((source) => source.previewImage));
   const fullSources = getUniqueSources(sources.map((source) => source.image));
-  const initialPreviewSources = previewSources.slice(0, initialPreviewTextureCount);
-  const deferredPreviewSources = previewSources.slice(initialPreviewTextureCount);
+  const initialPreviewSources = previewSources.slice(0, settings.initialPreviewTextureCount);
+  const deferredPreviewSources = previewSources.slice(settings.initialPreviewTextureCount);
 
-  await loadPreviewTexturesInBatches(initialPreviewSources);
+  await loadPreviewTexturesInBatches(initialPreviewSources, settings.textureLoadBatchSize);
 
-  // Stream all non-critical texture work after the room starts opening. The
-  // GalleryScene subscriber applies these textures as each image finishes.
-  scheduleTextureBatchLoad(deferredPreviewSources, 160);
-  scheduleTextureBatchLoad(fullSources, 520);
+  scheduleTextureBatchLoad(
+    deferredPreviewSources,
+    settings.textureLoadBatchSize,
+    160
+  );
+
+  if (settings.fullTextureLoadDelay !== null) {
+    scheduleTextureBatchLoad(
+      fullSources,
+      settings.textureLoadBatchSize,
+      settings.fullTextureLoadDelay
+    );
+  }
+}
+
+export async function prewarmGalleryAssetCache(
+  sources: TextureSource[],
+  targetTier: GalleryQualityTier
+) {
+  const previewSources = getUniqueSources(sources.map((source) => source.previewImage));
+  const fullSources = getUniqueSources(sources.map((source) => source.image));
+
+  const previewReady = await warmBrowserSourcesInBatches(previewSources, 2, 110);
+  if (previewReady) {
+    markGalleryCacheTierReady('balanced');
+  }
+
+  if (targetTier !== 'high') {
+    return previewReady;
+  }
+
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 520));
+  const fullReady = await warmBrowserSourcesInBatches(fullSources, 1, 180);
+
+  if (previewReady && fullReady) {
+    markGalleryCacheTierReady('high');
+  }
+
+  return previewReady && fullReady;
+}
+
+export function loadGalleryArtworkTextureOnDemand(source: TextureSource) {
+  return loadGalleryTexture(source.image);
 }
 
 export function getCachedGalleryTexture(src: string) {

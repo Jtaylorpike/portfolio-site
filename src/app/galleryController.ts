@@ -15,6 +15,16 @@ import {
   formatGalleryArtworkPublicMeta,
   type GalleryArtwork
 } from '../gallery/artwork/galleryLayout';
+import {
+  cycleGalleryQualityMode,
+  getGalleryAutomaticQualityCeiling,
+  getGalleryQualityModeLabel,
+  getGalleryQualitySettings,
+  getGalleryQualityState,
+  getGalleryQualityTierLabel,
+  subscribeToGalleryQuality,
+  type GalleryQualityTier
+} from '../gallery/performance/galleryQuality';
 
 type GalleryInputMode = 'desktop' | 'touch';
 
@@ -26,7 +36,9 @@ type GallerySceneInstance = {
 
 let activeGallery: GallerySceneInstance | null = null;
 let activeGalleryInputMode: GalleryInputMode = 'desktop';
-let galleryPreloadPromise: Promise<void> | null = null;
+let galleryPreloadPromise: Promise<void> = Promise.resolve();
+let galleryPreloadTier: GalleryQualityTier | null = null;
+let galleryAssetPrewarmTier: GalleryQualityTier | null = null;
 let gallerySceneModulePromise: Promise<typeof import('../gallery/GalleryScene')> | null = null;
 let galleryTextureLoaderModulePromise: Promise<typeof import('../gallery/artwork/galleryTextureLoader')> | null = null;
 let galleryMaterialsModulePromise: Promise<typeof import('../gallery/environment/galleryMaterials')> | null = null;
@@ -38,6 +50,7 @@ let touchMovePointerId: number | null = null;
 let touchControlsBound = false;
 let controlCardDismissTimeout: number | null = null;
 let touchUiDismissTimeout: number | null = null;
+let galleryTextureDisposeTimeout: number | null = null;
 
 const usedMovementDirections = new Set<string>();
 
@@ -101,14 +114,66 @@ function loadGalleryMaterialsModule() {
   return galleryMaterialsModulePromise;
 }
 
-function preloadGalleryImages() {
-  if (!galleryPreloadPromise) {
-    galleryPreloadPromise = loadGalleryTextureLoaderModule().then(
-      ({ preloadGalleryTextures }) => preloadGalleryTextures(galleryArtworks)
-    );
+const galleryQualityRank: Record<GalleryQualityTier, number> = {
+  low: 0,
+  balanced: 1,
+  high: 2
+};
+
+function preloadGalleryImages(tier: GalleryQualityTier) {
+  if (
+    galleryPreloadTier &&
+    galleryQualityRank[galleryPreloadTier] >= galleryQualityRank[tier]
+  ) {
+    return galleryPreloadPromise;
   }
 
+  galleryPreloadTier = tier;
+  galleryPreloadPromise = galleryPreloadPromise.then(() =>
+    loadGalleryTextureLoaderModule().then(
+      ({ preloadGalleryTextures }) => preloadGalleryTextures(galleryArtworks, tier)
+    )
+  );
+
   return galleryPreloadPromise;
+}
+
+function getGalleryAssetPrewarmTarget() {
+  const qualityState = getGalleryQualityState();
+
+  if (qualityState.mode === 'auto') {
+    return getGalleryAutomaticQualityCeiling();
+  }
+
+  return qualityState.tier;
+}
+
+function prewarmGalleryAssets(
+  targetTier = getGalleryAssetPrewarmTarget(),
+  waitForPageLoad = true
+) {
+  if (waitForPageLoad && document.readyState !== 'complete') {
+    window.addEventListener('load', () => {
+      prewarmGalleryAssets(targetTier, false);
+    }, { once: true });
+    return;
+  }
+
+  if (
+    galleryAssetPrewarmTier &&
+    galleryQualityRank[galleryAssetPrewarmTier] >= galleryQualityRank[targetTier]
+  ) {
+    return;
+  }
+
+  galleryAssetPrewarmTier = targetTier;
+  void loadGalleryTextureLoaderModule().then(({ prewarmGalleryAssetCache }) => {
+    void prewarmGalleryAssetCache(galleryArtworks, targetTier).then((ready) => {
+      if (!ready && galleryAssetPrewarmTier === targetTier) {
+        galleryAssetPrewarmTier = null;
+      }
+    });
+  });
 }
 
 function prewarmGalleryModules() {
@@ -125,6 +190,7 @@ function prewarmGalleryModules() {
       void loadGalleryMaterialsModule().then(({ prewarmGalleryEnvironmentMaterials }) => {
         window.setTimeout(() => prewarmGalleryEnvironmentMaterials(), 0);
       });
+      prewarmGalleryAssets();
     });
   }, 420);
 }
@@ -135,6 +201,7 @@ function prewarmGalleryFromIntent() {
   void loadGalleryMaterialsModule().then(({ prewarmGalleryEnvironmentMaterials }) => {
     window.setTimeout(() => prewarmGalleryEnvironmentMaterials(), 0);
   });
+  prewarmGalleryAssets(getGalleryAssetPrewarmTarget(), false);
 }
 
 export function setupGalleryController() {
@@ -148,6 +215,7 @@ export function setupGalleryController() {
   const galleryTouchMoveKnob = document.querySelector<HTMLElement>('#galleryTouchMoveKnob');
 
   const closeGalleryButton = document.querySelector<HTMLButtonElement>('#closeGalleryButton');
+  const galleryQualityButton = document.querySelector<HTMLButtonElement>('#galleryQualityButton');
 
   const galleryInfoPanel = document.querySelector<HTMLElement>('#galleryInfoPanel');
   const galleryInfoMeta = document.querySelector<HTMLElement>('#galleryInfoMeta');
@@ -456,6 +524,13 @@ export function setupGalleryController() {
       return;
     }
 
+    // Low quality keeps full artwork textures demand-driven. The same focused
+    // load is harmless in higher tiers because the shared loader deduplicates
+    // cached and in-flight requests.
+    void loadGalleryTextureLoaderModule().then(({ loadGalleryArtworkTextureOnDemand }) => {
+      void loadGalleryArtworkTextureOnDemand(artwork);
+    });
+
     galleryInfoPanel.classList.add('is-active');
     galleryInfoMeta.textContent = formatGalleryArtworkPublicMeta(artwork);
     galleryInfoTitle.textContent = artwork.title;
@@ -474,6 +549,41 @@ export function setupGalleryController() {
   }
 
 
+  function updateGalleryQualityButton() {
+    if (!galleryQualityButton) {
+      return;
+    }
+
+    const qualityState = getGalleryQualityState();
+    const modeLabel = getGalleryQualityModeLabel(qualityState.mode);
+    const tierLabel = getGalleryQualityTierLabel(qualityState.tier);
+
+    galleryQualityButton.textContent = qualityState.mode === 'auto'
+      ? `Quality · ${modeLabel} / ${tierLabel}`
+      : `Quality · ${modeLabel}`;
+    galleryQualityButton.setAttribute(
+      'aria-label',
+      `Gallery quality is ${modeLabel}${qualityState.mode === 'auto' ? `, currently ${tierLabel}` : ''}. Activate to cycle quality modes.`
+    );
+    galleryQualityButton.title = 'Cycle gallery quality: Auto, Low, Medium, High';
+  }
+
+  function handleGalleryQualityChange() {
+    const qualityState = cycleGalleryQualityMode();
+    const settings = getGalleryQualitySettings(qualityState.tier);
+
+    prewarmGalleryAssets(
+      qualityState.mode === 'auto'
+        ? qualityState.autoCeiling
+        : qualityState.tier
+    );
+
+    if (activeGallery && settings.artworkTexturePolicy !== 'focus') {
+      void preloadGalleryImages(qualityState.tier);
+    }
+  }
+
+
   function setGalleryLoadingPhase(message: string) {
     if (!galleryLoadingPhase) {
       return;
@@ -483,6 +593,11 @@ export function setupGalleryController() {
   }
 
   async function openGallery() {
+    if (galleryTextureDisposeTimeout !== null) {
+      window.clearTimeout(galleryTextureDisposeTimeout);
+      galleryTextureDisposeTimeout = null;
+    }
+
     if (!galleryOverlay || !galleryCanvas) {
       return;
     }
@@ -493,6 +608,7 @@ export function setupGalleryController() {
 
     isGalleryOpening = true;
     activeGalleryInputMode = getGalleryInputMode();
+    const qualityState = getGalleryQualityState();
 
     galleryOverlay.classList.add('is-active');
     galleryOverlay.setAttribute('aria-hidden', 'false');
@@ -502,12 +618,16 @@ export function setupGalleryController() {
     resetControlCardState();
     clearArtworkInfo();
     galleryLoading?.classList.add('is-active');
-    setGalleryLoadingPhase('Preparing image textures');
+    setGalleryLoadingPhase(`Preparing ${getGalleryQualityTierLabel(qualityState.tier).toLowerCase()} quality textures`);
 
     await waitForNextFrame();
 
     try {
-      const imagePreloadPromise = preloadGalleryImages();
+      prewarmGalleryAssets(
+        qualityState.mode === 'auto' ? qualityState.autoCeiling : qualityState.tier,
+        false
+      );
+      const imagePreloadPromise = preloadGalleryImages(qualityState.tier);
       const sceneModulePromise = loadGallerySceneModule();
       const materialsPrewarmPromise = loadGalleryMaterialsModule().then(({ prewarmGalleryEnvironmentMaterials }) => {
         setGalleryLoadingPhase('Preparing room surfaces');
@@ -567,6 +687,24 @@ export function setupGalleryController() {
       activeGallery = null;
     }
 
+    if (galleryTextureDisposeTimeout !== null) {
+      window.clearTimeout(galleryTextureDisposeTimeout);
+    }
+
+    galleryTextureDisposeTimeout = window.setTimeout(() => {
+      galleryTextureDisposeTimeout = null;
+
+      if (activeGallery || isGalleryOpening) {
+        return;
+      }
+
+      void loadGalleryTextureLoaderModule().then(({ disposeGalleryTextureCache }) => {
+        disposeGalleryTextureCache();
+        galleryPreloadPromise = Promise.resolve();
+        galleryPreloadTier = null;
+      });
+    }, 1500);
+
     unbindGalleryInputListeners();
     unbindTouchControls();
     resetTouchControls();
@@ -581,9 +719,14 @@ export function setupGalleryController() {
 
   prewarmGalleryModules();
 
+  function getGalleryEntryTrigger(event: Event) {
+    return event.target instanceof Element
+      ? event.target.closest<HTMLElement>('[data-open-virtual-gallery]')
+      : null;
+  }
+
   document.addEventListener('pointerenter', (event) => {
-    const target = event.target as HTMLElement | null;
-    const trigger = target?.closest<HTMLElement>('[data-open-virtual-gallery]');
+    const trigger = getGalleryEntryTrigger(event);
 
     if (trigger) {
       prewarmGalleryFromIntent();
@@ -591,8 +734,7 @@ export function setupGalleryController() {
   }, true);
 
   document.addEventListener('focusin', (event) => {
-    const target = event.target as HTMLElement | null;
-    const trigger = target?.closest<HTMLElement>('[data-open-virtual-gallery]');
+    const trigger = getGalleryEntryTrigger(event);
 
     if (trigger) {
       prewarmGalleryFromIntent();
@@ -600,8 +742,7 @@ export function setupGalleryController() {
   });
 
   document.addEventListener('touchstart', (event) => {
-    const target = event.target as HTMLElement | null;
-    const trigger = target?.closest<HTMLElement>('[data-open-virtual-gallery]');
+    const trigger = getGalleryEntryTrigger(event);
 
     if (trigger) {
       prewarmGalleryFromIntent();
@@ -609,8 +750,7 @@ export function setupGalleryController() {
   }, { passive: true });
 
   document.addEventListener('click', (event) => {
-    const target = event.target as HTMLElement | null;
-    const trigger = target?.closest<HTMLElement>('[data-open-virtual-gallery]');
+    const trigger = getGalleryEntryTrigger(event);
 
     if (!trigger) {
       return;
@@ -619,5 +759,14 @@ export function setupGalleryController() {
     openGallery();
   });
 
+  subscribeToGalleryQuality(({ tier }) => {
+    updateGalleryQualityButton();
+
+    if (activeGallery && getGalleryQualitySettings(tier).artworkTexturePolicy !== 'focus') {
+      void preloadGalleryImages(tier);
+    }
+  });
+
+  galleryQualityButton?.addEventListener('click', handleGalleryQualityChange);
   closeGalleryButton?.addEventListener('click', closeGallery);
 }

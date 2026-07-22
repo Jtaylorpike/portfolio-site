@@ -19,3 +19,7 @@ if ($WarningsAsErrors) {
 }
 
 node $argsList
+
+if ($LASTEXITCODE -ne 0) {
+  exit $LASTEXITCODE
+}

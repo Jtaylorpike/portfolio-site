@@ -1877,6 +1877,39 @@ button:focus-visible {
   color: rgba(238, 231, 216, 0.82);
 }
 
+
+.gallery-quality {
+  position: absolute;
+  top: 18px;
+  right: 86px;
+  z-index: 4;
+  pointer-events: auto;
+  height: 39px;
+  padding: 0 13px;
+  border: 1px solid rgba(238, 231, 216, 0.2);
+  border-radius: 0;
+  background: rgba(4, 5, 5, 0.58);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  font-kerning: normal;
+  font-synthesis: none;
+  font-variant-ligatures: none;
+  text-rendering: geometricPrecision;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.gallery-quality:hover,
+.gallery-quality:focus-visible {
+  background: var(--text);
+  color: var(--text-dark);
+}
+
 .gallery-close {
   position: absolute;
   top: 18px;
@@ -2001,14 +2034,21 @@ button:focus-visible {
   position: absolute;
   inset: 0;
   z-index: 5;
-  display: none;
+  display: grid;
   place-items: center;
   padding: 24px;
   background: var(--background);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 180ms ease-out, visibility 0s linear 180ms;
 }
 
 .gallery-loading.is-active {
-  display: grid;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 120ms ease-out, visibility 0s linear 0s;
 }
 
 .gallery-loading-card {
@@ -2061,18 +2101,19 @@ button:focus-visible {
   width: 45%;
   height: 100%;
   background: var(--text);
-  transform: translateX(-20%);
+  transform: translate3d(-110%, 0, 0);
   will-change: transform;
-  animation: gallery-loading-slide 900ms ease-in-out infinite alternate;
+  backface-visibility: hidden;
+  animation: gallery-loading-slide 720ms linear infinite;
 }
 
 @keyframes gallery-loading-slide {
   from {
-    transform: translateX(-20%);
+    transform: translate3d(-110%, 0, 0);
   }
 
   to {
-    transform: translateX(140%);
+    transform: translate3d(225%, 0, 0);
   }
 }
 
@@ -4438,6 +4479,16 @@ body.gallery-touch-enabled .gallery-crosshair {
     height: 38px;
   }
 
+  body.gallery-touch-enabled .gallery-quality {
+    top: max(12px, env(safe-area-inset-top));
+    right: max(80px, calc(76px + env(safe-area-inset-right)));
+    height: 38px;
+    max-width: calc(100vw - 164px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .gallery-touch-look-hint {
     max-width: 134px;
     text-align: center;
@@ -4473,7 +4524,8 @@ body.gallery-touch-enabled .gallery-overlay {
   overscroll-behavior: none;
 }
 
-body.gallery-touch-enabled .gallery-close {
+body.gallery-touch-enabled .gallery-close,
+body.gallery-touch-enabled .gallery-quality {
   z-index: 6;
 }
 
