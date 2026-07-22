@@ -1,8 +1,10 @@
 # Photography Portfolio Site
 
-A Vite + TypeScript photography portfolio with a traditional responsive portfolio as the primary experience and a desktop-only Three.js virtual gallery as an enhanced viewing mode.
+A Vite + TypeScript photography portfolio with a traditional responsive portfolio and a desktop-and-touch Three.js virtual gallery.
 
 The current project is plain TypeScript. It is not a React project.
+
+Current operational guidance, protected gallery baselines, release checks, and the visible timeline live in `docs/CURRENT_PROJECT_HANDOFF.md`. Complete historical records are preserved in `docs/PROJECT_HISTORY_ARCHIVE.md`.
 
 ## Current architecture
 
@@ -17,6 +19,8 @@ local-editor/          Local Flask-based image/data editor
 scripts/               Utility scripts for image download and optimization
 public/                Static runtime assets served by Vite
 ```
+
+The active script surface is intentionally limited to editor launch, image import/optimization/removal/validation, alt-text application, public-image reference/archive review, Lighthouse, and chat packaging. Retired migration, repair, handoff, branch, and workspace-cleanup scripts are preserved verbatim in `docs/PROJECT_HISTORY_ARCHIVE.md`.
 
 
 ## Visual direction
@@ -137,7 +141,7 @@ npm run preview
 
 ## Packaging for future handoff
 
-Use the chat upload script to create a clean project package before moving work into another chat.
+Use `scripts/New-TaylorPikePortfolioChatUpload.cmd` to create a clean project package before moving work into another chat. The older root-level uploader has been retired.
 
 Recommended upload order:
 
@@ -149,4 +153,4 @@ Do not upload `node_modules`, `dist`, browser profiles, generated old replacemen
 
 ## Source-of-truth rule
 
-Current uploaded project files override older summaries and handoffs. Handoff documents are project memory backups, not proof of the active implementation. When there is a conflict, inspect the active source files first.
+Current repository files override historical records. `docs/CURRENT_PROJECT_HANDOFF.md` is the active guide; archived handoffs are project memory, not proof of the active implementation. When there is a conflict, inspect the active source files first.

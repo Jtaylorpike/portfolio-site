@@ -1,9 +1,0 @@
-local-editor/static/js/main.js
-local-editor/templates/editor.html
-docs/CURRENT_PROJECT_HANDOFF.md
-docs/CURRENT_PROJECT_HANDOFF_PHASE4_ACTIVE.md
-docs/PROJECT_ROADMAP_CURRENT.md
-docs/PHASE4H_I_J_V7_CATEGORY_DRAG_PACING.md
-docs/PACK_NOTES_PHASE4H_I_J_V7.md
-docs/PACK_MANIFEST_PHASE4H_I_J_V7.txt
-PROJECT_CHANGELOG.md

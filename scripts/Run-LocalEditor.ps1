@@ -1,19 +1,12 @@
 ﻿param(
   [string]$ProjectRoot = ".",
-  [int]$Port = 5000,
-  [switch]$SkipAudit
+  [int]$Port = 5000
 )
 
 $ErrorActionPreference = "Stop"
 
 $root = Resolve-Path $ProjectRoot
 Set-Location $root
-
-if (-not $SkipAudit) {
-  if (Test-Path "scripts\Audit-LocalEditorCompatibility.ps1") {
-    & ".\scripts\Audit-LocalEditorCompatibility.ps1"
-  }
-}
 
 if (-not (Test-Path "local-editor\editor.py")) {
   throw "local-editor\editor.py was not found."

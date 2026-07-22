@@ -51,9 +51,18 @@ import {
   createPlaqueMaterial,
   createRoomShellWallMaterial,
   createWallMaterial,
+  type GalleryWallMaterialVariant,
   createWallTrimMaterial
 } from './environment/galleryMaterials';
-import { addGalleryLighting } from './environment/galleryLighting';
+import { addGalleryLighting, applyGalleryLightingQuality } from './environment/galleryLighting';
+import {
+  getGalleryQualitySettings,
+  getGalleryQualityState,
+  recordGalleryFrame,
+  resetGalleryPerformanceSampling,
+  subscribeToGalleryQuality,
+  type GalleryQualityTier
+} from './performance/galleryQuality';
 
 type GalleryInputMode = 'desktop' | 'touch';
 
@@ -89,6 +98,8 @@ export class GalleryScene {
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private animationFrameId = 0;
+  private qualityTier: GalleryQualityTier;
+  private unsubscribeFromQualityUpdates: (() => void) | null = null;
 
   private raycaster = new THREE.Raycaster();
   private centerPoint = new THREE.Vector2(0, 0);
@@ -110,6 +121,7 @@ export class GalleryScene {
   private lookController!: LookController;
   private inputMode: GalleryInputMode;
   private unsubscribeFromTextureUpdates: (() => void) | null = null;
+  private qualityTransitionId = 0;
   private framedTextures = new Set<THREE.Texture>();
 
   constructor(options: GallerySceneOptions) {
@@ -118,6 +130,7 @@ export class GalleryScene {
     this.onArtworkFocus = options.onArtworkFocus;
     this.onArtworkClear = options.onArtworkClear;
     this.inputMode = options.inputMode ?? 'desktop';
+    this.qualityTier = getGalleryQualityState().tier;
 
     this.scene = this.createScene();
     this.camera = this.createCamera();
@@ -135,9 +148,11 @@ export class GalleryScene {
     this.createFloor();
     this.createRoomShell();
     this.createLights();
+    this.applyQualityTier(this.qualityTier);
     this.createWalls();
     this.createArtwork();
     this.subscribeToHighResolutionTextureUpdates();
+    this.subscribeToQualityUpdates();
     this.bindEvents();
     this.animate();
   }
@@ -166,14 +181,19 @@ export class GalleryScene {
       powerPreference: 'high-performance'
     });
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.setPixelRatio(Math.min(
+      window.devicePixelRatio,
+      getGalleryQualitySettings(this.qualityTier).pixelRatioCap
+    ));
     renderer.setSize(
       Math.max(1, this.container.clientWidth),
       Math.max(1, this.container.clientHeight)
     );
     renderer.setClearColor(0x1d1814, 1);
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = this.qualityTier === 'high';
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.autoUpdate = false;
+    renderer.shadowMap.needsUpdate = this.qualityTier === 'high';
 
     // Keep the gallery canvas fully frame-cleared during camera movement. This
     // is normally Three.js' default behavior, but setting it explicitly helps
@@ -391,12 +411,12 @@ export class GalleryScene {
   private createCeilingLightPanels() {
     const panelMaterial = createCeilingLightPanelMaterial();
     const frameMaterial = createCeilingLightPanelFrameMaterial();
-    const frameThickness = 0.038;
-    const frameOverhang = 0.095;
+    const frameThickness = 0.024;
+    const frameOverhang = 0.048;
 
     ceilingLightPanels.forEach((panel) => {
       const fixture = new THREE.Group();
-      const fixtureY = galleryRoom.height - 0.032;
+      const fixtureY = galleryRoom.height - 0.025;
       const outerWidth = panel.width + frameOverhang;
       const outerDepth = panel.depth + frameOverhang;
 
@@ -408,7 +428,7 @@ export class GalleryScene {
       };
 
       const lightPanel = new THREE.Mesh(
-        new THREE.BoxGeometry(panel.width * 0.68, 0.009, panel.depth * 0.68),
+        new THREE.BoxGeometry(panel.width * 0.7, 0.007, panel.depth * 0.7),
         panelMaterial
       );
 
@@ -419,19 +439,19 @@ export class GalleryScene {
 
       const frameBars = [
         new THREE.Mesh(
-          new THREE.BoxGeometry(outerWidth, 0.01, frameThickness),
+          new THREE.BoxGeometry(outerWidth, 0.007, frameThickness),
           frameMaterial
         ),
         new THREE.Mesh(
-          new THREE.BoxGeometry(outerWidth, 0.01, frameThickness),
+          new THREE.BoxGeometry(outerWidth, 0.007, frameThickness),
           frameMaterial
         ),
         new THREE.Mesh(
-          new THREE.BoxGeometry(frameThickness, 0.01, panel.depth + frameOverhang * 0.52),
+          new THREE.BoxGeometry(frameThickness, 0.007, panel.depth + frameOverhang * 0.52),
           frameMaterial
         ),
         new THREE.Mesh(
-          new THREE.BoxGeometry(frameThickness, 0.01, panel.depth + frameOverhang * 0.52),
+          new THREE.BoxGeometry(frameThickness, 0.007, panel.depth + frameOverhang * 0.52),
           frameMaterial
         )
       ];
@@ -461,11 +481,81 @@ export class GalleryScene {
     addGalleryLighting(this.scene);
   }
 
+  private subscribeToQualityUpdates() {
+    this.unsubscribeFromQualityUpdates = subscribeToGalleryQuality(({ mode, tier }) => {
+      this.applyQualityTier(tier, mode === 'auto');
+    });
+  }
+
+  private applyQualityTier(tier: GalleryQualityTier, smoothPromotion = false) {
+    const previousTier = this.qualityTier;
+    const qualityRank: Record<GalleryQualityTier, number> = {
+      low: 0,
+      balanced: 1,
+      high: 2
+    };
+    const isPromotion = qualityRank[tier] > qualityRank[previousTier];
+    const transitionId = ++this.qualityTransitionId;
+
+    this.qualityTier = tier;
+    const settings = getGalleryQualitySettings(tier);
+    const width = Math.max(1, this.container.clientWidth);
+    const height = Math.max(1, this.container.clientHeight);
+
+    const applyRendererResolution = () => {
+      if (transitionId !== this.qualityTransitionId) {
+        return;
+      }
+
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, settings.pixelRatioCap));
+      this.renderer.setSize(width, height);
+    };
+
+    const applyShadowQuality = () => {
+      if (transitionId !== this.qualityTransitionId) {
+        return;
+      }
+
+      this.renderer.shadowMap.enabled = tier === 'high';
+      this.renderer.shadowMap.needsUpdate = tier === 'high';
+    };
+
+    applyGalleryLightingQuality(this.scene, tier);
+
+    if (smoothPromotion && isPromotion) {
+      window.requestAnimationFrame(() => {
+        applyRendererResolution();
+
+        const idleWindow = window as Window & {
+          requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+        };
+
+        const scheduleShadows = () => window.requestAnimationFrame(applyShadowQuality);
+
+        if (idleWindow.requestIdleCallback) {
+          idleWindow.requestIdleCallback(scheduleShadows, { timeout: 900 });
+        } else {
+          window.setTimeout(scheduleShadows, 120);
+        }
+      });
+    } else {
+      applyRendererResolution();
+      applyShadowQuality();
+    }
+
+    resetGalleryPerformanceSampling();
+  }
+
   private createWalls() {
-    const wallMaterial = createWallMaterial();
+    const wallMaterials = [
+      createWallMaterial(0),
+      createWallMaterial(1)
+    ] as const;
     const wallTrimMaterial = createWallTrimMaterial();
 
     galleryWalls.forEach((wall) => {
+      const materialVariant = this.getWallMaterialVariant(wall.id);
+      const wallMaterial = wallMaterials[materialVariant];
       const wallMesh = new THREE.Mesh(
         new THREE.BoxGeometry(wall.width, wall.height, wall.thickness),
         wallMaterial
@@ -486,6 +576,17 @@ export class GalleryScene {
       this.scene.add(wallMesh);
       this.scene.add(trimMesh);
     });
+  }
+
+
+  private getWallMaterialVariant(wallId: string): GalleryWallMaterialVariant {
+    let hash = 0;
+
+    for (let index = 0; index < wallId.length; index += 1) {
+      hash = (hash * 31 + wallId.charCodeAt(index)) >>> 0;
+    }
+
+    return (hash % 2) as GalleryWallMaterialVariant;
   }
 
   private createWallBaseTrim(wall: ResolvedGalleryWall, material: THREE.Material) {
@@ -1304,7 +1405,10 @@ export class GalleryScene {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
 
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    this.renderer.setPixelRatio(Math.min(
+      window.devicePixelRatio,
+      getGalleryQualitySettings(this.qualityTier).pixelRatioCap
+    ));
     this.renderer.setSize(width, height);
   };
 
@@ -1358,6 +1462,10 @@ export class GalleryScene {
   private animate = (timestamp?: number) => {
     const delta = this.movementController.getFrameDelta(timestamp);
 
+    if (typeof timestamp === 'number') {
+      recordGalleryFrame(timestamp);
+    }
+
     this.movementController.update(this.camera, this.lookController.getYaw(), delta);
     this.updateArtworkFocus();
     this.renderer.render(this.scene, this.camera);
@@ -1402,7 +1510,11 @@ export class GalleryScene {
 
     const materialWithMap = material as THREE.Material & { map?: THREE.Texture | null };
 
-    if (materialWithMap.map && !disposedTextures.has(materialWithMap.map)) {
+    if (
+      materialWithMap.map &&
+      !materialWithMap.map.userData.galleryEnvironmentTexture &&
+      !disposedTextures.has(materialWithMap.map)
+    ) {
       disposedTextures.add(materialWithMap.map);
       materialWithMap.map.dispose();
     }
@@ -1419,10 +1531,14 @@ export class GalleryScene {
   }
 
   public destroy() {
+    this.qualityTransitionId += 1;
     window.cancelAnimationFrame(this.animationFrameId);
 
     this.unsubscribeFromTextureUpdates?.();
     this.unsubscribeFromTextureUpdates = null;
+
+    this.unsubscribeFromQualityUpdates?.();
+    this.unsubscribeFromQualityUpdates = null;
 
     this.framedTextures.forEach((texture) => {
       texture.dispose();
