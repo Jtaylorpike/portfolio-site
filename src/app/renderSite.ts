@@ -8,7 +8,12 @@ export function renderSite(app: HTMLElement) {
     <div id="sitePage"></div>
 
     <div class="gallery-overlay" id="galleryOverlay" aria-hidden="true">
-      <button class="gallery-quality" id="galleryQualityButton" type="button" aria-label="Gallery quality is automatic. Activate to cycle quality modes.">Quality · Auto</button>
+      <select class="gallery-quality" id="galleryQualitySelect" aria-label="Gallery quality">
+        <option value="auto">Quality · Auto</option>
+        <option value="low">Quality · Low</option>
+        <option value="balanced">Quality · Medium</option>
+        <option value="high">Quality · High</option>
+      </select>
       <button class="gallery-close" id="closeGalleryButton" type="button" aria-label="Exit virtual gallery">Exit</button>
 
       <div class="gallery-control-card" id="galleryControlCard" aria-hidden="true">

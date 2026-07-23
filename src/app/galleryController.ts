@@ -16,13 +16,14 @@ import {
   type GalleryArtwork
 } from '../gallery/artwork/galleryLayout';
 import {
-  cycleGalleryQualityMode,
   getGalleryAutomaticQualityCeiling,
   getGalleryQualityModeLabel,
   getGalleryQualitySettings,
   getGalleryQualityState,
   getGalleryQualityTierLabel,
+  setGalleryQualityMode,
   subscribeToGalleryQuality,
+  type GalleryQualityMode,
   type GalleryQualityTier
 } from '../gallery/performance/galleryQuality';
 
@@ -215,7 +216,7 @@ export function setupGalleryController() {
   const galleryTouchMoveKnob = document.querySelector<HTMLElement>('#galleryTouchMoveKnob');
 
   const closeGalleryButton = document.querySelector<HTMLButtonElement>('#closeGalleryButton');
-  const galleryQualityButton = document.querySelector<HTMLButtonElement>('#galleryQualityButton');
+  const galleryQualitySelect = document.querySelector<HTMLSelectElement>('#galleryQualitySelect');
 
   const galleryInfoPanel = document.querySelector<HTMLElement>('#galleryInfoPanel');
   const galleryInfoMeta = document.querySelector<HTMLElement>('#galleryInfoMeta');
@@ -549,8 +550,8 @@ export function setupGalleryController() {
   }
 
 
-  function updateGalleryQualityButton() {
-    if (!galleryQualityButton) {
+  function updateGalleryQualitySelect() {
+    if (!galleryQualitySelect) {
       return;
     }
 
@@ -558,18 +559,27 @@ export function setupGalleryController() {
     const modeLabel = getGalleryQualityModeLabel(qualityState.mode);
     const tierLabel = getGalleryQualityTierLabel(qualityState.tier);
 
-    galleryQualityButton.textContent = qualityState.mode === 'auto'
-      ? `Quality · ${modeLabel} / ${tierLabel}`
-      : `Quality · ${modeLabel}`;
-    galleryQualityButton.setAttribute(
+    galleryQualitySelect.value = qualityState.mode;
+    const autoOption = galleryQualitySelect.querySelector<HTMLOptionElement>('option[value="auto"]');
+    if (autoOption) {
+      autoOption.textContent = qualityState.mode === 'auto'
+        ? `Quality · Auto / ${tierLabel}`
+        : 'Quality · Auto';
+    }
+    galleryQualitySelect.setAttribute(
       'aria-label',
-      `Gallery quality is ${modeLabel}${qualityState.mode === 'auto' ? `, currently ${tierLabel}` : ''}. Activate to cycle quality modes.`
+      `Gallery quality is ${modeLabel}${qualityState.mode === 'auto' ? `, currently ${tierLabel}` : ''}.`
     );
-    galleryQualityButton.title = 'Cycle gallery quality: Auto, Low, Medium, High';
+    galleryQualitySelect.title = 'Choose gallery quality';
   }
 
   function handleGalleryQualityChange() {
-    const qualityState = cycleGalleryQualityMode();
+    if (!galleryQualitySelect) {
+      return;
+    }
+
+    setGalleryQualityMode(galleryQualitySelect.value as GalleryQualityMode);
+    const qualityState = getGalleryQualityState();
     const settings = getGalleryQualitySettings(qualityState.tier);
 
     prewarmGalleryAssets(
@@ -760,13 +770,13 @@ export function setupGalleryController() {
   });
 
   subscribeToGalleryQuality(({ tier }) => {
-    updateGalleryQualityButton();
+    updateGalleryQualitySelect();
 
     if (activeGallery && getGalleryQualitySettings(tier).artworkTexturePolicy !== 'focus') {
       void preloadGalleryImages(tier);
     }
   });
 
-  galleryQualityButton?.addEventListener('click', handleGalleryQualityChange);
+  galleryQualitySelect?.addEventListener('change', handleGalleryQualityChange);
   closeGalleryButton?.addEventListener('click', closeGallery);
 }

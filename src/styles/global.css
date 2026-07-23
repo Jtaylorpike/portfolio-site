@@ -1885,7 +1885,7 @@ button:focus-visible {
   z-index: 4;
   pointer-events: auto;
   height: 39px;
-  padding: 0 13px;
+  padding: 0 34px 0 13px;
   border: 1px solid rgba(238, 231, 216, 0.2);
   border-radius: 0;
   background: rgba(4, 5, 5, 0.58);
@@ -1902,6 +1902,15 @@ button:focus-visible {
   text-rendering: geometricPrecision;
   cursor: pointer;
   backdrop-filter: blur(10px);
+  color-scheme: dark;
+}
+
+.gallery-quality option {
+  background: #171512;
+  color: var(--text);
+  font-size: 12px;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .gallery-quality:hover,
@@ -2098,22 +2107,29 @@ button:focus-visible {
 
 .gallery-loading-bar span {
   display: block;
-  width: 45%;
+  width: 200%;
   height: 100%;
-  background: var(--text);
-  transform: translate3d(-110%, 0, 0);
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 12.5%,
+    rgba(238, 231, 216, 0.92) 12.5% 25%,
+    transparent 25% 37.5%,
+    rgba(238, 231, 216, 0.42) 37.5% 50%
+  );
+  transform: translate3d(-50%, 0, 0);
   will-change: transform;
   backface-visibility: hidden;
-  animation: gallery-loading-slide 720ms linear infinite;
+  contain: strict;
+  animation: gallery-loading-slide 900ms linear infinite;
 }
 
 @keyframes gallery-loading-slide {
   from {
-    transform: translate3d(-110%, 0, 0);
+    transform: translate3d(-50%, 0, 0);
   }
 
   to {
-    transform: translate3d(225%, 0, 0);
+    transform: translate3d(0, 0, 0);
   }
 }
 

@@ -58,7 +58,9 @@ import { addGalleryLighting, applyGalleryLightingQuality } from './environment/g
 import {
   getGalleryQualitySettings,
   getGalleryQualityState,
+  markGalleryGpuTierReady,
   recordGalleryFrame,
+  resetGalleryGpuTier,
   resetGalleryPerformanceSampling,
   subscribeToGalleryQuality,
   type GalleryQualityTier
@@ -123,6 +125,11 @@ export class GalleryScene {
   private unsubscribeFromTextureUpdates: (() => void) | null = null;
   private qualityTransitionId = 0;
   private framedTextures = new Set<THREE.Texture>();
+  private pendingTextureUpdates = new Map<string, THREE.Texture>();
+  private texturePreparationScheduled = false;
+  private preparedFullTextureUrls = new Set<string>();
+  private preparedPreviewTextureUrls = new Set<string>();
+  private destroyed = false;
 
   constructor(options: GallerySceneOptions) {
     this.container = options.container;
@@ -483,11 +490,13 @@ export class GalleryScene {
 
   private subscribeToQualityUpdates() {
     this.unsubscribeFromQualityUpdates = subscribeToGalleryQuality(({ mode, tier }) => {
-      this.applyQualityTier(tier, mode === 'auto');
+      if (tier !== this.qualityTier) {
+        this.applyQualityTier(tier, mode === 'auto');
+      }
     });
   }
 
-  private applyQualityTier(tier: GalleryQualityTier, smoothPromotion = false) {
+  private applyQualityTier(tier: GalleryQualityTier, smoothTransition = false) {
     const previousTier = this.qualityTier;
     const qualityRank: Record<GalleryQualityTier, number> = {
       low: 0,
@@ -499,8 +508,6 @@ export class GalleryScene {
 
     this.qualityTier = tier;
     const settings = getGalleryQualitySettings(tier);
-    const width = Math.max(1, this.container.clientWidth);
-    const height = Math.max(1, this.container.clientHeight);
 
     const applyRendererResolution = () => {
       if (transitionId !== this.qualityTransitionId) {
@@ -508,7 +515,6 @@ export class GalleryScene {
       }
 
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, settings.pixelRatioCap));
-      this.renderer.setSize(width, height);
     };
 
     const applyShadowQuality = () => {
@@ -520,11 +526,10 @@ export class GalleryScene {
       this.renderer.shadowMap.needsUpdate = tier === 'high';
     };
 
-    applyGalleryLightingQuality(this.scene, tier);
-
-    if (smoothPromotion && isPromotion) {
+    if (smoothTransition && isPromotion) {
       window.requestAnimationFrame(() => {
         applyRendererResolution();
+        applyGalleryLightingQuality(this.scene, tier);
 
         const idleWindow = window as Window & {
           requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
@@ -538,7 +543,21 @@ export class GalleryScene {
           window.setTimeout(scheduleShadows, 120);
         }
       });
+    } else if (smoothTransition) {
+      // Demotion used to resize the drawing buffer twice while changing every
+      // other quality feature in the same frame. Shed shadows, optional lights,
+      // and resolution across separate frames so recovery does not itself hitch.
+      applyShadowQuality();
+      window.requestAnimationFrame(() => {
+        if (transitionId !== this.qualityTransitionId) {
+          return;
+        }
+
+        applyGalleryLightingQuality(this.scene, tier);
+        window.requestAnimationFrame(applyRendererResolution);
+      });
     } else {
+      applyGalleryLightingQuality(this.scene, tier);
       applyRendererResolution();
       applyShadowQuality();
     }
@@ -1277,9 +1296,64 @@ export class GalleryScene {
   private subscribeToHighResolutionTextureUpdates() {
     this.unsubscribeFromTextureUpdates = subscribeToGalleryTextureUpdates(
       (url, texture) => {
-        this.applyHighResolutionTexture(url, texture);
+        const isPreviewTexture = galleryArtworks.some((artwork) => artwork.previewImage === url);
+
+        if (isPreviewTexture) {
+          // Preview textures are the correctness path, not an optional quality
+          // enhancement. Never leave an empty frame waiting for idle time.
+          window.requestAnimationFrame(() => {
+            if (!this.destroyed) {
+              this.applyHighResolutionTexture(url, texture);
+            }
+          });
+          return;
+        }
+
+        this.pendingTextureUpdates.set(url, texture);
+        this.schedulePreparedTextureUpdate();
       }
     );
+  }
+
+  private schedulePreparedTextureUpdate() {
+    if (this.texturePreparationScheduled || this.pendingTextureUpdates.size === 0) {
+      return;
+    }
+
+    this.texturePreparationScheduled = true;
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: (deadline: { timeRemaining: () => number }) => void) => number;
+    };
+    const prepareNext = (hasIdleBudget = true) => {
+      this.texturePreparationScheduled = false;
+
+      if (!hasIdleBudget) {
+        this.schedulePreparedTextureUpdate();
+        return;
+      }
+
+      const next = this.pendingTextureUpdates.entries().next();
+
+      if (next.done) {
+        return;
+      }
+
+      const [url, texture] = next.value;
+      this.pendingTextureUpdates.delete(url);
+      this.applyHighResolutionTexture(url, texture);
+      this.schedulePreparedTextureUpdate();
+    };
+
+    if (idleWindow.requestIdleCallback) {
+      // Never force a GPU upload through an expired idle callback. Waiting is
+      // preferable to creating a visible long frame merely to reach High.
+      idleWindow.requestIdleCallback((deadline) => prepareNext(deadline.timeRemaining() >= 8));
+    } else {
+      window.setTimeout(() => {
+        const startedAt = performance.now();
+        window.requestAnimationFrame(() => prepareNext(performance.now() - startedAt < 20));
+      }, 80);
+    }
   }
 
   private applyHighResolutionTexture(url: string, texture: THREE.Texture) {
@@ -1335,10 +1409,47 @@ export class GalleryScene {
       }
 
       const framedTexture = this.createFramedArtworkTexture(texture, meshSet.artwork, dimensions);
+      // Upload the replacement while this idle task owns the main thread. The
+      // following visual swap then reuses an initialized GPU texture instead
+      // of making the next visible render pay the upload cost.
+      this.renderer.initTexture(framedTexture);
+      if (isPreviewTexture) {
+        this.preparedPreviewTextureUrls.add(url);
+        const requiredPreviewTextureUrls = new Set(
+          galleryArtworks
+            .map((artwork) => artwork.previewImage)
+            .filter((source): source is string => Boolean(source))
+        );
+
+        if ([...requiredPreviewTextureUrls].every((source) => this.preparedPreviewTextureUrls.has(source))) {
+          markGalleryGpuTierReady('balanced');
+        }
+      }
+      if (isFullTexture) {
+        this.preparedFullTextureUrls.add(url);
+        const requiredFullTextureUrls = new Set(galleryArtworks.map((artwork) => artwork.image));
+
+        if ([...requiredFullTextureUrls].every((source) => this.preparedFullTextureUrls.has(source))) {
+          markGalleryGpuTierReady('high');
+        }
+      }
       const material = meshSet.image.material as THREE.MeshBasicMaterial | THREE.MeshStandardMaterial;
 
-      this.replaceMaterialTexture(material, framedTexture);
-      meshSet.image.userData.activeTextureUrl = url;
+      window.requestAnimationFrame(() => {
+        if (this.destroyed) {
+          framedTexture.dispose();
+          this.framedTextures.delete(framedTexture);
+          return;
+        }
+
+        if (!this.pendingTextureUpdates.has(url) || this.pendingTextureUpdates.get(url) === texture) {
+          this.replaceMaterialTexture(material, framedTexture);
+          meshSet.image.userData.activeTextureUrl = url;
+        } else {
+          framedTexture.dispose();
+          this.framedTextures.delete(framedTexture);
+        }
+      });
     });
   }
 
@@ -1531,11 +1642,16 @@ export class GalleryScene {
   }
 
   public destroy() {
+    this.destroyed = true;
     this.qualityTransitionId += 1;
     window.cancelAnimationFrame(this.animationFrameId);
 
     this.unsubscribeFromTextureUpdates?.();
     this.unsubscribeFromTextureUpdates = null;
+    this.pendingTextureUpdates.clear();
+    this.preparedFullTextureUrls.clear();
+    this.preparedPreviewTextureUrls.clear();
+    resetGalleryGpuTier();
 
     this.unsubscribeFromQualityUpdates?.();
     this.unsubscribeFromQualityUpdates = null;

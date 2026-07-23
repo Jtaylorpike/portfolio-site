@@ -22,6 +22,7 @@ export type GalleryQualityState = {
   tier: GalleryQualityTier;
   autoCeiling: GalleryQualityTier;
   cacheTier: GalleryQualityTier;
+  gpuTier: GalleryQualityTier;
 };
 
 type QualityStateListener = (state: GalleryQualityState) => void;
@@ -149,7 +150,8 @@ let state: GalleryQualityState = {
   mode: initialMode,
   tier: initialTier,
   autoCeiling,
-  cacheTier: 'low'
+  cacheTier: 'low',
+  gpuTier: 'low'
 };
 
 let lastFrameTimestamp = 0;
@@ -217,9 +219,13 @@ function evaluateFrameWindow() {
   const canPromote =
     higherTier !== state.tier &&
     getTierRank(higherTier) <= getTierRank(state.autoCeiling) &&
-    getTierRank(higherTier) <= getTierRank(state.cacheTier);
+    getTierRank(higherTier) <= getTierRank(state.cacheTier) &&
+    getTierRank(higherTier) <= getTierRank(state.gpuTier);
 
-  if (canPromote && average < 17.2 && p90 < 20.5) {
+  // Promotion needs real render-time headroom for the unavoidable drawing
+  // buffer and shadow-map activation work. A merely acceptable 50-60 fps
+  // window is not sufficient evidence that a higher tier will be seamless.
+  if (canPromote && average < 11.5 && p90 < 13.5) {
     stableUpgradeWindows += 1;
 
     if (stableUpgradeWindows >= 3) {
@@ -283,6 +289,23 @@ export function markGalleryCacheTierReady(tier: GalleryQualityTier) {
 
   state = { ...state, cacheTier: tier };
   notifyListeners();
+}
+
+export function markGalleryGpuTierReady(tier: GalleryQualityTier) {
+  if (getTierRank(tier) <= getTierRank(state.gpuTier)) {
+    return;
+  }
+
+  state = { ...state, gpuTier: tier };
+  notifyListeners();
+}
+
+export function resetGalleryGpuTier() {
+  if (state.gpuTier === 'low') {
+    return;
+  }
+
+  state = { ...state, gpuTier: 'low' };
 }
 
 export function resetGalleryPerformanceSampling() {

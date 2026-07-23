@@ -128,7 +128,7 @@ function addPanelAreaWash(
     galleryLighting: 'ceiling-area-wash',
     lightPanelId: panel.id,
     phase8U: 'readable-ceiling-fixture-surface-wash',
-    minimumGalleryQuality: 'low'
+    minimumGalleryQuality: 'balanced'
   };
 
   scene.add(light);
