@@ -8132,6 +8132,34 @@ html[data-editor-theme="dark"] .backup-restore-state {
   margin-top: 16px;
 }
 
+.gallery-curation-heading-controls {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gallery-curation-order-field {
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gallery-curation-order-field input {
+  width: 62px;
+  min-height: 32px;
+  padding: 5px 7px;
+}
+
+.gallery-curation-visibility-toggle {
+  min-height: 32px;
+  white-space: nowrap;
+}
+
 /* Phase 8AP: compact classic-Mac chrome with modern interaction density. */
 :root {
   --radius-sm: 5px;

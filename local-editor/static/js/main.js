@@ -10,7 +10,6 @@ import {
   restoreBackupApi,
   saveDataApi,
   saveGalleryCurationApi,
-  saveGalleryCurationWallApi,
   saveGalleryRoomApi,
   saveImageUpdatesApi,
   saveSiteSeoApi
@@ -212,6 +211,31 @@ function applyGalleryArchitectureView() {
 
 function cloneGalleryCuration(records) {
   return JSON.parse(JSON.stringify(records ?? []));
+}
+
+function getGalleryRoomId(record) {
+  return record?.roomId || "room-main";
+}
+
+function renumberGalleryRoomWalls(records, roomId, orderedWallIds = []) {
+  const requestedOrder = new Map(orderedWallIds.map((wallId, index) => [wallId, index]));
+  const roomRecords = records
+    .filter((record) => getGalleryRoomId(record) === roomId)
+    .sort((left, right) => {
+      const leftRequested = requestedOrder.get(left.wallId);
+      const rightRequested = requestedOrder.get(right.wallId);
+      if (leftRequested !== undefined || rightRequested !== undefined) {
+        return (leftRequested ?? Number.MAX_SAFE_INTEGER) - (rightRequested ?? Number.MAX_SAFE_INTEGER);
+      }
+      return Number(left.displayOrder ?? Number.MAX_SAFE_INTEGER) - Number(right.displayOrder ?? Number.MAX_SAFE_INTEGER);
+    });
+  const orderByWallId = new Map(roomRecords.map((record, index) => [record.wallId, index + 1]));
+
+  return records.map((record) => (
+    getGalleryRoomId(record) === roomId
+      ? { ...record, displayOrder: orderByWallId.get(record.wallId) }
+      : record
+  ));
 }
 
 function cloneGalleryRoom(room) {
@@ -2657,7 +2681,9 @@ function addGalleryWallCardFromOverlay() {
     artworkId: getGalleryAddWallFieldValue("artworkId", ""),
     showInGallery: getGalleryAddWallFieldValue("showInGallery", "hidden") === "active",
     placedInGallery: false,
-    displayOrder: (state.galleryCuration ?? []).length + 1,
+    displayOrder: (state.galleryCuration ?? []).filter((record) =>
+      getGalleryRoomId(record) === (state.galleryEditorRoomId ?? "room-main")
+    ).length + 1,
     wallType: getGalleryAddWallFieldValue("wallType", "standard-display-wall"),
     plaqueEnabled: getGalleryAddWallFieldValue("plaqueEnabled", true),
     plaqueSide: getGalleryAddWallFieldValue("plaqueSide", "auto"),
@@ -2668,7 +2694,10 @@ function addGalleryWallCardFromOverlay() {
 
   state = {
     ...state,
-    galleryCuration: [...(collectGalleryCuration(state) ?? []), nextRecord]
+    galleryCuration: renumberGalleryRoomWalls(
+      [...(collectGalleryCuration(state) ?? []), nextRecord],
+      nextRecord.roomId
+    )
   };
 
   closeGalleryAddWallOverlay();
@@ -2696,14 +2725,32 @@ function removeGalleryWallCard(card) {
 
   pushGalleryUndoSnapshot("wall removal");
 
-  card.remove();
+  const removedRecord = (state.galleryCuration ?? []).find((record) => record.wallId === wallId);
+  const currentRecords = collectGalleryCuration(state)
+    .filter((record) => record.wallId !== wallId);
   state = {
     ...state,
-    galleryCuration: collectGalleryCuration(state)
+    galleryCuration: renumberGalleryRoomWalls(currentRecords, getGalleryRoomId(removedRecord))
   };
 
-  refreshGalleryPlacementMapFromCards();
+  if (activeGallerySelectedWallId === wallId) activeGallerySelectedWallId = null;
+  rerenderCurrentRoute(`Removed ${wallId}. Click Save All Gallery Curation to preserve the removal.`);
   setDirtyState(true, `Removed ${wallId}. Click Save All Gallery Curation to preserve the removal.`);
+}
+
+function toggleGalleryWallVisibility(card) {
+  const wallId = card?.dataset.wallId ?? "";
+  if (!card || !wallId) return;
+
+  pushGalleryUndoSnapshot("visibility change");
+  const records = collectGalleryCuration(state).map((record) => (
+    record.wallId === wallId
+      ? { ...record, showInGallery: record.showInGallery === false }
+      : record
+  ));
+  state = { ...state, galleryCuration: records };
+  rerenderCurrentRoute("Gallery visibility updated. Click Save All Gallery Curation to preserve it.");
+  setDirtyState(true, "Gallery visibility updated. Click Save All Gallery Curation to preserve it.");
 }
 
 function syncGalleryPlacementFootprintLabel(card) {
@@ -3239,17 +3286,20 @@ async function saveGalleryCurationWall(card) {
 
   syncGalleryGridPlacementFromField(card.querySelector('[data-gallery-grid-field="gridX"]'));
 
-  const displayOrder = getGalleryCurationCardDisplayOrder(card);
-  const wallRecord = collectGalleryCurationCard(card, state, displayOrder);
+  const wallId = card.dataset.wallId ?? "wall";
+  const galleryCuration = collectGalleryCuration(state);
 
-  assertGalleryPlacementIsCollisionFree(getGalleryCardPlacementRecords());
-  setStatus(`Saving gallery wall ${wallRecord.wallId}...`, "neutral");
+  assertGalleryPlacementIsCollisionFree(galleryCuration);
+  setStatus(`Saving gallery wall ${wallId} and current card changes...`, "neutral");
 
-  const savedData = await saveGalleryCurationWallApi(wallRecord);
+  // Saving one card must not replace the page with an older server snapshot and
+  // discard fields or ordering edits made on other cards. Persist the complete
+  // current curation state, while keeping the card-level Save Wall affordance.
+  const savedData = await saveGalleryCurationApi(galleryCuration);
 
   applyLoadedState(savedData);
   setDirtyState(false);
-  setStatus(`Saved gallery wall ${wallRecord.wallId}.${getBackupStatusText(savedData)}`, "success");
+  setStatus(`Saved gallery wall ${wallId} and current curation changes.${getBackupStatusText(savedData)}`, "success");
 }
 
 async function saveData() {
@@ -4307,13 +4357,13 @@ elements.importReviewList.addEventListener("click", (event) => {
 
 // Tracks edits on the virtual gallery curation page.
 elements.galleryCurationList?.addEventListener("focusin", (event) => {
-  if (event.target.closest("[data-gallery-curation-field], [data-gallery-grid-field]")) {
+  if (event.target.closest("[data-gallery-curation-field], [data-gallery-grid-field], [data-gallery-display-order]")) {
     galleryFieldEditSnapshot = getCurrentGalleryCurationSnapshot();
   }
 });
 
 function captureGalleryFieldUndo(event) {
-  if (!event.target.closest("[data-gallery-curation-field], [data-gallery-grid-field]")) return;
+  if (!event.target.closest("[data-gallery-curation-field], [data-gallery-grid-field], [data-gallery-display-order]")) return;
   pushGalleryUndoSnapshot("field edit", galleryFieldEditSnapshot ?? cloneGalleryCuration(state.galleryCuration));
   galleryFieldEditSnapshot = null;
 }
@@ -4322,6 +4372,7 @@ elements.galleryCurationList?.addEventListener("input", (event) => {
   const galleryFilter = event.target.closest("[data-gallery-curation-filter]");
   const artworkPickerFilter = event.target.closest("[data-artwork-picker-filter]");
   const gridField = event.target.closest("[data-gallery-grid-field]");
+  const displayOrderField = event.target.closest("[data-gallery-display-order]");
 
   if (galleryFilter) {
     applyGalleryCurationFilters();
@@ -4338,6 +4389,8 @@ elements.galleryCurationList?.addEventListener("input", (event) => {
     syncGalleryGridPlacementFromField(gridField);
   }
 
+  if (displayOrderField) return;
+
   if (event.target.closest("[data-gallery-curation-field]")) captureGalleryFieldUndo(event);
 
   setDirtyState(true, "Gallery curation has unsaved changes. Click Save Wall or Save All Gallery Curation to preserve it.");
@@ -4349,6 +4402,7 @@ elements.galleryCurationList?.addEventListener("change", (event) => {
   const galleryFilter = event.target.closest("[data-gallery-curation-filter]");
   const artworkPickerFilter = event.target.closest("[data-artwork-picker-filter]");
   const gridField = event.target.closest("[data-gallery-grid-field]");
+  const displayOrderField = event.target.closest("[data-gallery-display-order]");
   const field = event.target.closest("[data-gallery-curation-field]");
 
   if (galleryRoomMapSelect) {
@@ -4392,6 +4446,34 @@ elements.galleryCurationList?.addEventListener("change", (event) => {
 
   if (artworkPickerFilter) {
     applyArtworkPickerFilters();
+    return;
+  }
+
+  if (displayOrderField) {
+    const card = displayOrderField.closest("[data-gallery-curation-card]");
+    const cards = Array.from(elements.galleryCurationList?.querySelectorAll("[data-gallery-curation-card]") ?? []);
+    const currentIndex = cards.indexOf(card);
+
+    if (!card || currentIndex < 0) return;
+
+    const requestedIndex = Math.max(
+      0,
+      Math.min(cards.length - 1, Math.round(Number(displayOrderField.value) || currentIndex + 1) - 1)
+    );
+    captureGalleryFieldUndo(event);
+    const orderedWallIds = cards.map((item) => item.dataset.wallId).filter(Boolean);
+    const [movedWallId] = orderedWallIds.splice(currentIndex, 1);
+    orderedWallIds.splice(requestedIndex, 0, movedWallId);
+    state = {
+      ...state,
+      galleryCuration: renumberGalleryRoomWalls(
+        collectGalleryCuration(state),
+        state.galleryEditorRoomId ?? "room-main",
+        orderedWallIds
+      )
+    };
+    rerenderCurrentRoute("Wall order updated. Click Save All Gallery Curation to preserve it.");
+    setDirtyState(true, "Wall order updated. Click Save All Gallery Curation to preserve it.");
     return;
   }
 
@@ -4457,6 +4539,7 @@ elements.galleryCurationList?.addEventListener("click", (event) => {
   const closeAddWallButton = event.target.closest("[data-gallery-add-wall-close]");
   const createAddWallButton = event.target.closest("[data-create-gallery-wall-card]");
   const removeWallButton = event.target.closest("[data-remove-gallery-wall-card]");
+  const toggleGalleryVisibilityButton = event.target.closest("[data-toggle-gallery-visibility]");
   const mapMarker = event.target.closest("[data-placement-marker]");
   const sidebarWall = event.target.closest("[data-gallery-wall-drag-source]");
   const rotateMapButton = event.target.closest("[data-gallery-map-rotate]");
@@ -4547,6 +4630,11 @@ elements.galleryCurationList?.addEventListener("click", (event) => {
     return;
   }
 
+  if (toggleGalleryVisibilityButton) {
+    toggleGalleryWallVisibility(toggleGalleryVisibilityButton.closest("[data-gallery-curation-card]"));
+    return;
+  }
+
   if (openPreviewButton) {
     openGalleryPreviewLightbox(openPreviewButton);
     return;
@@ -4594,6 +4682,18 @@ elements.galleryCurationList?.addEventListener("click", (event) => {
 
     pushGalleryUndoSnapshot("wall reorder");
     moveGridCard(card, direction, "Moved gallery wall assignment. Click Save Wall or Save All Gallery Curation to preserve it.");
+    const orderedWallIds = Array.from(
+      elements.galleryCurationList?.querySelectorAll("[data-gallery-curation-card]") ?? []
+    ).map((item) => item.dataset.wallId).filter(Boolean);
+    state = {
+      ...state,
+      galleryCuration: renumberGalleryRoomWalls(
+        collectGalleryCuration(state),
+        state.galleryEditorRoomId ?? "room-main",
+        orderedWallIds
+      )
+    };
+    rerenderCurrentRoute("Moved gallery wall assignment. Click Save Wall or Save All Gallery Curation to preserve it.");
   }
 });
 

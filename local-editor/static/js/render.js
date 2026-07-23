@@ -1742,42 +1742,8 @@ function renderGalleryWallPreview(state, record, image, wallType, plaqueEnabled,
 }
 
 function getGalleryWallDisplayName(record, index) {
-  const wallId = String(record.wallId ?? "");
   const number = String(index + 1).padStart(2, "0");
-
-  if (wallId === "wall-entry-hero-personal") {
-    return "Entry feature wall";
-  }
-
-  if (wallId === "wall-entry-left-guide") {
-    return "Left entry guide wall";
-  }
-
-  if (wallId === "wall-entry-right-guide") {
-    return "Right entry guide wall";
-  }
-
-  if (wallId.includes("left-inner")) {
-    return `Left inner partition ${number}`;
-  }
-
-  if (wallId.includes("right-inner")) {
-    return `Right inner partition ${number}`;
-  }
-
-  if (wallId.includes("left-climbing")) {
-    return `Left outer display wall ${number}`;
-  }
-
-  if (wallId.includes("right-landscape")) {
-    return `Right outer display wall ${number}`;
-  }
-
-  if (wallId.includes("rear")) {
-    return `Rear gallery wall ${number}`;
-  }
-
-  return `Gallery wall ${number}`;
+  return `Wall ${number}`;
 }
 
 function renderGalleryCurationImageOptions(state, selectedImageId) {
@@ -2067,17 +2033,20 @@ function renderGalleryPlacementMap(state, records) {
   const activeRoomId = rooms.some((room) => room.id === state.galleryEditorRoomId)
     ? state.galleryEditorRoomId
     : rooms[0]?.id ?? "room-main";
-  const roomRecords = records.filter((record) => (record.roomId ?? "room-main") === activeRoomId);
+  const roomRecords = records
+    .filter((record) => (record.roomId ?? "room-main") === activeRoomId)
+    .sort((left, right) => Number(left.displayOrder ?? 0) - Number(right.displayOrder ?? 0));
   const placedRecords = roomRecords.filter(isGalleryWallPlaced);
   const collisions = findGalleryPlacementCollisions(roomRecords);
   const boundaryViolations = findGalleryPlacementBoundaryViolations(roomRecords);
   const collisionIds = getGalleryPlacementCollisionIds(roomRecords);
   const boundaryIds = getGalleryPlacementBoundaryIds(roomRecords);
-  const markers = placedRecords.map((record, index) => {
+  const markers = placedRecords.map((record) => {
     const placement = getGalleryWallPlacement(record);
     const wallType = getGalleryWallType(record);
     const showInGallery = record.showInGallery !== false;
-    const label = getGalleryWallDisplayName(record, index);
+    const roomIndex = roomRecords.findIndex((candidate) => candidate.wallId === record.wallId);
+    const label = getGalleryWallDisplayName(record, roomIndex);
     const hasCollision = collisionIds.has(record.wallId);
     const hasBoundaryViolation = boundaryIds.has(record.wallId);
     const title = `${label}: grid ${placement.gridX}, ${placement.gridZ}; ${placement.positionX.toFixed(2)}m, ${placement.positionZ.toFixed(2)}m; ${placement.rotationYDegrees.toFixed(0)} degrees`;
@@ -2098,7 +2067,7 @@ function renderGalleryPlacementMap(state, records) {
         style="${escapeHtml(getGalleryPlacementMapMarkerStyle(record))}"
       >
         ${renderGalleryPlacementWallVisual()}
-        <span class="gallery-placement-marker-number">${escapeHtml(String(index + 1))}</span>
+        <span class="gallery-placement-marker-number">${escapeHtml(String(roomIndex + 1))}</span>
         <span class="gallery-placement-facing-arrow" style="${getGalleryFacingArrowStyle(record)}" aria-hidden="true"></span>
       </button>
     `;
@@ -2462,7 +2431,7 @@ function renderGalleryCurationCard(state, record, index) {
   const plaqueEnabled = record.plaqueEnabled !== false;
   const wallType = getGalleryWallType(record);
   const wallTypeMeta = getGalleryWallTypeMeta(wallType);
-  const wallDisplayName = getGalleryWallDisplayName(record, index);
+  const wallDisplayName = image?.title ?? "No artwork assigned";
   const roomId = record.roomId ?? "room-main";
   const roomLabel = state.galleryRoom?.layout?.rooms?.find((room) => room.id === roomId)?.label ?? roomId;
   const plaqueSide = record.plaqueSide ?? "auto";
@@ -2517,14 +2486,33 @@ function renderGalleryCurationCard(state, record, index) {
           <div class="gallery-curation-heading-row">
             <div>
               <h3>${escapeHtml(wallDisplayName)}</h3>
-              <span>Blueprint slot: ${escapeHtml(record.wallId)} / Display order ${escapeHtml(String(record.displayOrder ?? index + 1))}</span>
+              <span>Wall card ${String(index + 1).padStart(2, "0")}</span>
             </div>
-            <div class="gallery-curation-badge-row" aria-label="Wall status">
+            <div class="gallery-curation-heading-controls">
+              <label class="gallery-curation-order-field">Order
+                <input
+                  type="number"
+                  min="1"
+                  max="${escapeHtml(String(roomRecords.length))}"
+                  step="1"
+                  value="${escapeHtml(String(index + 1))}"
+                  data-gallery-display-order
+                  aria-label="Wall card order"
+                />
+              </label>
+              <button
+                class="button gallery-curation-visibility-toggle"
+                type="button"
+                data-toggle-gallery-visibility
+                aria-pressed="${showInGallery ? "true" : "false"}"
+              >${showInGallery ? "Hide from gallery" : "Show in gallery"}</button>
+              <div class="gallery-curation-badge-row" aria-label="Wall status">
               <span class="gallery-curation-badge">${escapeHtml(roomLabel)}</span>
               <span class="gallery-curation-badge" data-gallery-status-badge="${escapeHtml(displayStatus)}">${showInGallery ? "Visible in room" : "Hidden from room"}</span>
               <span class="gallery-curation-badge" data-gallery-placement-badge="${escapeHtml(placementStatus)}">${placedInGallery ? "On map" : "Not on map"}</span>
               <span class="gallery-curation-badge" data-gallery-artwork-badge="${escapeHtml(artworkState)}">${image ? "Artwork assigned" : "Needs artwork"}</span>
               <span class="gallery-curation-badge" data-gallery-wall-type-badge>${escapeHtml(wallTypeMeta.label)}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -2714,7 +2702,9 @@ function renderGalleryCurationPage(state, elements) {
   const activeRoomId = rooms.some((room) => room.id === state.galleryEditorRoomId)
     ? state.galleryEditorRoomId
     : rooms[0]?.id ?? "room-main";
-  const records = allRecords.filter((record) => (record.roomId ?? "room-main") === activeRoomId);
+  const records = allRecords
+    .filter((record) => (record.roomId ?? "room-main") === activeRoomId)
+    .sort((left, right) => Number(left.displayOrder ?? 0) - Number(right.displayOrder ?? 0));
 
   if (!elements.galleryCurationList) {
     return;
