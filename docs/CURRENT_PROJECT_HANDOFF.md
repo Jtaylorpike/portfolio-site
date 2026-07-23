@@ -1,12 +1,12 @@
 # Taylor Pike Photography Portfolio - Current Project Guide
 
-Last updated: 2026-07-22 18:04 EDT (UTC-04:00)
+Last updated: 2026-07-22 19:13 EDT (UTC-04:00)
 
 This is the authoritative operational and handoff document for the repository. Historical documents, phase records, pack notes, manifests, earlier policies, and superseded handoffs are preserved verbatim in `PROJECT_HISTORY_ARCHIVE.md`. The staged portfolio alt-text dataset remains at `alt-text/portfolio-image-alt-text-20260515.json` because repository tooling consumes that path directly.
 
 ## Current status
 
-Phase 8AN surface hierarchy and Phase 8AO adaptive quality are implemented and audited. A follow-up on 2026-07-22 improved seamless quality promotion and the gallery loading presentation by staging automatic renderer work, activating High shadows during an idle window, serializing High artwork texture uploads, and keeping the loading indicator continuously composited.
+Phase 8AN surface hierarchy and Phase 8AO adaptive quality are implemented and audited. Phase 8AP is now active as the performance-safe gallery completion and editor operational-recovery stage. Its first slice repairs deferred artwork preview delivery, smooths automatic demotion, adds direct quality selection, strengthens the continuously moving loading indicator, fixes the local-editor launch port contract, and adds editor coverage for active SEO metadata.
 
 The implementation is ready for final release review. It has not been committed, pushed, or merged in the current work session.
 
@@ -57,6 +57,9 @@ The implementation is ready for final release review. It has not been committed,
 - Auto promotion stages light visibility, renderer resolution, and High shadow activation across frame/idle boundaries.
 - High artwork texture uploads are serialized to reduce decode/upload spikes.
 - The loading overlay fades instead of toggling layout display, and its bar uses continuous linear compositor animation.
+- Deferred preview artwork textures bypass optional GPU-idle preparation so frames cannot remain blank while waiting for a large idle deadline.
+- Automatic demotion avoids a duplicate drawing-buffer resize and stages shadows, optional lighting, and resolution across separate frames.
+- Quality is selected directly from an Auto/Low/Medium/High menu rather than requiring cyclic traversal.
 
 ## Validation baseline - 2026-07-22
 
@@ -103,6 +106,16 @@ There is no active `public/images/logo` directory. Public paths must continue re
 - Preserve the Adobe-inspired editor direction: compact, professional, image-first, visually quiet, and free of the public-site pixel font.
 - Image IDs and rendition names must remain synchronized across active JSON and `display`, `thumb`, `texture`, and `full` assets.
 - The alt-text application script intentionally reads `docs/alt-text/portfolio-image-alt-text-20260515.json` by default.
+- The local editor launcher and Flask server share the requested `FLASK_RUN_PORT`; the default advertised URL is `http://127.0.0.1:5000`.
+- The Site Settings editor page reads, validates, backs up, and saves active `src/data/siteSeo.json` metadata.
+
+## Phase 8AP validation - 2026-07-22
+
+- Fresh-cache Playwright desktop and mobile runs passed gallery open, Low-to-Medium selection, close, reopen, and artwork rendering with no browser errors.
+- Loading animation cold-cache tests passed at two desktop sizes and one mobile/touch size with eight unique transform samples per run.
+- All eight local-editor routes rendered without browser errors.
+- Flask `/`, `/api/data`, and `/api/backups` returned HTTP 200; `/api/data` now includes `siteSeo`.
+- The SEO save/backup path passed against an isolated temporary data copy without modifying active project JSON.
 
 ## Release workflow
 
@@ -196,3 +209,6 @@ Never switch branches, commit, push, or merge unless the user explicitly authori
 ## Historical recovery
 
 Use `PROJECT_HISTORY_ARCHIVE.md` when an exact superseded instruction, phase report, pack manifest, pack note, prior handoff, or historical decision is needed. Search by original filename; the archive index and every source record retain that filename. Use the recorded SHA-256 to compare against an external copy.
+# Editor UX update — 2026-07-22
+
+Phase 8AP adds bounded Gallery Curation undo (button and Ctrl/Cmd+Z), fixes placement-state synchronization, and refines the complete Flask editor with denser classic-Mac-inspired chrome. The update changes editor presentation and in-browser edit history only; active portfolio data, gallery room settings, image assets, and public-site curation are not modified by this pass.
