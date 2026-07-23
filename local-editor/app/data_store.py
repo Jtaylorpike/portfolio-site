@@ -93,10 +93,10 @@ GALLERY_WALL_FOOTPRINTS = {
 }
 
 DEFAULT_GALLERY_ROOM = {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "id": "main-gallery-room",
     "label": "Main gallery room",
-    "shape": "rectangle",
+    "shape": "l-shaped",
     "grid": {
         "cellMeters": GALLERY_GRID_CELL_METERS,
         "minX": GALLERY_POSITION_MIN,
@@ -108,6 +108,7 @@ DEFAULT_GALLERY_ROOM = {
     "shell": {"height": 3.9, "wallThickness": 0.34, "ceilingThickness": 0.12},
     "movementBounds": {"minX": -16.3, "maxX": 16.3, "minZ": -16.3, "maxZ": 16.3},
     "start": {"position": [0.0, 1.65, 13.4], "yaw": 0.0},
+    "layout": {"rooms": [], "hallways": []},
 }
 
 SUPPORTED_GALLERY_ROOM_SHAPES = {"rectangle", "l-shaped", "custom-footprint"}
@@ -154,6 +155,7 @@ def normalize_gallery_room(raw_room: Any) -> dict[str, Any]:
     shell = raw_room.get("shell") if isinstance(raw_room.get("shell"), dict) else {}
     movement = raw_room.get("movementBounds") if isinstance(raw_room.get("movementBounds"), dict) else {}
     start = raw_room.get("start") if isinstance(raw_room.get("start"), dict) else {}
+    layout = raw_room.get("layout") if isinstance(raw_room.get("layout"), dict) else {}
 
     grid_min_x, grid_max_x = normalize_ordered_bounds(
         grid.get("minX"),
@@ -189,6 +191,39 @@ def normalize_gallery_room(raw_room: Any) -> dict[str, Any]:
 
     if not isinstance(start_position, list) or len(start_position) < 3:
         start_position = DEFAULT_GALLERY_ROOM["start"]["position"]
+
+    def normalize_modules(values: Any, kind: str) -> list[dict[str, Any]]:
+        if not isinstance(values, list):
+            return []
+
+        modules = []
+        for index, value in enumerate(values):
+            if not isinstance(value, dict):
+                continue
+            center = value.get("center")
+            if not isinstance(center, list) or len(center) < 2:
+                center = [0.0, 0.0]
+            module = {
+                "id": slugify(clean_string(value.get("id")) or f"{kind}-{index + 1}"),
+                "label": clean_string(value.get("label")) or f"{kind.title()} {index + 1}",
+                "center": [
+                    clean_number(center[0], 0.0),
+                    clean_number(center[1], 0.0),
+                ],
+                "width": clean_number(value.get("width"), 34.0 if kind == "room" else 7.0, 2.0),
+                "depth": clean_number(value.get("depth"), 34.0 if kind == "room" else 7.0, 2.0),
+            }
+            if kind == "hallway":
+                module["lengthPreset"] = "long" if value.get("lengthPreset") == "long" else "short"
+                legacy_style = value.get("connectionStyle")
+                if legacy_style not in {"centered", "left", "right", "corner"}:
+                    legacy_style = "centered"
+                start_style = value.get("startConnectionStyle", legacy_style)
+                end_style = value.get("endConnectionStyle", legacy_style)
+                module["startConnectionStyle"] = start_style if start_style in {"centered", "left", "right", "corner"} else "centered"
+                module["endConnectionStyle"] = end_style if end_style in {"centered", "left", "right", "corner"} else "centered"
+            modules.append(module)
+        return modules
 
     return {
         "schemaVersion": int(clean_number(raw_room.get("schemaVersion"), DEFAULT_GALLERY_ROOM["schemaVersion"], 1)),
@@ -226,6 +261,15 @@ def normalize_gallery_room(raw_room: Any) -> dict[str, Any]:
             ],
             "yaw": clean_number(start.get("yaw"), DEFAULT_GALLERY_ROOM["start"]["yaw"]),
         },
+        "layout": {
+            "rooms": normalize_modules(layout.get("rooms"), "room"),
+            "hallways": normalize_modules(layout.get("hallways"), "hallway"),
+        },
+        "futureModelNotes": [
+            clean_string(note)
+            for note in raw_room.get("futureModelNotes", [])
+            if clean_string(note)
+        ] if isinstance(raw_room.get("futureModelNotes"), list) else [],
     }
 
 
@@ -233,6 +277,19 @@ def get_current_gallery_room() -> dict[str, Any]:
     """Read the current room footprint settings, falling back to the default room."""
 
     return normalize_gallery_room(read_json(GALLERY_ROOM_PATH))
+
+
+def save_gallery_room(raw_room: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Normalize and save the modular gallery room layout with a backup."""
+
+    gallery_room = normalize_gallery_room(raw_room)
+
+    if not gallery_room["layout"]["rooms"]:
+        raise DataValidationError("The gallery layout must contain at least one room.")
+
+    backup = create_data_backup("gallery-room-layout-save")
+    write_json(GALLERY_ROOM_PATH, gallery_room)
+    return gallery_room, backup
 
 
 # Maps earlier semantic/gallery-zone wall labels into the current physical
@@ -1136,6 +1193,7 @@ def normalize_gallery_curation_record(
 
     return {
         "wallId": wall_id,
+        "roomId": slugify(clean_string(raw_record.get("roomId")) or "room-main"),
         "artworkId": artwork_id,
         "showInGallery": clean_bool(raw_record.get("showInGallery"), True),
         "placedInGallery": clean_bool(raw_record.get("placedInGallery"), True),
@@ -1293,7 +1351,11 @@ def gallery_wall_footprints_overlap(first: set[tuple[int, int]], second: set[tup
 
 def find_gallery_wall_placement_collisions(gallery_curation: list[dict[str, Any]]) -> list[tuple[str, str]]:
     footprints = [
-        (clean_string(record.get("wallId")), get_gallery_wall_footprint_cells(record))
+        (
+            clean_string(record.get("wallId")),
+            clean_string(record.get("roomId")) or "room-main",
+            get_gallery_wall_footprint_cells(record),
+        )
         for record in gallery_curation
         if clean_string(record.get("wallId")) and clean_bool(record.get("placedInGallery"), True)
     ]
@@ -1301,7 +1363,7 @@ def find_gallery_wall_placement_collisions(gallery_curation: list[dict[str, Any]
 
     for first_index, first in enumerate(footprints):
         for second in footprints[first_index + 1:]:
-            if gallery_wall_footprints_overlap(first[1], second[1]):
+            if first[1] == second[1] and gallery_wall_footprints_overlap(first[2], second[2]):
                 collisions.append((first[0], second[0]))
 
     return collisions

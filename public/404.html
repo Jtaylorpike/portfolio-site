@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#060807" />
+    <title>Page not found | Taylor Pike Productions</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #060807;
+        color: #efede5;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      main { width: min(100%, 520px); border: 1px solid #3c4039; padding: clamp(24px, 7vw, 52px); }
+      p { color: #afaea7; line-height: 1.55; }
+      a {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 12px 16px;
+        border: 1px solid #d9d5c8;
+        color: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-decoration: none;
+        text-transform: uppercase;
+      }
+      a:focus-visible { outline: 2px solid #ffffff; outline-offset: 4px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>404</p>
+      <h1>Page not found</h1>
+      <p>The page you requested is unavailable or has moved.</p>
+      <a id="homeLink" href="/">Return home</a>
+    </main>
+    <script>
+      if (location.hostname.endsWith('.github.io')) {
+        const repository = location.pathname.split('/').filter(Boolean)[0];
+        if (repository) document.querySelector('#homeLink').href = `/${repository}/`;
+      }
+    </script>
+  </body>
+</html>

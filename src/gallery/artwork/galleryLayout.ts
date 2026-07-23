@@ -6,6 +6,8 @@ import {
   artworkSizes,
   ceilingLightPanels,
   galleryFloor,
+  galleryLayoutModules,
+  galleryMovementZones,
   galleryRoom,
   galleryStart,
   movementBounds,
@@ -16,7 +18,15 @@ import {
   type WallTypeName
 } from '../environment/galleryBlueprint';
 
-export { ceilingLightPanels, galleryFloor, galleryRoom, galleryStart, movementBounds };
+export {
+  ceilingLightPanels,
+  galleryFloor,
+  galleryLayoutModules,
+  galleryMovementZones,
+  galleryRoom,
+  galleryStart,
+  movementBounds
+};
 
 export const galleryMovementBounds = movementBounds;
 

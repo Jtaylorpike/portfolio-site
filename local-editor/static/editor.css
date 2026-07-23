@@ -8259,3 +8259,120 @@ label > span,
   .gallery-curation-summary-actions { align-items: stretch; }
   .gallery-curation-summary-actions .button { width: 100%; }
 }
+.gallery-layout-builder {
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.gallery-layout-builder-heading,
+.gallery-layout-builder-actions,
+.gallery-layout-module-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gallery-layout-builder-heading h4,
+.gallery-layout-builder-heading p {
+  margin: 0;
+}
+
+.gallery-layout-builder-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.gallery-layout-preview {
+  position: relative;
+  width: min(100%, 720px);
+  aspect-ratio: 1;
+  margin: 18px 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background-color: #121311;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.gallery-layout-preview-world {
+  position: absolute;
+  inset: 0;
+}
+
+.gallery-layout-map-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.gallery-layout-preview-module {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  min-width: 2px;
+  min-height: 2px;
+  overflow: hidden;
+  border: 1px solid #a9a28f;
+  background: rgba(184, 177, 157, 0.22);
+  color: #ebe7dc;
+  font-size: 10px;
+  text-align: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.gallery-layout-preview-module:active {
+  cursor: grabbing;
+}
+
+.gallery-layout-preview-module.is-hallway {
+  border-color: #8c997f;
+  background: rgba(115, 137, 104, 0.28);
+}
+
+.gallery-layout-module-list {
+  display: grid;
+  gap: 12px;
+}
+
+.gallery-layout-module-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.gallery-layout-module-card header span,
+.gallery-layout-module-card header strong {
+  display: block;
+}
+
+.gallery-layout-module-card header span {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.gallery-layout-module-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .gallery-layout-builder-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .gallery-layout-module-fields {
+    grid-template-columns: repeat(2, minmax(110px, 1fr));
+  }
+}

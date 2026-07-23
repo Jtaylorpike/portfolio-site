@@ -294,6 +294,7 @@ export function findGalleryPlacementCollisions(records) {
     .map((record) => ({
       record,
       wallId: String(record.wallId ?? "").trim(),
+      roomId: String(record.roomId ?? "room-main"),
       cells: getGalleryWallFootprintCells(record)
     }))
     .filter((item) => item.wallId);
@@ -304,7 +305,7 @@ export function findGalleryPlacementCollisions(records) {
       const first = normalizedRecords[firstIndex];
       const second = normalizedRecords[secondIndex];
 
-      if (cellSetsOverlap(first.cells, second.cells)) {
+      if (first.roomId === second.roomId && cellSetsOverlap(first.cells, second.cells)) {
         collisions.push({
           firstWallId: first.wallId,
           secondWallId: second.wallId

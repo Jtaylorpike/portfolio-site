@@ -1,18 +1,18 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "main-gallery-room",
   "label": "Main gallery room",
-  "shape": "rectangle",
+  "shape": "l-shaped",
   "grid": {
     "cellMeters": 0.5,
-    "minX": -16,
-    "maxX": 16,
-    "minZ": -16,
-    "maxZ": 16
+    "minX": -16.0,
+    "maxX": 56.0,
+    "minZ": -57.0,
+    "maxZ": 16.0
   },
   "floor": {
-    "width": 34,
-    "depth": 34,
+    "width": 34.0,
+    "depth": 34.0,
     "color": "#d8d0c3"
   },
   "shell": {
@@ -21,14 +21,80 @@
     "ceilingThickness": 0.12
   },
   "movementBounds": {
-    "minX": -16.3,
-    "maxX": 16.3,
-    "minZ": -16.3,
+    "minX": -16.0,
+    "maxX": 56.0,
+    "minZ": -57.0,
     "maxZ": 16.3
   },
   "start": {
-    "position": [0, 1.65, 13.4],
-    "yaw": 0
+    "position": [
+      0.0,
+      1.65,
+      13.4
+    ],
+    "yaw": 0.0
+  },
+  "layout": {
+    "rooms": [
+      {
+        "id": "room-main",
+        "label": "Main collection room",
+        "center": [
+          0.0,
+          0.0
+        ],
+        "width": 32.0,
+        "depth": 32.0
+      },
+      {
+        "id": "room-east",
+        "label": "East collection room",
+        "center": [
+          41.0,
+          0.0
+        ],
+        "width": 30.0,
+        "depth": 26.0
+      },
+      {
+        "id": "room-north",
+        "label": "North collection room",
+        "center": [
+          40.5,
+          -39.0
+        ],
+        "width": 28.0,
+        "depth": 28.0
+      }
+    ],
+    "hallways": [
+      {
+        "id": "hall-main-east",
+        "label": "Main to east",
+        "center": [
+          21.0,
+          0.0
+        ],
+        "width": 10.0,
+        "depth": 7.0,
+        "lengthPreset": "short",
+        "startConnectionStyle": "centered",
+        "endConnectionStyle": "centered"
+      },
+      {
+        "id": "hall-east-north",
+        "label": "East to north",
+        "center": [
+          41.0,
+          -21.0
+        ],
+        "width": 7.0,
+        "depth": 16.0,
+        "lengthPreset": "long",
+        "startConnectionStyle": "centered",
+        "endConnectionStyle": "centered"
+      }
+    ]
   },
   "futureModelNotes": [
     "This file is the first data-backed room footprint baseline. The current room remains the same square/rectangular gallery used before this pack.",

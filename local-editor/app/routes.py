@@ -23,6 +23,7 @@ from .data_store import (
     save_full_data,
     save_gallery_curation,
     save_gallery_curation_wall,
+    save_gallery_room,
     save_image_updates,
     save_site_seo,
     rename_image_id,
@@ -220,6 +221,26 @@ def save_single_gallery_curation_wall():
             "updatedWallId": raw_wall_record.get("wallId"),
         }
     )
+
+
+@bp.route("/api/gallery-room", methods=["POST"])
+def save_gallery_room_data():
+    """Validate and save modular gallery room and hallway records."""
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("galleryRoom"), dict):
+        return jsonify({"error": "galleryRoom must be an object."}), 400
+
+    try:
+        gallery_room, backup = save_gallery_room(payload["galleryRoom"])
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
+
+    return jsonify({
+        "ok": True,
+        "galleryRoom": gallery_room,
+        "backup": backup,
+    })
 
 
 @bp.route("/api/image-updates", methods=["POST"])

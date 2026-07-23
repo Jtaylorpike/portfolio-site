@@ -1,6 +1,6 @@
 # Taylor Pike Photography Portfolio - Current Project Guide
 
-Last updated: 2026-07-23 11:19 EDT (UTC-04:00)
+Last updated: 2026-07-23 16:25 EDT (UTC-04:00)
 
 This is the authoritative operational and handoff document for the repository. Historical documents, phase records, pack notes, manifests, earlier policies, and superseded handoffs are preserved verbatim in `PROJECT_HISTORY_ARCHIVE.md`. The staged portfolio alt-text dataset remains at `alt-text/portfolio-image-alt-text-20260515.json` because repository tooling consumes that path directly.
 
@@ -16,7 +16,15 @@ Auto quality now reassesses sustained performance using both refresh cadence and
 
 A temporary diagnostics panel is enabled automatically on `localhost` and `127.0.0.1`, or explicitly on a deployed build with `?galleryDiagnostics=1`. It displays quality, Auto ceiling, cache/GPU readiness, frame cadence, measured gallery work, render/device DPR, WebGL renderer, scene counts, and local browser hardware/network hints. It sends no telemetry.
 
-Phase 8AQ visual direction is now defined as museum-painted walls, a herringbone/fishbone dark-wood floor, matching dark-wood trim and artwork frames, High-tier restrained wood mottling, track-mounted gallery lights, and a dramatic modern/traditional atmosphere. Prototype both a luminous skylight-style ceiling and a rough unfinished ceiling before selecting one.
+Phase 8AQ visual direction is now defined as museum-painted walls, a lightly worn unfinished-concrete floor, matching dark-wood trim and artwork frames, High-tier restrained wood mottling, track-mounted gallery lights, a rough unfinished ceiling, and a dramatic modern/traditional atmosphere. The earlier herringbone floor and luminous skylight direction are superseded by the concrete-floor/rough-ceiling selection.
+
+The Phase 8AQ entry-bay material prototype was promoted across the existing gallery room on 2026-07-23, then refined after review. The current room now uses a continuous matte procedural unfinished-concrete floor, clean museum-painted gallery walls, a rough irregular ceiling finish, and a shared cached dark figured-wood material for existing trim and artwork frames. Instanced dark track rails and paired adjustable heads replace the old visible panel models and align with the existing gallery-wall source zones. They are visual fixtures only and add no new Three.js lights. Phase 8AR subsequently removed the superseded panel-origin light loop by explicit user direction; artwork lighting, exposure, and quality behavior remain unchanged.
+
+Phase 8AR establishes the modular L-layout foundation. Active `galleryRoom.json` now defines a 32×32 m square main room, a 30×26 m rectangular east room, a 28×28 m square north room, a 10 m short hallway, and a 16 m long hallway through normalized room/hallway module records. Runtime floors, ceilings, outer shell boundaries, trim, and movement use the union of those modules; shared connections remain open and the empty exterior corners of the L are not walkable. Gallery wall records now carry a `roomId` and use coordinates local to that room; existing records safely default to `room-main`. The Gallery editor includes a square pannable/zoomable grid, draggable room and hallway modules, editable module cards, add/remove controls, short/long hallway presets, connection-style selection, architecture save-with-backup, and integration with the existing Gallery Undo control. The wall map includes a room selector, isolates collisions and its drag sidebar per room, and assigns newly created or dropped walls to the selected room.
+
+The obsolete omnidirectional ceiling-panel lighting loop was removed after the panel models were replaced by track fixtures. Existing artwork spotlights and wall washes remain, so the visible track heads now correspond to the directional artwork illumination without an unrelated ceiling glow behind them.
+
+As of 2026-07-23 15:44 EDT, the architecture editor positions modules directly instead of transforming the entire grid plane, preventing pan/zoom compositor trails. Room and hallway placement magnetizes to neighboring borders and resolves overlaps. Hallways expose separate start- and end-connection alignment controls. The room selector now scopes both the wall map and wall-card list; legacy curation records correctly default to `room-main`, and Save All merges visible-room edits into the full record set so other rooms are preserved.
 
 The future modular layout target begins with three current-room-scale rooms connected in an L. Ceiling height may increase modestly. Hallways use half-room-length and full-room-length presets, are slightly wider than the current hero wall, contain no artwork, and connect centered, left/right of center, or at corners. Hallway branching is deferred until the base room/connection model is stable. Later near-floor-to-ceiling windows should use a local-time forest/mountain exterior with quality-tiered clear reflections and interior daylight response; do not infer location from IP or add a location/network request without explicit approval.
 
@@ -164,6 +172,66 @@ Never switch branches, commit, push, or merge unless the user explicitly authori
 - Phase 8: gallery realism and adaptive performance active; Phase 8AM lighting is accepted, Phase 8AJ geometry is rejected, and Phase 8AN/AO is the current implementation baseline.
 
 ## Visible documentation changelog
+
+### 2026-07-23 16:25 EDT - live-readiness static deployment pass
+
+- Corrected the two critical homepage preload URLs to honor Vite's GitHub Pages base path; the Pages artifact now resolves them beneath `/portfolio-site/` while the future custom-domain build continues to use `/`.
+- Added a lightweight, noindex static 404 page with a Home link that resolves correctly on both GitHub project Pages and a custom domain.
+- Revalidated the GitHub Pages-mode production artifact: build passes, `robots.txt`, `sitemap.xml`, and `404.html` are present, and both preload paths are deployment-safe.
+- The remaining external launch step is configuring the intended custom domain in GitHub Pages and DNS. About-page content remains intentionally deferred for user-authored copy.
+
+### 2026-07-23 14:38 EDT - Phase 8AR multi-room editor usability
+
+- Reworked the architecture preview into a square grid with zoom controls, unlimited panning, and direct module dragging with half-meter snapping.
+- Added room ownership to gallery wall records; runtime wall positions translate room-local coordinates through the selected room center.
+- Added a room dropdown to the gallery wall map, with per-room markers, sidebar contents, placement collisions, and new-wall assignment.
+- Preserved all existing walls through the `room-main` fallback while allowing new walls and artwork curation in the other rooms.
+- Replaced junction wall retraction with full solid wall joins, suppressed trim protrusion at internal endpoints, and overlapped procedural floor planes by four centimeters to close connection-corner voids.
+- Browser-tested architecture drag, zoom, east-room wall creation, and room assignment without saving active curation data; no runtime errors occurred.
+
+### 2026-07-23 13:55 EDT - Phase 8AR compact layout and junction correction
+
+- Reduced the modular layout to 32×32 m and 28×28 m square rooms plus one 30×26 m rectangular room.
+- Replaced the original 17 m/34 m hallway presets with shorter 10 m/16 m presets and updated the editor labels and normalization contract.
+- Repositioned the modules so both shorter hallways continue to meet their adjoining room boundaries exactly.
+- Retracted wall and base-trim endpoints by half the shell thickness only at module junctions, removing protruding dark notches and stepped connection corners without shortening exterior corners.
+- Rebuilt successfully and browser-checked all five editor modules and both revised hallway preset labels with no runtime errors.
+
+### 2026-07-23 13:51 EDT - Phase 8AR editor architecture builder
+
+- Added a live top-down preview and editable module cards to the Gallery editor.
+- Added room and hallway creation/removal, center and dimension fields, half/full hallway presets, and centered/left/right/corner connection metadata.
+- Added a dedicated validated `/api/gallery-room` save path with repository backups and preservation of existing future-model notes.
+- Integrated architecture additions, removals, and field edits with the existing Gallery Undo control.
+- Browser-tested add hallway and undo without saving active data; five modules became six and returned to five with no runtime errors.
+
+### 2026-07-23 13:42 EDT - Phase 8AR connection traversal correction
+
+- Removed the independent player-radius inset from each modular movement zone; it had created an invisible 1.04-meter gap between otherwise connected rooms and hallways.
+- Added a 4-centimeter overlap at shared module thresholds so normal frame-stepped movement crosses both L-layout connections continuously.
+- Retained the union-based movement boundary so the empty exterior corners of the L remain inaccessible.
+
+### 2026-07-23 13:12 EDT - Phase 8AR modular L-layout foundation
+
+- Added normalized schema-version-2 records for three rooms in an L, one half-length hallway, one full-length hallway, and centered connection styles.
+- Built runtime floor, ceiling, perimeter-wall, trim, and movement-zone generation from the shared module records.
+- Preserved the current artwork/categorization installation in the main room; new rooms and hallways begin empty.
+- Updated the local-editor data normalizer so room/hallway records survive editor loads, saves, backups, and restores.
+- Removed the obsolete omnidirectional panel-origin light loop while retaining directional artwork spotlights and wall washes associated with the track fixtures.
+
+### 2026-07-23 12:41 EDT - Phase 8AQ concrete and track-light direction
+
+- Replaced the reviewed fishbone floor with a continuous lightly mottled unfinished-concrete material and removed the parquet texture from active prewarming.
+- Selected the rough unfinished ceiling direction over the luminous skylight prototype.
+- Replaced the old visible panel fixture models with instanced track rails and paired adjustable heads aligned to existing gallery-wall source zones.
+- Preserved every accepted Phase 8AM lighting value; the new fixtures emit no Three.js lights and add no collision geometry.
+
+### 2026-07-23 12:34 EDT - Phase 8AQ material rollout
+
+- Accepted the single-bay museum material prototype and promoted it across the existing gallery without changing architecture, collision, curation, or lighting.
+- Enlarged the procedural fishbone scale slightly and retained its lighter natural-oak palette.
+- Applied the cached museum-paint material to gallery walls and the shared dark figured-wood material to existing room trim, wall trim, and artwork frames.
+- Kept the accepted Phase 8AM ceiling presentation untouched; the next stage is the luminous-skylight versus rough-unfinished ceiling comparison.
 
 ### 2026-07-22 18:25 EDT - repository-wide consolidation follow-up
 

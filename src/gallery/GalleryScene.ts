@@ -16,7 +16,7 @@ import * as THREE from 'three';
 import {
   ceilingLightPanels,
   galleryArtworks,
-  galleryFloor,
+  galleryLayoutModules,
   galleryRoom,
   galleryStart,
   galleryWalls,
@@ -41,18 +41,15 @@ import {
   createCeilingLightPanelMaterial,
   createCeilingMaterial,
   createFloorMaterial,
-  createFrameMaterial,
-  createFrameRailCatchlightMaterial,
-  createFrameRailHighlightMaterial,
-  createFrameRailMaterial,
-  createFrameRailShadowEdgeMaterial,
   createMatMaterial,
+  createPrototypeDarkWoodMaterial,
+  createPrototypeDarkWoodRailMaterial,
+  createPrototypeMuseumWallMaterial,
   createPlaqueBodyMaterial,
   createPlaqueMaterial,
   createRoomShellWallMaterial,
-  createWallMaterial,
-  type GalleryWallMaterialVariant,
-  createWallTrimMaterial
+  createTrackLightHousingMaterial,
+  createTrackLightLensMaterial
 } from './environment/galleryMaterials';
 import { addGalleryLighting, applyGalleryLightingQuality } from './environment/galleryLighting';
 import {
@@ -228,81 +225,192 @@ export class GalleryScene {
   }
 
   private createFloor() {
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(galleryFloor.width, galleryFloor.depth),
-      createFloorMaterial()
-    );
+    const floorMaterial = createFloorMaterial();
 
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
-    floor.receiveShadow = true;
-    floor.userData = {
-      gallerySurface: 'floor'
-    };
+    galleryLayoutModules.forEach((module) => {
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(module.width + 0.04, module.depth + 0.04),
+        floorMaterial
+      );
 
-    this.scene.add(floor);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(module.center[0], 0, module.center[1]);
+      floor.receiveShadow = true;
+      floor.userData = {
+        galleryModuleId: module.id,
+        gallerySurface: 'floor'
+      };
+
+      this.scene.add(floor);
+    });
   }
 
   private createRoomShell() {
     const wallMaterial = createRoomShellWallMaterial();
     const ceilingMaterial = createCeilingMaterial();
 
-    this.createPerimeterWall({
-      id: 'room-shell-north',
-      width: galleryRoom.width,
-      height: galleryRoom.height,
-      depth: galleryRoom.wallThickness,
-      position: [0, galleryRoom.height / 2, -galleryRoom.depth / 2],
-      material: wallMaterial
+    galleryLayoutModules.forEach((module) => {
+      const ceiling = new THREE.Mesh(
+        new THREE.BoxGeometry(module.width, galleryRoom.ceilingThickness, module.depth),
+        ceilingMaterial
+      );
+
+      ceiling.position.set(
+        module.center[0],
+        galleryRoom.height + galleryRoom.ceilingThickness / 2,
+        module.center[1]
+      );
+      ceiling.receiveShadow = true;
+      ceiling.userData = {
+        galleryModuleId: module.id,
+        gallerySurface: 'ceiling'
+      };
+      this.scene.add(ceiling);
     });
 
-    this.createPerimeterWall({
-      id: 'room-shell-south',
-      width: galleryRoom.width,
-      height: galleryRoom.height,
-      depth: galleryRoom.wallThickness,
-      position: [0, galleryRoom.height / 2, galleryRoom.depth / 2],
-      material: wallMaterial
-    });
-
-    this.createPerimeterWall({
-      id: 'room-shell-west',
-      width: galleryRoom.wallThickness,
-      height: galleryRoom.height,
-      depth: galleryRoom.depth,
-      position: [-galleryRoom.width / 2, galleryRoom.height / 2, 0],
-      material: wallMaterial
-    });
-
-    this.createPerimeterWall({
-      id: 'room-shell-east',
-      width: galleryRoom.wallThickness,
-      height: galleryRoom.height,
-      depth: galleryRoom.depth,
-      position: [galleryRoom.width / 2, galleryRoom.height / 2, 0],
-      material: wallMaterial
-    });
-
-    const ceiling = new THREE.Mesh(
-      new THREE.BoxGeometry(galleryRoom.width, galleryRoom.ceilingThickness, galleryRoom.depth),
-      ceilingMaterial
-    );
-
-    ceiling.position.set(0, galleryRoom.height + galleryRoom.ceilingThickness / 2, 0);
-    ceiling.receiveShadow = true;
-    ceiling.userData = {
-      gallerySurface: 'ceiling'
-    };
-
-    this.scene.add(ceiling);
+    this.createModuleBoundaryWalls(wallMaterial, createPrototypeDarkWoodMaterial());
     // Phase 8V removes the explicit ceiling-grid strip geometry so the
     // ceiling reads through material texture instead of visible panel lines.
-    this.createRoomBaseTrim();
-    this.createCeilingLightPanels();
+    this.createTrackLightFixtures();
+  }
+
+  private createModuleBoundaryWalls(
+    wallMaterial: THREE.Material,
+    trimMaterial: THREE.Material
+  ) {
+    type Interval = [number, number];
+    const rectangles = galleryLayoutModules.map((module) => ({
+      id: module.id,
+      minX: module.center[0] - module.width / 2,
+      maxX: module.center[0] + module.width / 2,
+      minZ: module.center[1] - module.depth / 2,
+      maxZ: module.center[1] + module.depth / 2
+    }));
+    const subtractIntervals = (source: Interval, cuts: Interval[]) => {
+      let segments = [source];
+
+      cuts.forEach(([cutMin, cutMax]) => {
+        segments = segments.flatMap(([min, max]) => {
+          if (cutMax <= min || cutMin >= max) {
+            return [[min, max] as Interval];
+          }
+
+          const next: Interval[] = [];
+          if (cutMin > min) next.push([min, Math.min(cutMin, max)]);
+          if (cutMax < max) next.push([Math.max(cutMax, min), max]);
+          return next;
+        });
+      });
+
+      return segments.filter(([min, max]) => max - min > 0.05);
+    };
+    const addSegment = (
+      id: string,
+      ownerId: string,
+      horizontal: boolean,
+      fixed: number,
+      interval: Interval
+    ) => {
+      const otherRectangles = rectangles.filter((rectangle) => rectangle.id !== ownerId);
+      const junctionInset = galleryRoom.wallThickness / 2;
+      const minConnects = otherRectangles.some((rectangle) =>
+        horizontal
+          ? rectangle.minX < interval[0] &&
+            rectangle.maxX >= interval[0] &&
+            fixed >= rectangle.minZ &&
+            fixed <= rectangle.maxZ
+          : rectangle.minZ < interval[0] &&
+            rectangle.maxZ >= interval[0] &&
+            fixed >= rectangle.minX &&
+            fixed <= rectangle.maxX
+      );
+      const maxConnects = otherRectangles.some((rectangle) =>
+        horizontal
+          ? rectangle.minX <= interval[1] &&
+            rectangle.maxX > interval[1] &&
+            fixed >= rectangle.minZ &&
+            fixed <= rectangle.maxZ
+          : rectangle.minZ <= interval[1] &&
+            rectangle.maxZ > interval[1] &&
+            fixed >= rectangle.minX &&
+            fixed <= rectangle.maxX
+      );
+      const adjustedInterval: Interval = [
+        interval[0] + (minConnects ? junctionInset : 0),
+        interval[1] - (maxConnects ? junctionInset : 0)
+      ];
+      const length = interval[1] - interval[0];
+      const center = (interval[0] + interval[1]) / 2;
+      const trimLength = adjustedInterval[1] - adjustedInterval[0];
+      const trimCenter = (adjustedInterval[0] + adjustedInterval[1]) / 2;
+      const wall = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          horizontal ? length : galleryRoom.wallThickness,
+          galleryRoom.height,
+          horizontal ? galleryRoom.wallThickness : length
+        ),
+        wallMaterial
+      );
+      const trim = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          horizontal ? trimLength : 0.062,
+          0.082,
+          horizontal ? 0.062 : trimLength
+        ),
+        trimMaterial
+      );
+
+      wall.position.set(
+        horizontal ? center : fixed,
+        galleryRoom.height / 2,
+        horizontal ? fixed : center
+      );
+      trim.position.set(
+        horizontal ? trimCenter : fixed,
+        0.12,
+        horizontal ? fixed : trimCenter
+      );
+      wall.castShadow = true;
+      wall.receiveShadow = true;
+      trim.castShadow = true;
+      trim.receiveShadow = true;
+      wall.userData = { wallId: id, gallerySurface: 'room-shell-wall' };
+      trim.userData = { roomTrimId: `${id}-trim`, gallerySurface: 'room-shell-trim' };
+      this.wallMeshes.push(wall);
+      this.scene.add(wall);
+      if (trimLength > 0.05) {
+        this.scene.add(trim);
+      }
+    };
+
+    rectangles.forEach((rectangle) => {
+      const others = rectangles.filter((candidate) => candidate.id !== rectangle.id);
+      const northCuts = others
+        .filter((other) => other.minZ < rectangle.minZ && other.maxZ >= rectangle.minZ)
+        .map((other) => [Math.max(rectangle.minX, other.minX), Math.min(rectangle.maxX, other.maxX)] as Interval);
+      const southCuts = others
+        .filter((other) => other.minZ <= rectangle.maxZ && other.maxZ > rectangle.maxZ)
+        .map((other) => [Math.max(rectangle.minX, other.minX), Math.min(rectangle.maxX, other.maxX)] as Interval);
+      const westCuts = others
+        .filter((other) => other.minX < rectangle.minX && other.maxX >= rectangle.minX)
+        .map((other) => [Math.max(rectangle.minZ, other.minZ), Math.min(rectangle.maxZ, other.maxZ)] as Interval);
+      const eastCuts = others
+        .filter((other) => other.minX <= rectangle.maxX && other.maxX > rectangle.maxX)
+        .map((other) => [Math.max(rectangle.minZ, other.minZ), Math.min(rectangle.maxZ, other.maxZ)] as Interval);
+
+      subtractIntervals([rectangle.minX, rectangle.maxX], northCuts)
+        .forEach((segment, index) => addSegment(`${rectangle.id}-north-${index}`, rectangle.id, true, rectangle.minZ, segment));
+      subtractIntervals([rectangle.minX, rectangle.maxX], southCuts)
+        .forEach((segment, index) => addSegment(`${rectangle.id}-south-${index}`, rectangle.id, true, rectangle.maxZ, segment));
+      subtractIntervals([rectangle.minZ, rectangle.maxZ], westCuts)
+        .forEach((segment, index) => addSegment(`${rectangle.id}-west-${index}`, rectangle.id, false, rectangle.minX, segment));
+      subtractIntervals([rectangle.minZ, rectangle.maxZ], eastCuts)
+        .forEach((segment, index) => addSegment(`${rectangle.id}-east-${index}`, rectangle.id, false, rectangle.maxX, segment));
+    });
   }
 
   private createRoomBaseTrim() {
-    const material = createWallTrimMaterial();
+    const material = createPrototypeDarkWoodMaterial();
     const trimHeight = 0.082;
     const trimDepth = 0.062;
     const trimY = 0.12;
@@ -493,6 +601,82 @@ export class GalleryScene {
     });
   }
 
+  private createTrackLightFixtures() {
+    const housingMaterial = createTrackLightHousingMaterial();
+    const lensMaterial = createTrackLightLensMaterial();
+    const trackGeometry = new THREE.BoxGeometry(1, 0.035, 0.035);
+    const stemGeometry = new THREE.CylinderGeometry(0.018, 0.018, 0.1, 8);
+    const housingGeometry = new THREE.CylinderGeometry(0.066, 0.058, 0.19, 12);
+    const lensGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.012, 12);
+    const headCount = galleryWalls.length * 2;
+    const tracks = new THREE.InstancedMesh(trackGeometry, housingMaterial, galleryWalls.length);
+    const stems = new THREE.InstancedMesh(stemGeometry, housingMaterial, headCount);
+    const housings = new THREE.InstancedMesh(housingGeometry, housingMaterial, headCount);
+    const lenses = new THREE.InstancedMesh(lensGeometry, lensMaterial, headCount);
+    const matrix = new THREE.Matrix4();
+    const quaternion = new THREE.Quaternion();
+    const identityScale = new THREE.Vector3(1, 1, 1);
+    const ceilingY = galleryRoom.height - 0.075;
+    const cylinderAxis = new THREE.Vector3(0, 1, 0);
+    let headIndex = 0;
+
+    galleryWalls.forEach((wall, wallIndex) => {
+      const normal = new THREE.Vector3(
+        Math.sin(wall.rotationY),
+        0,
+        Math.cos(wall.rotationY)
+      );
+      const tangent = new THREE.Vector3(
+        Math.cos(wall.rotationY),
+        0,
+        -Math.sin(wall.rotationY)
+      );
+      const trackCenter = new THREE.Vector3(...wall.position)
+        .addScaledVector(normal, 0.88)
+        .setY(ceilingY);
+      const trackLength = Math.min(1.35, Math.max(0.82, wall.width * 0.3));
+
+      quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), wall.rotationY);
+      matrix.compose(trackCenter, quaternion, new THREE.Vector3(trackLength, 1, 1));
+      tracks.setMatrixAt(wallIndex, matrix);
+
+      [-0.24, 0.24].forEach((offset) => {
+        const stemPosition = trackCenter.clone()
+          .addScaledVector(tangent, trackLength * offset)
+          .add(new THREE.Vector3(0, -0.055, 0));
+        matrix.compose(stemPosition, new THREE.Quaternion(), identityScale);
+        stems.setMatrixAt(headIndex, matrix);
+
+        const target = new THREE.Vector3(
+          wall.position[0],
+          Math.min(2.05, wall.position[1]),
+          wall.position[2]
+        );
+        const direction = target.clone().sub(stemPosition).normalize();
+        const headPosition = stemPosition.clone().addScaledVector(direction, 0.13);
+        quaternion.setFromUnitVectors(cylinderAxis, direction);
+        matrix.compose(headPosition, quaternion, identityScale);
+        housings.setMatrixAt(headIndex, matrix);
+
+        const lensPosition = headPosition.clone().addScaledVector(direction, 0.101);
+        matrix.compose(lensPosition, quaternion, identityScale);
+        lenses.setMatrixAt(headIndex, matrix);
+        headIndex += 1;
+      });
+    });
+
+    [tracks, stems, housings, lenses].forEach((mesh) => {
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      mesh.userData = {
+        gallerySurface: 'track-light-fixture',
+        minimumGalleryQuality: 'low'
+      };
+      mesh.instanceMatrix.needsUpdate = true;
+      this.scene.add(mesh);
+    });
+  }
+
   private createLights() {
     addGalleryLighting(this.scene);
   }
@@ -575,15 +759,10 @@ export class GalleryScene {
   }
 
   private createWalls() {
-    const wallMaterials = [
-      createWallMaterial(0),
-      createWallMaterial(1)
-    ] as const;
-    const wallTrimMaterial = createWallTrimMaterial();
+    const wallMaterial = createPrototypeMuseumWallMaterial();
+    const woodMaterial = createPrototypeDarkWoodMaterial();
 
     galleryWalls.forEach((wall) => {
-      const materialVariant = this.getWallMaterialVariant(wall.id);
-      const wallMaterial = wallMaterials[materialVariant];
       const wallMesh = new THREE.Mesh(
         new THREE.BoxGeometry(wall.width, wall.height, wall.thickness),
         wallMaterial
@@ -598,7 +777,7 @@ export class GalleryScene {
         gallerySurface: 'wall'
       };
 
-      const trimMesh = this.createWallBaseTrim(wall, wallTrimMaterial);
+      const trimMesh = this.createWallBaseTrim(wall, woodMaterial);
 
       this.wallMeshes.push(wallMesh);
       this.scene.add(wallMesh);
@@ -606,16 +785,6 @@ export class GalleryScene {
     });
   }
 
-
-  private getWallMaterialVariant(wallId: string): GalleryWallMaterialVariant {
-    let hash = 0;
-
-    for (let index = 0; index < wallId.length; index += 1) {
-      hash = (hash * 31 + wallId.charCodeAt(index)) >>> 0;
-    }
-
-    return (hash % 2) as GalleryWallMaterialVariant;
-  }
 
   private createWallBaseTrim(wall: ResolvedGalleryWall, material: THREE.Material) {
     const trim = new THREE.Mesh(
@@ -638,11 +807,11 @@ export class GalleryScene {
   }
 
   private createArtwork() {
-    const frameMaterial = createFrameMaterial();
-    const frameRailMaterial = createFrameRailMaterial();
-    const frameRailHighlightMaterial = createFrameRailHighlightMaterial();
-    const frameRailCatchlightMaterial = createFrameRailCatchlightMaterial();
-    const frameRailShadowEdgeMaterial = createFrameRailShadowEdgeMaterial();
+    const frameMaterial = createPrototypeDarkWoodMaterial();
+    const frameRailMaterial = createPrototypeDarkWoodRailMaterial(0.25, 0.15);
+    const frameRailHighlightMaterial = createPrototypeDarkWoodRailMaterial(0.19, 0.1);
+    const frameRailCatchlightMaterial = createPrototypeDarkWoodRailMaterial(0.17, 0.075);
+    const frameRailShadowEdgeMaterial = createPrototypeDarkWoodRailMaterial(0.42, 0.28);
     const matMaterial = createMatMaterial();
 
     galleryArtworks.forEach((artwork) => {
@@ -1431,10 +1600,10 @@ export class GalleryScene {
       this.updateArtworkFrameRails(
         meshSet.frameRails,
         dimensions,
-        frameRailMaterial ?? createFrameRailMaterial(),
-        frameRailHighlightMaterial ?? createFrameRailHighlightMaterial(),
-        frameRailCatchlightMaterial ?? createFrameRailCatchlightMaterial(),
-        frameRailShadowEdgeMaterial ?? createFrameRailShadowEdgeMaterial(),
+        frameRailMaterial ?? createPrototypeDarkWoodRailMaterial(0.25, 0.15),
+        frameRailHighlightMaterial ?? createPrototypeDarkWoodRailMaterial(0.19, 0.1),
+        frameRailCatchlightMaterial ?? createPrototypeDarkWoodRailMaterial(0.17, 0.075),
+        frameRailShadowEdgeMaterial ?? createPrototypeDarkWoodRailMaterial(0.42, 0.28),
         meshSet.artwork.id
       );
       this.updatePlaneGeometry(

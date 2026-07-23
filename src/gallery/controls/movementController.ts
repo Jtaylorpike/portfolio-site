@@ -10,7 +10,7 @@
 
 import * as THREE from 'three';
 import {
-  galleryMovementBounds,
+  galleryMovementZones,
   galleryStart,
   galleryWalls,
   type ResolvedGalleryWall
@@ -34,6 +34,7 @@ export class MovementController {
   private lastFrameTime = performance.now();
   private touchMovementX = 0;
   private touchMovementZ = 0;
+  private running = false;
 
   // Interior wall-block collision only.
   // Exterior room-shell distance is controlled by movementBounds in
@@ -54,6 +55,11 @@ export class MovementController {
 
   public handleKeyDown(event: KeyboardEvent) {
     switch (event.code) {
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        this.running = true;
+        return true;
+
       case 'KeyW':
       case 'ArrowUp':
         this.movement.forward = true;
@@ -81,6 +87,11 @@ export class MovementController {
 
   public handleKeyUp(event: KeyboardEvent) {
     switch (event.code) {
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        this.running = false;
+        return true;
+
       case 'KeyW':
       case 'ArrowUp':
         this.movement.forward = false;
@@ -121,6 +132,7 @@ export class MovementController {
     this.movement.backward = false;
     this.movement.left = false;
     this.movement.right = false;
+    this.running = false;
     this.clearTouchMovement();
   }
 
@@ -132,12 +144,12 @@ export class MovementController {
     }
 
     const currentPosition = camera.position.clone();
-    const movementSpeed = this.hasTouchMovement() ? this.speed * this.touchSpeedMultiplier : this.speed;
+    const movementSpeed = (this.hasTouchMovement() ? this.speed * this.touchSpeedMultiplier : this.speed)
+      * (this.running ? 1.85 : 1);
     const nextPosition = currentPosition.clone().addScaledVector(direction, movementSpeed * delta);
+    nextPosition.y = galleryStart.position[1];
 
-    this.clampToGalleryBounds(nextPosition);
-
-    if (!this.isCollidingWithWall(nextPosition)) {
+    if (this.isInsideMovementZone(nextPosition) && !this.isCollidingWithWall(nextPosition)) {
       camera.position.copy(nextPosition);
       return;
     }
@@ -145,9 +157,9 @@ export class MovementController {
     // Try sliding on the X axis if the full movement hits a wall.
     const xOnlyPosition = currentPosition.clone();
     xOnlyPosition.x = nextPosition.x;
-    this.clampToGalleryBounds(xOnlyPosition);
+    xOnlyPosition.y = galleryStart.position[1];
 
-    if (!this.isCollidingWithWall(xOnlyPosition)) {
+    if (this.isInsideMovementZone(xOnlyPosition) && !this.isCollidingWithWall(xOnlyPosition)) {
       camera.position.copy(xOnlyPosition);
       return;
     }
@@ -155,9 +167,9 @@ export class MovementController {
     // Try sliding on the Z axis if X movement is blocked.
     const zOnlyPosition = currentPosition.clone();
     zOnlyPosition.z = nextPosition.z;
-    this.clampToGalleryBounds(zOnlyPosition);
+    zOnlyPosition.y = galleryStart.position[1];
 
-    if (!this.isCollidingWithWall(zOnlyPosition)) {
+    if (this.isInsideMovementZone(zOnlyPosition) && !this.isCollidingWithWall(zOnlyPosition)) {
       camera.position.copy(zOnlyPosition);
     }
   }
@@ -223,12 +235,13 @@ export class MovementController {
     return Math.sign(clamped) * curved;
   }
 
-  private clampToGalleryBounds(position: THREE.Vector3) {
-    position.x = Math.max(galleryMovementBounds.minX, Math.min(galleryMovementBounds.maxX, position.x));
-    position.z = Math.max(galleryMovementBounds.minZ, Math.min(galleryMovementBounds.maxZ, position.z));
-    position.y = galleryStart.position[1];
-
-    return position;
+  private isInsideMovementZone(position: THREE.Vector3) {
+    return galleryMovementZones.some((zone) =>
+      position.x >= zone.minX &&
+      position.x <= zone.maxX &&
+      position.z >= zone.minZ &&
+      position.z <= zone.maxZ
+    );
   }
 
   private isCollidingWithWall(position: THREE.Vector3) {

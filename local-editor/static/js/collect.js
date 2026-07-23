@@ -472,6 +472,7 @@ export function collectGalleryCurationCard(card, state, fallbackDisplayOrder = 1
 
   return {
     wallId: card.dataset.wallId ?? "",
+    roomId: getGalleryCurationFieldValue(card, "roomId") || "room-main",
     artworkId: validImageIds.has(artworkId) ? artworkId : "",
     showInGallery: getGalleryDisplayStatusValue(card),
     placedInGallery: getGalleryPlacementStatusValue(card),
@@ -493,7 +494,18 @@ export function collectGalleryCuration(state) {
     return state.galleryCuration ?? [];
   }
 
-  return cards.map((card, index) => collectGalleryCurationCard(card, state, index + 1));
+  const existingByWallId = new Map((state.galleryCuration ?? []).map((record) => [record.wallId, record]));
+  const visibleRecords = cards.map((card, index) => {
+    const existingOrder = existingByWallId.get(card.dataset.wallId)?.displayOrder;
+    return collectGalleryCurationCard(card, state, Number(existingOrder) || index + 1);
+  });
+  const visibleByWallId = new Map(visibleRecords.map((record) => [record.wallId, record]));
+  const merged = (state.galleryCuration ?? []).map((record) => visibleByWallId.get(record.wallId) ?? record);
+  const knownWallIds = new Set((state.galleryCuration ?? []).map((record) => record.wallId));
+  visibleRecords.forEach((record) => {
+    if (!knownWallIds.has(record.wallId)) merged.push(record);
+  });
+  return merged;
 }
 
 

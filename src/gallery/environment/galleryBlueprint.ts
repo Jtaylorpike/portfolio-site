@@ -39,6 +39,8 @@ export type GalleryRoom = {
   ceilingThickness: number;
 };
 
+export type GalleryLayoutModule = typeof galleryRoomSettings.layout[number];
+
 export type CeilingLightPanel = {
   id: string;
   position: [number, number];
@@ -60,6 +62,7 @@ export type WallTypeName =
 
 export type WallBlock = {
   id: string;
+  roomId?: string;
   preset: WallPresetName;
 
   // 2D floor position used by the top-down layout.
@@ -102,6 +105,7 @@ export type WallBlock = {
 
 export type GalleryCurationRecord = {
   wallId: string;
+  roomId?: string;
   artworkId?: string;
   showInGallery?: boolean;
   placedInGallery?: boolean;
@@ -238,6 +242,7 @@ function normalizeGalleryCurationRecord(value: unknown): GalleryCurationRecord |
 
   return {
     wallId,
+    roomId: String(record.roomId ?? 'room-main').trim() || 'room-main',
     artworkId: artworkId || undefined,
     showInGallery: record.showInGallery === false ? false : true,
     placedInGallery: record.placedInGallery === false ? false : true,
@@ -271,12 +276,19 @@ function applyGalleryCuration(wall: WallBlock, index: number): WallBlock {
 
   const hasPositionOverride = Number.isFinite(curation.positionX) && Number.isFinite(curation.positionZ);
   const hasRotationOverride = Number.isFinite(curation.rotationYDegrees);
+  const roomId = curation.roomId ?? 'room-main';
+  const roomModule = galleryRoomSettings.layout.find((module) => module.id === roomId && module.kind === 'room');
+  const roomCenter = roomModule?.center ?? [0, 0];
+  const localPosition = hasPositionOverride
+    ? [curation.positionX as number, curation.positionZ as number] as [number, number]
+    : wall.position;
 
   return {
     ...wall,
+    roomId,
     preset: layout.preset,
     artworkSize: layout.artworkSize,
-    position: hasPositionOverride ? [curation.positionX as number, curation.positionZ as number] as [number, number] : wall.position,
+    position: [localPosition[0] + roomCenter[0], localPosition[1] + roomCenter[1]],
     rotationY: hasRotationOverride ? degreesToRadians(curation.rotationYDegrees as number) : wall.rotationY,
     artworkId: curation.artworkId || undefined,
     showInGallery: curation.showInGallery,
@@ -291,12 +303,19 @@ function applyGalleryCuration(wall: WallBlock, index: number): WallBlock {
 function createWallFromGalleryCuration(curation: GalleryCurationRecord, index: number): WallBlock {
   const wallType = curation.wallType ?? 'standard-display-wall';
   const layout = getWallTypeLayout(wallType);
+  const roomId = curation.roomId ?? 'room-main';
+  const roomModule = galleryRoomSettings.layout.find((module) => module.id === roomId && module.kind === 'room');
+  const roomCenter = roomModule?.center ?? [0, 0];
 
   return {
     id: curation.wallId,
+    roomId,
     preset: layout.preset,
     artworkSize: layout.artworkSize,
-    position: [curation.positionX ?? 0, curation.positionZ ?? 0],
+    position: [
+      (curation.positionX ?? 0) + roomCenter[0],
+      (curation.positionZ ?? 0) + roomCenter[1]
+    ],
     rotationY: degreesToRadians(curation.rotationYDegrees ?? 0),
     artworkId: curation.artworkId || undefined,
     showInGallery: curation.showInGallery,
@@ -321,6 +340,19 @@ export const galleryRoom: GalleryRoom = {
   wallThickness: galleryRoomSettings.shell.wallThickness,
   ceilingThickness: galleryRoomSettings.shell.ceilingThickness
 };
+
+export const galleryLayoutModules: GalleryLayoutModule[] = galleryRoomSettings.layout;
+
+export const galleryMovementZones = galleryLayoutModules.map((module) => ({
+  id: module.id,
+  // Adjacent modules meet exactly at their connection threshold. A tiny
+  // overlap prevents independently inset zones from creating an invisible
+  // collision gap between a room and its hallway.
+  minX: module.center[0] - module.width / 2 - 0.02,
+  maxX: module.center[0] + module.width / 2 + 0.02,
+  minZ: module.center[1] - module.depth / 2 - 0.02,
+  maxZ: module.center[1] + module.depth / 2 + 0.02
+}));
 
 // Visual ceiling fixtures. These are intentionally data-driven so the local
 // editor can eventually expose the same gallery-room controls instead of

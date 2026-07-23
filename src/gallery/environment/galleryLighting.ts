@@ -8,7 +8,7 @@
 
 import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
-import { ceilingLightPanels, galleryRoom } from './galleryBlueprint';
+import { galleryRoom } from './galleryBlueprint';
 import { galleryArtworks } from '../artwork/galleryLayout';
 import type { GalleryQualityTier } from '../performance/galleryQuality';
 
@@ -263,31 +263,6 @@ export function addGalleryLighting(scene: THREE.Scene) {
 
   // Phase 8AI keeps the Phase 8AG ceiling rake point lights removed.
   // They added runtime cost without enough visible ceiling improvement.
-
-  ceilingLightPanels.forEach((panel) => {
-    const light = new THREE.PointLight(
-      0xffdfbf,
-      panel.intensity * 3.34,
-      panel.distance + 0.6,
-      1.82
-    );
-
-    light.position.set(
-      panel.position[0],
-      galleryRoom.height - 0.22,
-      panel.position[1]
-    );
-
-    light.userData = {
-      galleryLighting: 'ceiling-panel-warm-pool',
-      lightPanelId: panel.id,
-      phase8AI: 'lighter-localized-ceiling-finish-pool'
-    };
-
-    scene.add(light);
-    addPanelAreaWash(scene, panel);
-    addPanelSpotlight(scene, panel);
-  });
 
   galleryArtworks.slice(0, 8).forEach((artwork, index) => {
     addArtworkWallWash(scene, artwork);

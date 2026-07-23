@@ -2063,11 +2063,16 @@ function renderGalleryPlacementSidebar(records, state) {
 }
 
 function renderGalleryPlacementMap(state, records) {
-  const placedRecords = records.filter(isGalleryWallPlaced);
-  const collisions = findGalleryPlacementCollisions(records);
-  const boundaryViolations = findGalleryPlacementBoundaryViolations(records);
-  const collisionIds = getGalleryPlacementCollisionIds(records);
-  const boundaryIds = getGalleryPlacementBoundaryIds(records);
+  const rooms = state.galleryRoom?.layout?.rooms ?? [];
+  const activeRoomId = rooms.some((room) => room.id === state.galleryEditorRoomId)
+    ? state.galleryEditorRoomId
+    : rooms[0]?.id ?? "room-main";
+  const roomRecords = records.filter((record) => (record.roomId ?? "room-main") === activeRoomId);
+  const placedRecords = roomRecords.filter(isGalleryWallPlaced);
+  const collisions = findGalleryPlacementCollisions(roomRecords);
+  const boundaryViolations = findGalleryPlacementBoundaryViolations(roomRecords);
+  const collisionIds = getGalleryPlacementCollisionIds(roomRecords);
+  const boundaryIds = getGalleryPlacementBoundaryIds(roomRecords);
   const markers = placedRecords.map((record, index) => {
     const placement = getGalleryWallPlacement(record);
     const wallType = getGalleryWallType(record);
@@ -2111,6 +2116,11 @@ function renderGalleryPlacementMap(state, records) {
         <h4>Wall footprint map</h4>
         <p>Drag wall cards from the right sidebar, move placed footprints directly, and use the map controls for rotation, facing, and save behavior.</p>
         ${collisionMessage}
+        <label class="field gallery-room-map-selector">Editing room
+          <select data-gallery-wall-map-room>
+            ${rooms.map((room) => `<option value="${escapeHtml(room.id)}"${room.id === activeRoomId ? " selected" : ""}>${escapeHtml(room.label || room.id)}</option>`).join("")}
+          </select>
+        </label>
       </div>
       <div class="gallery-placement-map-layout">
         <div class="gallery-placement-map-main">
@@ -2120,9 +2130,113 @@ function renderGalleryPlacementMap(state, records) {
             <span class="gallery-placement-drop-preview" data-gallery-placement-drop-preview hidden aria-hidden="true"></span>
           </div>
         </div>
-        ${renderGalleryPlacementSidebar(records, state)}
+        ${renderGalleryPlacementSidebar(roomRecords, state)}
       </div>
     </div>
+  `;
+}
+
+function renderGalleryLayoutBuilder(state) {
+  const room = state.galleryRoom ?? {};
+  const layout = room.layout ?? {};
+  const rooms = Array.isArray(layout.rooms) ? layout.rooms : [];
+  const hallways = Array.isArray(layout.hallways) ? layout.hallways : [];
+  const modules = [
+    ...rooms.map((module) => ({ ...module, kind: "room" })),
+    ...hallways.map((module) => ({ ...module, kind: "hallway" }))
+  ];
+  const grid = room.grid ?? { minX: -16, maxX: 68, minZ: -86, maxZ: 16 };
+  const spanX = Math.max(1, Number(grid.maxX) - Number(grid.minX));
+  const spanZ = Math.max(1, Number(grid.maxZ) - Number(grid.minZ));
+  const moduleStyle = (module) => {
+    const center = Array.isArray(module.center) ? module.center : [0, 0];
+    const left = ((Number(center[0]) - Number(module.width) / 2 - Number(grid.minX)) / spanX) * 100;
+    const top = ((Number(center[1]) - Number(module.depth) / 2 - Number(grid.minZ)) / spanZ) * 100;
+    return `left:${left}%;top:${top}%;width:${(Number(module.width) / spanX) * 100}%;height:${(Number(module.depth) / spanZ) * 100}%;`;
+  };
+  const cards = modules.map((module) => {
+    const center = Array.isArray(module.center) ? module.center : [0, 0];
+    const isHallway = module.kind === "hallway";
+    return `
+      <article class="gallery-layout-module-card" data-gallery-layout-module data-module-kind="${module.kind}" data-module-id="${escapeHtml(module.id)}">
+        <header>
+          <div>
+            <span>${isHallway ? "Hallway" : "Room"}</span>
+            <strong>${escapeHtml(module.label || module.id)}</strong>
+          </div>
+          <button class="button danger" type="button" data-remove-gallery-module>Remove</button>
+        </header>
+        <div class="gallery-layout-module-fields">
+          <label class="field">Label
+            <input type="text" data-gallery-module-field="label" value="${escapeHtml(module.label || "")}">
+          </label>
+          <label class="field">Center X
+            <input type="number" step="0.5" data-gallery-module-field="centerX" value="${escapeHtml(String(center[0] ?? 0))}">
+          </label>
+          <label class="field">Center Z
+            <input type="number" step="0.5" data-gallery-module-field="centerZ" value="${escapeHtml(String(center[1] ?? 0))}">
+          </label>
+          <label class="field">Width
+            <input type="number" min="2" step="0.5" data-gallery-module-field="width" value="${escapeHtml(String(module.width ?? 7))}">
+          </label>
+          <label class="field">Depth
+            <input type="number" min="2" step="0.5" data-gallery-module-field="depth" value="${escapeHtml(String(module.depth ?? 7))}">
+          </label>
+          ${isHallway ? `
+            <label class="field">Length preset
+              <select data-gallery-module-field="lengthPreset">
+                <option value="short"${module.lengthPreset === "short" ? " selected" : ""}>Short / 10 m</option>
+                <option value="long"${module.lengthPreset === "long" ? " selected" : ""}>Long / 16 m</option>
+              </select>
+            </label>
+            <label class="field">Start connection
+              <select data-gallery-module-field="startConnectionStyle">
+                ${["centered", "left", "right", "corner"].map((value) => `<option value="${value}"${(module.startConnectionStyle ?? module.connectionStyle) === value ? " selected" : ""}>${value[0].toUpperCase()}${value.slice(1)}</option>`).join("")}
+              </select>
+            </label>
+            <label class="field">End connection
+              <select data-gallery-module-field="endConnectionStyle">
+                ${["centered", "left", "right", "corner"].map((value) => `<option value="${value}"${(module.endConnectionStyle ?? module.connectionStyle) === value ? " selected" : ""}>${value[0].toUpperCase()}${value.slice(1)}</option>`).join("")}
+              </select>
+            </label>
+          ` : ""}
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  return `
+    <section class="gallery-layout-builder" aria-label="Room and hallway builder">
+      <div class="gallery-layout-builder-heading">
+        <div>
+          <p class="eyebrow">Architecture</p>
+          <h4>Room and hallway builder</h4>
+          <p>Edit the shared runtime modules. Hallways contain no artwork; wall curation remains below.</p>
+        </div>
+        <div class="gallery-layout-builder-actions">
+          <button class="button secondary" type="button" data-add-gallery-module="room">Add Room</button>
+          <button class="button secondary" type="button" data-add-gallery-module="hallway">Add Hallway</button>
+          <button class="button primary" type="button" data-save-gallery-room>Save Architecture</button>
+        </div>
+      </div>
+      <div class="gallery-layout-map-controls">
+        <button class="button" type="button" data-gallery-architecture-zoom="-1">−</button>
+        <span>Zoom / pan</span>
+        <button class="button" type="button" data-gallery-architecture-zoom="1">+</button>
+        <button class="button" type="button" data-gallery-architecture-pan-x="-80">←</button>
+        <button class="button" type="button" data-gallery-architecture-pan-y="-80">↑</button>
+        <button class="button" type="button" data-gallery-architecture-pan-y="80">↓</button>
+        <button class="button" type="button" data-gallery-architecture-pan-x="80">→</button>
+      </div>
+      <div class="gallery-layout-preview" data-gallery-architecture-map aria-label="Modular layout preview">
+        <div class="gallery-layout-preview-world" data-gallery-architecture-world>
+          ${modules.map((module) => `<button type="button" class="gallery-layout-preview-module is-${module.kind}" data-gallery-architecture-module data-module-id="${escapeHtml(module.id)}" data-module-kind="${module.kind}" data-center-x="${escapeHtml(String(module.center?.[0] ?? 0))}" data-center-z="${escapeHtml(String(module.center?.[1] ?? 0))}" data-module-width="${escapeHtml(String(module.width))}" data-module-depth="${escapeHtml(String(module.depth))}" style="${moduleStyle(module)}">${escapeHtml(module.label || module.id)}</button>`).join("")}
+        </div>
+      </div>
+      <div class="gallery-layout-module-list">
+        ${cards || `<p class="panel-description">No room modules are loaded.</p>`}
+      </div>
+    </section>
   `;
 }
 
@@ -2162,6 +2276,7 @@ function renderGalleryCurationSummary(state, records) {
         ${renderGalleryWallTypePills(stats)}
       </div>
 
+      ${renderGalleryLayoutBuilder(state)}
       ${renderGalleryPlacementMap(state, records)}
     </section>
   `;
@@ -2348,6 +2463,8 @@ function renderGalleryCurationCard(state, record, index) {
   const wallType = getGalleryWallType(record);
   const wallTypeMeta = getGalleryWallTypeMeta(wallType);
   const wallDisplayName = getGalleryWallDisplayName(record, index);
+  const roomId = record.roomId ?? "room-main";
+  const roomLabel = state.galleryRoom?.layout?.rooms?.find((room) => room.id === roomId)?.label ?? roomId;
   const plaqueSide = record.plaqueSide ?? "auto";
   const placement = getGalleryWallPlacement(record);
   const placementSummary = getGalleryPlacementSummary(record);
@@ -2362,8 +2479,11 @@ function renderGalleryCurationCard(state, record, index) {
     displayStatus,
     placementStatus
   ].filter(Boolean).join(" ").toLowerCase();
-  const collisions = findGalleryPlacementCollisions(state.galleryCuration ?? []);
-  const boundaryIds = getGalleryPlacementBoundaryIds(state.galleryCuration ?? []);
+  const roomRecords = (state.galleryCuration ?? []).filter((item) =>
+    (item.roomId ?? "room-main") === (record.roomId ?? "room-main")
+  );
+  const collisions = findGalleryPlacementCollisions(roomRecords);
+  const boundaryIds = getGalleryPlacementBoundaryIds(roomRecords);
   const collisionText = boundaryIds.has(record.wallId)
     ? "This wall extends beyond the floor-map border."
     : getGalleryPlacementCollisionText(record.wallId, collisions);
@@ -2400,6 +2520,7 @@ function renderGalleryCurationCard(state, record, index) {
               <span>Blueprint slot: ${escapeHtml(record.wallId)} / Display order ${escapeHtml(String(record.displayOrder ?? index + 1))}</span>
             </div>
             <div class="gallery-curation-badge-row" aria-label="Wall status">
+              <span class="gallery-curation-badge">${escapeHtml(roomLabel)}</span>
               <span class="gallery-curation-badge" data-gallery-status-badge="${escapeHtml(displayStatus)}">${showInGallery ? "Visible in room" : "Hidden from room"}</span>
               <span class="gallery-curation-badge" data-gallery-placement-badge="${escapeHtml(placementStatus)}">${placedInGallery ? "On map" : "Not on map"}</span>
               <span class="gallery-curation-badge" data-gallery-artwork-badge="${escapeHtml(artworkState)}">${image ? "Artwork assigned" : "Needs artwork"}</span>
@@ -2508,6 +2629,7 @@ function renderGalleryCurationCard(state, record, index) {
           <p data-gallery-placement-footprint>${escapeHtml(footprintLabel)}</p>
           <p data-gallery-placement-warning ${collisionText ? "" : "hidden"}>${escapeHtml(collisionText)}</p>
           <input data-gallery-curation-field="placedInGallery" type="hidden" value="${placedInGallery ? "placed" : "unplaced"}" />
+          <input data-gallery-curation-field="roomId" type="hidden" value="${escapeHtml(record.roomId ?? "room-main")}" />
           <input data-gallery-grid-field="gridX" type="hidden" value="${escapeHtml(String(placement.gridX))}" />
           <input data-gallery-grid-field="gridZ" type="hidden" value="${escapeHtml(String(placement.gridZ))}" />
           <input data-gallery-curation-field="positionX" type="hidden" value="${escapeHtml(placement.positionX.toFixed(2))}" />
@@ -2587,13 +2709,18 @@ function renderGalleryAddWallOverlay(state) {
 
 // Builds the virtual gallery curation page.
 function renderGalleryCurationPage(state, elements) {
-  const records = state.galleryCuration ?? [];
+  const allRecords = state.galleryCuration ?? [];
+  const rooms = state.galleryRoom?.layout?.rooms ?? [];
+  const activeRoomId = rooms.some((room) => room.id === state.galleryEditorRoomId)
+    ? state.galleryEditorRoomId
+    : rooms[0]?.id ?? "room-main";
+  const records = allRecords.filter((record) => (record.roomId ?? "room-main") === activeRoomId);
 
   if (!elements.galleryCurationList) {
     return;
   }
 
-  if (!records.length) {
+  if (!allRecords.length) {
     const curationStatus = state.galleryCurationStatus ?? {};
     const fileExists = curationStatus.fileExists;
     const rawRowCount = Number(curationStatus.rawRowCount ?? 0);
@@ -2624,13 +2751,15 @@ function renderGalleryCurationPage(state, elements) {
 
     <div class="gallery-curation-list-header">
       <p class="gallery-curation-filter-result" data-gallery-curation-filter-result>
-        Showing ${escapeHtml(String(records.length))} wall cards.
+        Showing ${escapeHtml(String(records.length))} wall cards in ${escapeHtml(rooms.find((room) => room.id === activeRoomId)?.label ?? activeRoomId)}.
       </p>
       <button class="button primary" type="button" data-add-gallery-wall-card>Add Wall Card</button>
     </div>
 
     <div class="gallery-curation-list" data-gallery-curation-list>
-      ${records.map((record, index) => renderGalleryCurationCard(state, record, index)).join("")}
+      ${records.length
+        ? records.map((record, index) => renderGalleryCurationCard(state, record, index)).join("")
+        : `<p class="panel-description">This room has no gallery wall cards yet. Use Add Wall Card to create one here.</p>`}
     </div>
 
     ${renderGalleryArtworkPickerOverlay(state)}

@@ -41,6 +41,18 @@ export type GalleryRoomStartSettings = {
   yaw: number;
 };
 
+export type GalleryLayoutModule = {
+  id: string;
+  label: string;
+  kind: 'room' | 'hallway';
+  center: [number, number];
+  width: number;
+  depth: number;
+  lengthPreset?: 'short' | 'long';
+  startConnectionStyle?: 'centered' | 'left' | 'right' | 'corner';
+  endConnectionStyle?: 'centered' | 'left' | 'right' | 'corner';
+};
+
 export type GalleryRoomSettings = {
   schemaVersion: number;
   id: string;
@@ -51,6 +63,7 @@ export type GalleryRoomSettings = {
   shell: GalleryRoomShellSettings;
   movementBounds: GalleryRoomMovementBounds;
   start: GalleryRoomStartSettings;
+  layout: GalleryLayoutModule[];
 };
 
 type RawRecord = Record<string, unknown>;
@@ -86,7 +99,15 @@ const defaultGalleryRoomSettings: GalleryRoomSettings = {
   start: {
     position: [0, 1.65, 13.4],
     yaw: 0
-  }
+  },
+  layout: [{
+    id: 'room-main',
+    label: 'Main collection room',
+    kind: 'room',
+    center: [0, 0],
+    width: 34,
+    depth: 34
+  }]
 };
 
 function isRecord(value: unknown): value is RawRecord {
@@ -158,6 +179,63 @@ function cleanPosition(value: unknown, fallback: [number, number, number]): [num
     cleanNumber(value[1], fallback[1], 0.2, 3.2),
     cleanNumber(value[2], fallback[2])
   ];
+}
+
+function cleanCenter(value: unknown, fallback: [number, number]): [number, number] {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  return [
+    cleanNumber(value[0], fallback[0]),
+    cleanNumber(value[1], fallback[1])
+  ];
+}
+
+function normalizeLayout(record: RawRecord): GalleryLayoutModule[] {
+  const layoutRecord = getRecord(record.layout);
+  const roomRecords = Array.isArray(layoutRecord.rooms) ? layoutRecord.rooms : [];
+  const hallwayRecords = Array.isArray(layoutRecord.hallways) ? layoutRecord.hallways : [];
+  const normalizeModule = (
+    value: unknown,
+    index: number,
+    kind: GalleryLayoutModule['kind']
+  ): GalleryLayoutModule | null => {
+    const moduleRecord = getRecord(value);
+    const id = cleanString(moduleRecord.id, `${kind}-${index + 1}`);
+
+    if (!id) {
+      return null;
+    }
+
+    const module: GalleryLayoutModule = {
+      id,
+      label: cleanString(moduleRecord.label, id),
+      kind,
+      center: cleanCenter(moduleRecord.center, [0, 0]),
+      width: cleanNumber(moduleRecord.width, kind === 'room' ? 34 : 7, 2),
+      depth: cleanNumber(moduleRecord.depth, kind === 'room' ? 34 : 7, 2)
+    };
+
+    if (kind === 'hallway') {
+      module.lengthPreset = moduleRecord.lengthPreset === 'long' ? 'long' : 'short';
+      const legacyStyle = cleanString(moduleRecord.connectionStyle, 'centered');
+      const cleanConnectionStyle = (value: unknown) => {
+        const style = cleanString(value, legacyStyle);
+        return style === 'left' || style === 'right' || style === 'corner' ? style : 'centered';
+      };
+      module.startConnectionStyle = cleanConnectionStyle(moduleRecord.startConnectionStyle);
+      module.endConnectionStyle = cleanConnectionStyle(moduleRecord.endConnectionStyle);
+    }
+
+    return module;
+  };
+  const modules = [
+    ...roomRecords.map((value, index) => normalizeModule(value, index, 'room')),
+    ...hallwayRecords.map((value, index) => normalizeModule(value, index, 'hallway'))
+  ].filter((module): module is GalleryLayoutModule => Boolean(module));
+
+  return modules.length > 0 ? modules : defaultGalleryRoomSettings.layout;
 }
 
 function ensureOrderedBounds(min: number, max: number, fallbackMin: number, fallbackMax: number) {
@@ -232,7 +310,8 @@ export function normalizeGalleryRoomSettings(value: unknown): GalleryRoomSetting
     start: {
       position: cleanPosition(startRecord.position, defaultGalleryRoomSettings.start.position),
       yaw: cleanNumber(startRecord.yaw, defaultGalleryRoomSettings.start.yaw)
-    }
+    },
+    layout: normalizeLayout(record)
   };
 }
 

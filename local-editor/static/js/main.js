@@ -11,6 +11,7 @@ import {
   saveDataApi,
   saveGalleryCurationApi,
   saveGalleryCurationWallApi,
+  saveGalleryRoomApi,
   saveImageUpdatesApi,
   saveSiteSeoApi
 } from "./api.js";
@@ -97,6 +98,7 @@ let state = {
   galleryCuration: [],
   galleryCurationStatus: {},
   galleryRoom: {},
+  galleryEditorRoomId: "room-main",
   aboutPhotos: [],
   aboutCopy: {},
   siteSeo: {},
@@ -116,10 +118,104 @@ let galleryTransparentDragImage = null;
 const GALLERY_UNDO_LIMIT = 30;
 let galleryUndoStack = [];
 let gallerySavedSnapshotKey = "[]";
+let galleryRoomSavedSnapshotKey = "{}";
 let galleryFieldEditSnapshot = null;
+const galleryArchitectureView = { zoom: 1, panX: 0, panY: 0 };
+let activeGalleryArchitectureDrag = null;
+const GALLERY_ARCHITECTURE_SNAP_METERS = 1.5;
+
+function getGalleryArchitectureModules(room = state.galleryRoom) {
+  const layout = room?.layout ?? {};
+  return [
+    ...(layout.rooms ?? []).map((module) => ({ ...module, kind: "room" })),
+    ...(layout.hallways ?? []).map((module) => ({ ...module, kind: "hallway" }))
+  ];
+}
+
+function resolveGalleryArchitecturePlacement(moduleId, proposedX, proposedZ, room = state.galleryRoom) {
+  const modules = getGalleryArchitectureModules(room);
+  const moving = modules.find((module) => module.id === moduleId);
+  if (!moving) return [proposedX, proposedZ];
+  const halfWidth = Number(moving.width) / 2;
+  const halfDepth = Number(moving.depth) / 2;
+  let x = proposedX;
+  let z = proposedZ;
+  const others = modules.filter((module) => module.id !== moduleId);
+  const rectFor = (module, centerX = Number(module.center?.[0] ?? 0), centerZ = Number(module.center?.[1] ?? 0)) => ({
+    minX: centerX - Number(module.width) / 2,
+    maxX: centerX + Number(module.width) / 2,
+    minZ: centerZ - Number(module.depth) / 2,
+    maxZ: centerZ + Number(module.depth) / 2
+  });
+  const rangesOverlap = (aMin, aMax, bMin, bMax) => Math.min(aMax, bMax) > Math.max(aMin, bMin);
+
+  for (let pass = 0; pass < Math.max(2, others.length); pass += 1) {
+    let bestSnap = null;
+    others.forEach((other) => {
+      const target = rectFor(other);
+      const movingRect = rectFor(moving, x, z);
+      const overlapsX = rangesOverlap(movingRect.minX, movingRect.maxX, target.minX, target.maxX);
+      const overlapsZ = rangesOverlap(movingRect.minZ, movingRect.maxZ, target.minZ, target.maxZ);
+      const candidates = [];
+      if (overlapsZ) {
+        candidates.push({ x: target.minX - halfWidth, z, distance: Math.abs(movingRect.maxX - target.minX) });
+        candidates.push({ x: target.maxX + halfWidth, z, distance: Math.abs(movingRect.minX - target.maxX) });
+      }
+      if (overlapsX) {
+        candidates.push({ x, z: target.minZ - halfDepth, distance: Math.abs(movingRect.maxZ - target.minZ) });
+        candidates.push({ x, z: target.maxZ + halfDepth, distance: Math.abs(movingRect.minZ - target.maxZ) });
+      }
+      const nearest = candidates.sort((a, b) => a.distance - b.distance)[0];
+      if (overlapsX && overlapsZ && nearest) {
+        x = nearest.x;
+        z = nearest.z;
+        bestSnap = null;
+      } else if (nearest && nearest.distance <= GALLERY_ARCHITECTURE_SNAP_METERS && (!bestSnap || nearest.distance < bestSnap.distance)) {
+        bestSnap = nearest;
+      }
+    });
+    if (bestSnap) {
+      x = bestSnap.x;
+      z = bestSnap.z;
+    }
+  }
+  return [x, z];
+}
+
+function applyGalleryArchitectureView() {
+  const map = elements.galleryCurationList?.querySelector("[data-gallery-architecture-map]");
+  const world = elements.galleryCurationList?.querySelector("[data-gallery-architecture-world]");
+  if (!map || !world) return;
+  const grid = state.galleryRoom?.grid ?? { minX: -16, maxX: 68, minZ: -86, maxZ: 16 };
+  const spanX = Math.max(1, Number(grid.maxX) - Number(grid.minX));
+  const spanZ = Math.max(1, Number(grid.maxZ) - Number(grid.minZ));
+  const width = map.clientWidth;
+  const height = map.clientHeight;
+  const zoom = galleryArchitectureView.zoom;
+  map.style.backgroundSize = `${Math.max(4, 16 * zoom)}px ${Math.max(4, 16 * zoom)}px`;
+  map.style.backgroundPosition = `${galleryArchitectureView.panX}px ${galleryArchitectureView.panY}px`;
+  world.querySelectorAll("[data-gallery-architecture-module]").forEach((module) => {
+    const centerX = Number(module.dataset.centerX ?? 0);
+    const centerZ = Number(module.dataset.centerZ ?? 0);
+    const moduleWidth = Number(module.dataset.moduleWidth ?? 2);
+    const moduleDepth = Number(module.dataset.moduleDepth ?? 2);
+    const centerPxX = ((centerX - Number(grid.minX)) / spanX) * width;
+    const centerPxZ = ((centerZ - Number(grid.minZ)) / spanZ) * height;
+    const renderedWidth = (moduleWidth / spanX) * width * zoom;
+    const renderedHeight = (moduleDepth / spanZ) * height * zoom;
+    module.style.left = `${(centerPxX - width / 2) * zoom + width / 2 + galleryArchitectureView.panX - renderedWidth / 2}px`;
+    module.style.top = `${(centerPxZ - height / 2) * zoom + height / 2 + galleryArchitectureView.panY - renderedHeight / 2}px`;
+    module.style.width = `${renderedWidth}px`;
+    module.style.height = `${renderedHeight}px`;
+  });
+}
 
 function cloneGalleryCuration(records) {
   return JSON.parse(JSON.stringify(records ?? []));
+}
+
+function cloneGalleryRoom(room) {
+  return JSON.parse(JSON.stringify(room ?? {}));
 }
 
 function getCurrentGalleryCurationSnapshot() {
@@ -143,10 +239,20 @@ function pushGalleryUndoSnapshot(label, snapshot = getCurrentGalleryCurationSnap
   updateGalleryUndoButton();
 }
 
+function pushGalleryRoomUndoSnapshot(label, snapshot = state.galleryRoom) {
+  const room = cloneGalleryRoom(snapshot);
+  const key = `room:${JSON.stringify(room)}`;
+  if (galleryUndoStack.at(-1)?.key === key) return;
+  galleryUndoStack.push({ label, room, key });
+  if (galleryUndoStack.length > GALLERY_UNDO_LIMIT) galleryUndoStack.shift();
+  updateGalleryUndoButton();
+}
+
 function resetGalleryUndoHistory(records = state.galleryCuration) {
   galleryUndoStack = [];
   galleryFieldEditSnapshot = null;
   gallerySavedSnapshotKey = JSON.stringify(records ?? []);
+  galleryRoomSavedSnapshotKey = JSON.stringify(state.galleryRoom ?? {});
   updateGalleryUndoButton();
 }
 
@@ -154,13 +260,17 @@ function undoGalleryCuration() {
   const entry = galleryUndoStack.pop();
   if (!entry) return;
   const selectedWallId = activeGallerySelectedWallId;
-  state = { ...state, galleryCuration: cloneGalleryCuration(entry.records) };
+  state = entry.room
+    ? { ...state, galleryRoom: cloneGalleryRoom(entry.room) }
+    : { ...state, galleryCuration: cloneGalleryCuration(entry.records) };
   renderAll(state, elements, { name: "gallery", page: "gallery" });
   setEditorRoute({ name: "gallery", page: "gallery" });
   syncGalleryPlacementCollisionState();
   applyGalleryCurationFilters();
   if (selectedWallId && getGalleryWallCardById(selectedWallId)) selectGalleryWall(selectedWallId);
-  const isDirty = JSON.stringify(state.galleryCuration) !== gallerySavedSnapshotKey;
+  const isDirty =
+    JSON.stringify(state.galleryCuration) !== gallerySavedSnapshotKey ||
+    JSON.stringify(state.galleryRoom) !== galleryRoomSavedSnapshotKey;
   setDirtyState(isDirty, `Undid ${entry.label}.`);
   updateGalleryUndoButton();
 }
@@ -1299,6 +1409,7 @@ function applyLoadedState(nextState, routeOverride = null) {
     galleryCuration: nextState.galleryCuration ?? state.galleryCuration ?? [],
     galleryCurationStatus: nextState.galleryCurationStatus ?? state.galleryCurationStatus ?? {},
     galleryRoom: nextState.galleryRoom ?? state.galleryRoom ?? {},
+    galleryEditorRoomId: state.galleryEditorRoomId ?? "room-main",
     aboutPhotos: nextState.aboutPhotos ?? state.aboutPhotos ?? [],
     aboutCopy: nextState.aboutCopy ?? state.aboutCopy ?? {},
     siteSeo: nextState.siteSeo ?? state.siteSeo ?? {},
@@ -1314,6 +1425,7 @@ function applyLoadedState(nextState, routeOverride = null) {
 
   if (route.name === "gallery") {
     syncGalleryPlacementCollisionState();
+    applyGalleryArchitectureView();
   }
 }
 
@@ -1328,6 +1440,7 @@ function updateStateFromCurrentDom() {
     galleryCuration: state.galleryCuration ?? [],
     galleryCurationStatus: state.galleryCurationStatus ?? {},
     galleryRoom: state.galleryRoom ?? {},
+    galleryEditorRoomId: state.galleryEditorRoomId ?? "room-main",
     aboutPhotos: nextState.aboutPhotos ?? state.aboutPhotos ?? [],
     aboutCopy: nextState.aboutCopy ?? state.aboutCopy ?? {},
     siteSeo: state.siteSeo ?? {},
@@ -1341,6 +1454,10 @@ function rerenderCurrentRoute(message) {
 
   renderAll(state, elements, route);
   setEditorRoute(route);
+  if (route.name === "gallery") {
+    updateGalleryUndoButton();
+    applyGalleryArchitectureView();
+  }
 
   if (message) {
     setStatus(message);
@@ -2111,6 +2228,7 @@ function getGalleryCardPlacementRecord(card) {
 
   return {
     wallId: card.dataset.wallId ?? "",
+    roomId: card.querySelector('[data-gallery-curation-field="roomId"]')?.value ?? "room-main",
     wallType: card.querySelector('[data-gallery-curation-field="wallType"]')?.value ?? "standard-display-wall",
     placedInGallery: card.querySelector('[data-gallery-curation-field="placedInGallery"]')?.value !== "unplaced",
     positionX: Number(card.querySelector('[data-gallery-curation-field="positionX"]')?.value ?? 0),
@@ -2378,11 +2496,18 @@ function updateGalleryPlacementDropPreview(event, mapElement) {
   const position = getGalleryGridDropPosition(event, mapElement);
   const previewRecord = {
     ...getGalleryCardPlacementRecord(card),
+    roomId: state.galleryEditorRoomId ?? "room-main",
     gridX: position.gridX,
     gridZ: position.gridZ,
     placedInGallery: true
   };
-  const previewRecords = [...getGalleryCardPlacementRecords().filter((record) => record.wallId !== wallId), previewRecord];
+  const previewRecords = [
+    ...getGalleryCardPlacementRecords().filter((record) =>
+      record.wallId !== wallId &&
+      (record.roomId ?? "room-main") === previewRecord.roomId
+    ),
+    previewRecord
+  ];
   const hasCollision = findGalleryPlacementCollisions(previewRecords).length > 0
     || findGalleryPlacementBoundaryViolations(previewRecords).length > 0;
 
@@ -2439,6 +2564,8 @@ function placeDraggedGalleryWallOnMap(event, mapElement) {
   pushGalleryUndoSnapshot("wall placement", activeGalleryWallDrag.snapshot);
   activeGalleryWallDrag.droppedOnMap = true;
   selectGalleryWall(wallId);
+  const roomField = card.querySelector('[data-gallery-curation-field="roomId"]');
+  if (roomField) roomField.value = state.galleryEditorRoomId ?? "room-main";
   setGalleryWallGridPosition(card, position.gridX, position.gridZ);
   setDirtyState(true, `Placed ${wallId} on the gallery map. Click Save Wall or Save All Gallery Curation to preserve it.`);
   refreshGalleryPlacementMapFromCards();
@@ -2526,6 +2653,7 @@ function addGalleryWallCardFromOverlay() {
   const wallId = makeUniqueGalleryWallId();
   const nextRecord = {
     wallId,
+    roomId: state.galleryEditorRoomId ?? "room-main",
     artworkId: getGalleryAddWallFieldValue("artworkId", ""),
     showInGallery: getGalleryAddWallFieldValue("showInGallery", "hidden") === "active",
     placedInGallery: false,
@@ -2976,6 +3104,132 @@ async function saveGalleryCuration() {
   applyLoadedState(savedData);
   setDirtyState(false);
   setStatus(`Saved ${state.galleryCuration.length} gallery wall curation rows.${getBackupStatusText(savedData)}`, "success");
+}
+
+function collectGalleryRoomLayoutFromPage() {
+  const currentRoom = cloneGalleryRoom(state.galleryRoom);
+  const cards = Array.from(elements.galleryCurationList?.querySelectorAll("[data-gallery-layout-module]") ?? []);
+  const rooms = [];
+  const hallways = [];
+
+  cards.forEach((card) => {
+    const getField = (name) => card.querySelector(`[data-gallery-module-field="${name}"]`)?.value;
+    const module = {
+      id: card.dataset.moduleId,
+      label: String(getField("label") ?? card.dataset.moduleId).trim(),
+      center: [
+        Number(getField("centerX") ?? 0),
+        Number(getField("centerZ") ?? 0)
+      ],
+      width: Math.max(2, Number(getField("width") ?? 7)),
+      depth: Math.max(2, Number(getField("depth") ?? 7))
+    };
+
+    if (card.dataset.moduleKind === "hallway") {
+      module.lengthPreset = getField("lengthPreset") === "long" ? "long" : "short";
+      module.startConnectionStyle = getField("startConnectionStyle") ?? "centered";
+      module.endConnectionStyle = getField("endConnectionStyle") ?? "centered";
+      const presetLength = module.lengthPreset === "long" ? 16 : 10;
+      if (module.width >= module.depth) {
+        module.width = presetLength;
+      } else {
+        module.depth = presetLength;
+      }
+      hallways.push(module);
+    } else {
+      rooms.push(module);
+    }
+  });
+
+  return {
+    ...currentRoom,
+    schemaVersion: 2,
+    shape: rooms.length > 1 ? "l-shaped" : "rectangle",
+    layout: { rooms, hallways }
+  };
+}
+
+function createGalleryModule(kind) {
+  pushGalleryRoomUndoSnapshot(`add ${kind}`);
+  const room = cloneGalleryRoom(state.galleryRoom);
+  const layout = room.layout ?? { rooms: [], hallways: [] };
+  const collection = kind === "hallway"
+    ? [...(layout.hallways ?? [])]
+    : [...(layout.rooms ?? [])];
+  const usedIds = new Set([
+    ...(layout.rooms ?? []).map((module) => module.id),
+    ...(layout.hallways ?? []).map((module) => module.id)
+  ]);
+  let index = collection.length + 1;
+  let id = `${kind}-${index}`;
+  while (usedIds.has(id)) {
+    index += 1;
+    id = `${kind}-${index}`;
+  }
+
+  collection.push(kind === "hallway"
+    ? {
+        id,
+        label: `Hallway ${index}`,
+        center: [0, 0],
+        width: 17,
+        depth: 7,
+        lengthPreset: "short",
+        startConnectionStyle: "centered",
+        endConnectionStyle: "centered"
+      }
+    : {
+        id,
+        label: `Room ${index}`,
+        center: [0, 0],
+        width: 34,
+        depth: 34
+      });
+
+  state.galleryRoom = {
+    ...room,
+    layout: {
+      rooms: kind === "room" ? collection : [...(layout.rooms ?? [])],
+      hallways: kind === "hallway" ? collection : [...(layout.hallways ?? [])]
+    }
+  };
+  rerenderCurrentRoute(`Added ${kind}. Save Architecture to preserve it.`);
+  setDirtyState(true);
+}
+
+function removeGalleryModule(card) {
+  if (!card) return;
+  const kind = card.dataset.moduleKind;
+  const id = card.dataset.moduleId;
+  const room = cloneGalleryRoom(state.galleryRoom);
+  const layout = room.layout ?? { rooms: [], hallways: [] };
+  if (kind === "room" && (layout.rooms ?? []).length <= 1) {
+    setStatus("The gallery must keep at least one room.", "error");
+    return;
+  }
+
+  pushGalleryRoomUndoSnapshot(`remove ${kind}`);
+  state.galleryRoom = {
+    ...room,
+    layout: {
+      rooms: kind === "room" ? (layout.rooms ?? []).filter((module) => module.id !== id) : [...(layout.rooms ?? [])],
+      hallways: kind === "hallway" ? (layout.hallways ?? []).filter((module) => module.id !== id) : [...(layout.hallways ?? [])]
+    }
+  };
+  rerenderCurrentRoute(`Removed ${kind}. Save Architecture to preserve it.`);
+  setDirtyState(true);
+}
+
+async function saveGalleryRoom() {
+  state.galleryRoom = collectGalleryRoomLayoutFromPage();
+  if (!state.galleryRoom.layout.rooms.length) {
+    throw new Error("The gallery must contain at least one room.");
+  }
+  setStatus("Saving gallery architecture...", "neutral");
+  const savedData = await saveGalleryRoomApi(state.galleryRoom);
+  applyLoadedState({ ...state, ...savedData });
+  setDirtyState(false);
+  setStatus(`Saved gallery architecture.${getBackupStatusText(savedData)}`, "success");
 }
 
 async function saveGalleryCurationWall(card) {
@@ -4090,10 +4344,46 @@ elements.galleryCurationList?.addEventListener("input", (event) => {
 });
 
 elements.galleryCurationList?.addEventListener("change", (event) => {
+  const galleryModuleField = event.target.closest("[data-gallery-module-field]");
+  const galleryRoomMapSelect = event.target.closest("[data-gallery-wall-map-room]");
   const galleryFilter = event.target.closest("[data-gallery-curation-filter]");
   const artworkPickerFilter = event.target.closest("[data-artwork-picker-filter]");
   const gridField = event.target.closest("[data-gallery-grid-field]");
   const field = event.target.closest("[data-gallery-curation-field]");
+
+  if (galleryRoomMapSelect) {
+    state.galleryEditorRoomId = galleryRoomMapSelect.value;
+    rerenderCurrentRoute();
+    return;
+  }
+
+  if (galleryModuleField) {
+    pushGalleryRoomUndoSnapshot("architecture field edit");
+    const nextRoom = collectGalleryRoomLayoutFromPage();
+    const moduleCard = galleryModuleField.closest("[data-gallery-layout-module]");
+    const moduleId = moduleCard?.dataset.moduleId;
+    if (moduleId) {
+      const modules = getGalleryArchitectureModules(nextRoom);
+      const editedModule = modules.find((module) => module.id === moduleId);
+      if (editedModule) {
+        const [resolvedX, resolvedZ] = resolveGalleryArchitecturePlacement(
+          moduleId,
+          Number(editedModule.center?.[0] ?? 0),
+          Number(editedModule.center?.[1] ?? 0),
+          nextRoom
+        );
+        const storedModule = [
+          ...(nextRoom.layout?.rooms ?? []),
+          ...(nextRoom.layout?.hallways ?? [])
+        ].find((module) => module.id === moduleId);
+        if (storedModule) storedModule.center = [resolvedX, resolvedZ];
+      }
+    }
+    state.galleryRoom = nextRoom;
+    rerenderCurrentRoute("Gallery architecture has unsaved changes. Click Save Architecture to preserve it.");
+    setDirtyState(true);
+    return;
+  }
 
   if (galleryFilter) {
     applyGalleryCurationFilters();
@@ -4148,6 +4438,12 @@ elements.galleryCurationList?.addEventListener("change", (event) => {
 });
 
 elements.galleryCurationList?.addEventListener("click", (event) => {
+  const addGalleryModuleButton = event.target.closest("[data-add-gallery-module]");
+  const removeGalleryModuleButton = event.target.closest("[data-remove-gallery-module]");
+  const saveGalleryRoomButton = event.target.closest("[data-save-gallery-room]");
+  const architectureZoomButton = event.target.closest("[data-gallery-architecture-zoom]");
+  const architecturePanXButton = event.target.closest("[data-gallery-architecture-pan-x]");
+  const architecturePanYButton = event.target.closest("[data-gallery-architecture-pan-y]");
   const undoGalleryButton = event.target.closest("[data-undo-gallery-curation]");
   const saveGalleryButton = event.target.closest("[data-save-gallery-curation]");
   const saveGalleryWallButton = event.target.closest("[data-save-gallery-curation-wall]");
@@ -4166,6 +4462,40 @@ elements.galleryCurationList?.addEventListener("click", (event) => {
   const rotateMapButton = event.target.closest("[data-gallery-map-rotate]");
   const flipMapButton = event.target.closest("[data-gallery-map-flip]");
   const unplaceMapButton = event.target.closest("[data-gallery-map-unplace]");
+
+  if (architectureZoomButton) {
+    galleryArchitectureView.zoom = Math.max(
+      0.35,
+      Math.min(4, galleryArchitectureView.zoom + Number(architectureZoomButton.dataset.galleryArchitectureZoom) * 0.2)
+    );
+    applyGalleryArchitectureView();
+    return;
+  }
+
+  if (architecturePanXButton || architecturePanYButton) {
+    galleryArchitectureView.panX += Number(architecturePanXButton?.dataset.galleryArchitecturePanX ?? 0);
+    galleryArchitectureView.panY += Number(architecturePanYButton?.dataset.galleryArchitecturePanY ?? 0);
+    applyGalleryArchitectureView();
+    return;
+  }
+
+  if (addGalleryModuleButton) {
+    createGalleryModule(addGalleryModuleButton.dataset.addGalleryModule);
+    return;
+  }
+
+  if (removeGalleryModuleButton) {
+    removeGalleryModule(removeGalleryModuleButton.closest("[data-gallery-layout-module]"));
+    return;
+  }
+
+  if (saveGalleryRoomButton) {
+    saveGalleryRoom().catch((error) => {
+      console.error(error);
+      setStatus(error.message, "error");
+    });
+    return;
+  }
 
   if (undoGalleryButton) {
     undoGalleryCuration();
@@ -4742,4 +5072,82 @@ loadData().then(() => {
 }).catch((error) => {
   console.error(error);
   setStatus(error.message, "error");
+});
+
+elements.galleryCurationList?.addEventListener("mousedown", (event) => {
+  const module = event.target.closest("[data-gallery-architecture-module]");
+  const map = event.target.closest("[data-gallery-architecture-map]");
+  if (!map) return;
+
+  if (module) {
+    const card = elements.galleryCurationList?.querySelector(
+      `[data-gallery-layout-module][data-module-id="${escapeGallerySelectorValue(module.dataset.moduleId)}"]`
+    );
+    if (!card) return;
+    activeGalleryArchitectureDrag = {
+      type: "module",
+      module,
+      card,
+      map,
+      startX: event.clientX,
+      startY: event.clientY,
+      centerX: Number(card.querySelector('[data-gallery-module-field="centerX"]')?.value ?? 0),
+      centerZ: Number(card.querySelector('[data-gallery-module-field="centerZ"]')?.value ?? 0),
+      snapshot: cloneGalleryRoom(state.galleryRoom)
+    };
+  } else {
+    activeGalleryArchitectureDrag = {
+      type: "pan",
+      map,
+      startX: event.clientX,
+      startY: event.clientY,
+      panX: galleryArchitectureView.panX,
+      panY: galleryArchitectureView.panY
+    };
+  }
+  event.preventDefault();
+});
+
+window.addEventListener("mousemove", (event) => {
+  const drag = activeGalleryArchitectureDrag;
+  if (!drag) return;
+  const dx = event.clientX - drag.startX;
+  const dy = event.clientY - drag.startY;
+
+  if (drag.type === "pan") {
+    galleryArchitectureView.panX = drag.panX + dx;
+    galleryArchitectureView.panY = drag.panY + dy;
+    applyGalleryArchitectureView();
+    return;
+  }
+
+  drag.module.style.translate = `${dx / galleryArchitectureView.zoom}px ${dy / galleryArchitectureView.zoom}px`;
+});
+
+window.addEventListener("mouseup", (event) => {
+  const drag = activeGalleryArchitectureDrag;
+  if (!drag) return;
+  activeGalleryArchitectureDrag = null;
+  if (drag.type !== "module") return;
+
+  const grid = state.galleryRoom?.grid ?? { minX: -16, maxX: 56, minZ: -57, maxZ: 16 };
+  const rect = drag.map.getBoundingClientRect();
+  const metersPerPixelX = (Number(grid.maxX) - Number(grid.minX)) / rect.width / galleryArchitectureView.zoom;
+  const metersPerPixelZ = (Number(grid.maxZ) - Number(grid.minZ)) / rect.height / galleryArchitectureView.zoom;
+  const proposedX = Math.round((drag.centerX + (event.clientX - drag.startX) * metersPerPixelX) * 2) / 2;
+  const proposedZ = Math.round((drag.centerZ + (event.clientY - drag.startY) * metersPerPixelZ) * 2) / 2;
+  const [centerX, centerZ] = resolveGalleryArchitecturePlacement(
+    drag.module.dataset.moduleId,
+    proposedX,
+    proposedZ
+  );
+  const centerXField = drag.card.querySelector('[data-gallery-module-field="centerX"]');
+  const centerZField = drag.card.querySelector('[data-gallery-module-field="centerZ"]');
+
+  pushGalleryRoomUndoSnapshot("architecture drag", drag.snapshot);
+  if (centerXField) centerXField.value = String(centerX);
+  if (centerZField) centerZField.value = String(centerZ);
+  state.galleryRoom = collectGalleryRoomLayoutFromPage();
+  rerenderCurrentRoute("Gallery architecture has unsaved changes. Click Save Architecture to preserve it.");
+  setDirtyState(true);
 });

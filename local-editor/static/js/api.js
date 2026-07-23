@@ -51,6 +51,23 @@ export async function saveGalleryCurationApi(galleryCuration) {
   return response.json();
 }
 
+export async function saveGalleryRoomApi(galleryRoom) {
+  const response = await fetch('/api/gallery-room', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ galleryRoom })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.error ?? 'Could not save gallery room layout.');
+  }
+
+  return response.json();
+}
+
 export async function saveSiteSeoApi(siteSeo) {
   const response = await fetch('/api/site-seo', {
     method: 'POST',
