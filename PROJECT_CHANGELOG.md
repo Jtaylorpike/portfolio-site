@@ -2,6 +2,18 @@
 
 This file records current and future release-level changes. The complete pre-consolidation changelog and all historical phase documents are preserved verbatim in `docs/PROJECT_HISTORY_ARCHIVE.md`.
 
+## 2026-07-23 - Phase 9A launch-readiness audit
+
+- Audited Home, Portfolio, and About routes at desktop and mobile sizes against the production build.
+- Verified route metadata, image alternative-text attributes, skip-link targets, asset responses, runtime errors, and horizontal overflow.
+- Added the missing semantic homepage heading without altering its accepted visual presentation.
+- Refreshed the sitemap modification date for the current release cycle.
+- Changed portfolio thumbnail startup to prioritize the top card in every rendered column, then begin lower rows in a sub-300ms cascade with a brief low-opacity/blur reveal and reduced-motion fallback.
+- Removed the magnification cursor from portfolio thumbnails and made fullscreen controls overlap-aware: landscape images receive an outer control rail, Close collapses in place into its right border after two idle seconds when it is not fully inside the image, and intersecting Prev/Next controls fade until pointer activity returns within the frame.
+- Stabilized fullscreen slide changes by preloading and decoding the incoming image before applying its source, orientation layout, and caption as one update, preventing the outgoing image from resizing while the next file loads.
+- Recorded final user-authored About copy as the remaining content blocker; placeholder copy was not replaced automatically.
+- Confirmed the GitHub Pages project URL returns HTTP 200 and identified the intended `taylorpike.com` canonical domain returning HTTP 404 as an external launch blocker.
+
 ## 2026-07-22 - Phase 8AP gallery recovery and editor completion start
 
 - Repaired deferred preview delivery so artwork frames cannot remain blank while waiting for GPU idle preparation.

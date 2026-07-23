@@ -262,6 +262,7 @@ function renderHomeHeroSlideshow(): string {
       data-hero-index="0"
       aria-label="Featured portfolio image"
     >
+      <h1 class="sr-only">Taylor Pike Productions photography portfolio</h1>
       <div class="home-hero-grid-mark home-hero-grid-mark-top-left" aria-hidden="true"></div>
       <div class="home-hero-grid-mark home-hero-grid-mark-top-right" aria-hidden="true"></div>
       <div class="home-hero-grid-mark home-hero-grid-mark-bottom-right" aria-hidden="true"></div>
@@ -332,6 +333,8 @@ function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): 
     .map((image, index) => {
       const imageNumber = formatTwoDigitNumber(index);
       const imageSource = image.thumbSrc ?? image.src;
+      const imageWidthAttribute = image.imageWidth ? ` width="${image.imageWidth}"` : '';
+      const imageHeightAttribute = image.imageHeight ? ` height="${image.imageHeight}"` : '';
       const categoryLabel = getCategoryLabel(image.category);
       const orientationClass = image.imageOrientation
         ? ` portfolio-grid-card--${escapeHtml(image.imageOrientation)}`
@@ -351,10 +354,12 @@ function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): 
             aria-label="Open larger view of ${escapeHtml(image.title)}"
           >
             <img
-              src="${escapeHtml(imageSource)}"
+              class="portfolio-grid-image is-awaiting-load"
+              data-portfolio-image-src="${escapeHtml(imageSource)}"
               alt="${escapeHtml(image.alt)}"
               loading="lazy"
               decoding="async"
+              ${imageWidthAttribute}${imageHeightAttribute}
               style="object-position: ${escapeHtml(image.thumbnailPosition ?? '50% 50%')};"
             />
             <span class="portfolio-grid-card-index" aria-hidden="true">${imageNumber}</span>

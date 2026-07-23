@@ -1,12 +1,20 @@
 # Taylor Pike Photography Portfolio - Current Project Guide
 
-Last updated: 2026-07-22 19:13 EDT (UTC-04:00)
+Last updated: 2026-07-23 10:17 EDT (UTC-04:00)
 
 This is the authoritative operational and handoff document for the repository. Historical documents, phase records, pack notes, manifests, earlier policies, and superseded handoffs are preserved verbatim in `PROJECT_HISTORY_ARCHIVE.md`. The staged portfolio alt-text dataset remains at `alt-text/portfolio-image-alt-text-20260515.json` because repository tooling consumes that path directly.
 
 ## Current status
 
 Phase 8AN surface hierarchy and Phase 8AO adaptive quality are implemented and audited. Phase 8AP is now active as the performance-safe gallery completion and editor operational-recovery stage. Its first slice repairs deferred artwork preview delivery, smooths automatic demotion, adds direct quality selection, strengthens the continuously moving loading indicator, fixes the local-editor launch port contract, and adds editor coverage for active SEO metadata.
+
+Phase 9A launch-readiness QA is active locally. Home, Portfolio, and About passed desktop/mobile production rendering, metadata, asset-response, skip-link, image-alt, runtime-error, and overflow checks. The homepage semantic heading and sitemap date were corrected without visible redesign. Final user-authored About copy remains the primary content blocker.
+
+Portfolio thumbnails now reserve their intrinsic aspect ratio and start loading in visual row order: the top image from each rendered column is requested first, followed by a very short downward cascade. Loaded thumbnails use a restrained opacity/blur reveal, with motion removed for `prefers-reduced-motion`.
+
+The fullscreen image viewer now measures controls against the rendered image. Desktop landscapes use a wider top/side control rail so Close does not bleed into the photograph. After two seconds without frame activity, Close collapses in place into its right border when it is not fully inside the image, while any Prev/Next controls intersecting the image fade to a low opacity. Pointer/touch activity and keyboard focus reveal the controls again. Slide navigation preloads and decodes the incoming file before applying its source, orientation layout, and caption together, so the outgoing image retains its dimensions until the replacement is ready.
+
+Deployment smoke testing on 2026-07-23 found the GitHub Pages project URL responding successfully at `https://jtaylorpike.github.io/portfolio-site/`, while the intended canonical custom domain `https://taylorpike.com/` returned HTTP 404. Do not silently change canonical metadata; resolve the Pages custom-domain/DNS configuration or explicitly approve the GitHub project URL as canonical before launch.
 
 The implementation is ready for final release review. It has not been committed, pushed, or merged in the current work session.
 

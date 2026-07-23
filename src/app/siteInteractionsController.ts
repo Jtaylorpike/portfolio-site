@@ -60,6 +60,9 @@ const PORTFOLIO_CATEGORY_RAIL_SCROLL_KEY = 'taylor-pike-portfolio-category-rail-
 const LIGHTBOX_FOCUSABLE_SELECTOR = 'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
 const LIGHTBOX_SWIPE_THRESHOLD_PX = 44;
 const LIGHTBOX_SWIPE_MAX_DURATION_MS = 700;
+const LIGHTBOX_CONTROLS_IDLE_MS = 2000;
+const PORTFOLIO_LOAD_WAVE_DELAY_MS = 12;
+const PORTFOLIO_REVEAL_CLASS_MS = 220;
 
 const heroTransitionStates = new WeakMap<HTMLElement, HeroTransitionState>();
 
@@ -496,6 +499,13 @@ function updateLightboxContent(lightbox: HTMLElement, imageSet: GalleryImage[], 
   const yearElement = lightbox.querySelector<HTMLElement>('[data-lightbox-year]');
 
   lightbox.dataset.lightboxIndex = String(safeIndex);
+  lightbox.dataset.lightboxOrientation = image.imageOrientation ?? (
+    (image.imageWidth ?? 1) > (image.imageHeight ?? 1)
+      ? 'landscape'
+      : (image.imageWidth ?? 1) < (image.imageHeight ?? 1)
+        ? 'portrait'
+        : 'square'
+  );
 
   if (imageElement) {
     setLightboxImageSource(imageElement, image);
@@ -573,14 +583,116 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
   const prevButton = lightbox.querySelector<HTMLButtonElement>('[data-lightbox-prev]');
   const nextButton = lightbox.querySelector<HTMLButtonElement>('[data-lightbox-next]');
   const imageElement = lightbox.querySelector<HTMLImageElement>('[data-lightbox-image]');
+  const frameElement = lightbox.querySelector<HTMLElement>('.image-lightbox-frame');
+  const dialogElement = lightbox.querySelector<HTMLElement>('.image-lightbox-inner');
+  let controlIdleTimer: number | null = null;
+  let controlLayoutFrame: number | null = null;
+  let imageChangeRequest = 0;
 
   if (safeImageSet.length <= 1) {
     prevButton?.setAttribute('disabled', 'true');
     nextButton?.setAttribute('disabled', 'true');
   }
 
-  function showImageAtIndex(nextIndex: number) {
-    updateLightboxContent(lightbox, safeImageSet, nextIndex);
+  function rectanglesIntersect(a: DOMRect, b: DOMRect): boolean {
+    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+  }
+
+  function rectangleContains(outer: DOMRect, inner: DOMRect): boolean {
+    return inner.left >= outer.left && inner.right <= outer.right && inner.top >= outer.top && inner.bottom <= outer.bottom;
+  }
+
+  function updateLightboxControlOverlap() {
+    if (!imageElement || !imageElement.complete || imageElement.naturalWidth <= 0) {
+      return;
+    }
+
+    lightbox.classList.remove('is-controls-idle');
+    const imageRect = imageElement.getBoundingClientRect();
+
+    [prevButton, nextButton].forEach((button) => {
+      if (button) {
+        button.dataset.overlapsImage = rectanglesIntersect(button.getBoundingClientRect(), imageRect) ? 'true' : 'false';
+      }
+    });
+
+    if (closeButton) {
+      const closeRect = closeButton.getBoundingClientRect();
+      closeButton.dataset.closeControlMode = rectangleContains(imageRect, closeRect) ? 'fade' : 'retract';
+      closeButton.dataset.overlapsImage = rectanglesIntersect(closeRect, imageRect) ? 'true' : 'false';
+    }
+  }
+
+  function scheduleLightboxControlOverlap() {
+    if (controlLayoutFrame !== null) {
+      window.cancelAnimationFrame(controlLayoutFrame);
+    }
+
+    controlLayoutFrame = window.requestAnimationFrame(() => {
+      controlLayoutFrame = null;
+      updateLightboxControlOverlap();
+    });
+  }
+
+  function hideInactiveLightboxControls() {
+    lightbox.classList.add('is-controls-idle');
+  }
+
+  function revealLightboxControls() {
+    lightbox.classList.remove('is-controls-idle');
+
+    if (controlIdleTimer !== null) {
+      window.clearTimeout(controlIdleTimer);
+    }
+
+    controlIdleTimer = window.setTimeout(hideInactiveLightboxControls, LIGHTBOX_CONTROLS_IDLE_MS);
+  }
+
+  function handleLightboxResize() {
+    scheduleLightboxControlOverlap();
+    revealLightboxControls();
+  }
+
+  function showImageAtIndex(nextIndex: number, showImmediately = false) {
+    const safeIndex = ((nextIndex % safeImageSet.length) + safeImageSet.length) % safeImageSet.length;
+    const nextImage = safeImageSet[safeIndex];
+    const requestedSource = nextImage.fullSrc ?? nextImage.src;
+    const requestId = ++imageChangeRequest;
+
+    const applyImageChange = () => {
+      if (requestId !== imageChangeRequest || !lightbox.isConnected) {
+        return;
+      }
+
+      updateLightboxContent(lightbox, safeImageSet, safeIndex);
+      revealLightboxControls();
+      scheduleLightboxControlOverlap();
+    };
+
+    if (showImmediately) {
+      applyImageChange();
+      return;
+    }
+
+    const preloadImage = new Image();
+    let isUsingFallback = requestedSource === nextImage.src;
+    preloadImage.alt = '';
+    preloadImage.onload = () => {
+      const decoding = typeof preloadImage.decode === 'function'
+        ? preloadImage.decode()
+        : Promise.resolve();
+
+      void decoding.catch(() => undefined).then(applyImageChange);
+    };
+    preloadImage.onerror = () => {
+      if (isUsingFallback) {
+        return;
+      }
+
+      isUsingFallback = true;
+      preloadImage.src = nextImage.src;
+    };
+    preloadImage.src = requestedSource;
   }
 
   function moveLightbox(direction: number) {
@@ -594,6 +706,13 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
 
   function closeLightbox() {
     document.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('resize', handleLightboxResize);
+    if (controlIdleTimer !== null) {
+      window.clearTimeout(controlIdleTimer);
+    }
+    if (controlLayoutFrame !== null) {
+      window.cancelAnimationFrame(controlLayoutFrame);
+    }
     document.body.classList.remove('image-lightbox-is-open');
     lightbox.remove();
 
@@ -699,6 +818,10 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
 
     imageElement.src = imageElement.dataset.fallbackSrc;
   });
+  imageElement?.addEventListener('load', () => {
+    scheduleLightboxControlOverlap();
+    revealLightboxControls();
+  });
 
   lightbox.addEventListener('click', (event) => {
     if (event.target === lightbox) {
@@ -708,12 +831,17 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
 
   lightbox.addEventListener('touchstart', handleTouchStart, { passive: true });
   lightbox.addEventListener('touchend', handleTouchEnd, { passive: true });
+  frameElement?.addEventListener('pointermove', revealLightboxControls, { passive: true });
+  frameElement?.addEventListener('pointerdown', revealLightboxControls, { passive: true });
+  lightbox.addEventListener('focusin', revealLightboxControls);
   closeButton?.addEventListener('click', closeLightbox);
   prevButton?.addEventListener('click', () => moveLightbox(-1));
   nextButton?.addEventListener('click', () => moveLightbox(1));
   document.addEventListener('keydown', handleKeyDown);
-  showImageAtIndex(startIndex);
-  closeButton?.focus();
+  window.addEventListener('resize', handleLightboxResize, { passive: true });
+  showImageAtIndex(startIndex, true);
+  dialogElement?.setAttribute('tabindex', '-1');
+  dialogElement?.focus();
 }
 
 const HERO_WHEEL_ZONE_SELECTOR = '[data-hero-wheel-zone]';
@@ -986,6 +1114,91 @@ function setupPortfolioFilters(): void {
   });
 }
 
+type PortfolioLoadItem = {
+  image: HTMLImageElement;
+  columnIndex: number;
+  rowIndex: number;
+};
+
+function getPortfolioLoadOrder(): PortfolioLoadItem[] {
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('.portfolio-grid-card'));
+  const columns: Array<{ left: number; cards: HTMLElement[] }> = [];
+
+  cards.forEach((card) => {
+    const rect = card.getBoundingClientRect();
+    let column = columns.find((candidate) => Math.abs(candidate.left - rect.left) < 8);
+
+    if (!column) {
+      column = { left: rect.left, cards: [] };
+      columns.push(column);
+    }
+
+    column.cards.push(card);
+  });
+
+  columns.sort((a, b) => a.left - b.left);
+  columns.forEach((column) => {
+    column.cards.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+  });
+
+  return columns
+    .flatMap((column, columnIndex) => column.cards.map((card, rowIndex) => ({
+      image: card.querySelector<HTMLImageElement>('[data-portfolio-image-src]'),
+      columnIndex,
+      rowIndex
+    })))
+    .filter((item): item is PortfolioLoadItem => Boolean(item.image))
+    .sort((a, b) => a.rowIndex - b.rowIndex || a.columnIndex - b.columnIndex);
+}
+
+function revealPortfolioImage(image: HTMLImageElement): void {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      image.classList.remove('is-awaiting-load');
+      image.classList.add('is-revealing');
+
+      window.setTimeout(() => {
+        image.classList.remove('is-revealing');
+      }, PORTFOLIO_REVEAL_CLASS_MS);
+    });
+  });
+}
+
+function startPortfolioImageLoad(item: PortfolioLoadItem): void {
+  const { image, rowIndex } = item;
+  const source = image.dataset.portfolioImageSrc;
+
+  if (!source || image.src) {
+    return;
+  }
+
+  image.loading = rowIndex === 0 ? 'eager' : 'lazy';
+  image.fetchPriority = rowIndex === 0 ? 'high' : rowIndex === 1 ? 'auto' : 'low';
+  image.addEventListener('load', () => revealPortfolioImage(image), { once: true });
+  image.addEventListener('error', () => image.classList.remove('is-awaiting-load'), { once: true });
+  image.src = source;
+}
+
+function setupPortfolioImageLoading(): void {
+  const grid = document.querySelector<HTMLElement>('.portfolio-grid');
+
+  if (!grid) {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    const loadOrder = getPortfolioLoadOrder();
+
+    loadOrder.forEach((item) => {
+      window.setTimeout(() => {
+        if (item.image.isConnected) {
+          startPortfolioImageLoad(item);
+        }
+      }, item.rowIndex * PORTFOLIO_LOAD_WAVE_DELAY_MS);
+    });
+  });
+}
+
 // Connects portfolio image buttons to the fullscreen lightbox.
 function setupPortfolioLightbox(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-lightbox-image-id]').forEach((button) => {
@@ -1057,6 +1270,7 @@ function setupKeyboardNavigation(): void {
 export function setupSiteInteractions(): void {
   setupHeroSlideshows();
   setupPortfolioFilters();
+  setupPortfolioImageLoading();
   setupPortfolioLightbox();
   setupKeyboardNavigation();
   setupAboutScrollMotion();
