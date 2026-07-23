@@ -13,8 +13,8 @@
       document.documentElement.dataset.editorTheme = theme;
     })();
   </script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=73" />
-  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=73"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=75" />
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=75"></script>
 </head>
 
 <body>
@@ -45,6 +45,7 @@
       <a href="#/about" data-editor-route-link="about">About</a>
       <a href="#/about/photos" data-editor-route-link="about-photos">About Photos</a>
       <a href="#/categories" data-editor-route-link="categories">Categories</a>
+      <a href="#/settings" data-editor-route-link="settings">Site Settings</a>
       <a href="#/backups" data-editor-route-link="backups">Backups</a>
     </nav>
 
@@ -272,6 +273,15 @@
           <button class="button" type="button" id="refreshCategoriesButton">Refresh Category Options</button>
         </div>
       </section>
+    </section>
+
+    <section class="editor-page-section" data-editor-page="settings">
+      <div class="section-heading">
+        <p class="eyebrow">Launch Metadata</p>
+        <h2>Site and search settings</h2>
+        <p>Edit the active global metadata and route-specific titles and descriptions stored in <code>src/data/siteSeo.json</code>.</p>
+      </div>
+      <section class="editor-list" id="siteSettingsEditor"></section>
     </section>
 
     <!-- Backups page: lists timestamped JSON backups and lets the user restore one safely. -->

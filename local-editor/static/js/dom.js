@@ -12,6 +12,7 @@ export const elements = {
   aboutCopyEditor: document.querySelector("#aboutCopyEditor"),
   aboutPhotoList: document.querySelector("#aboutPhotoList"),
   categoryList: document.querySelector("#categoryList"),
+  siteSettingsEditor: document.querySelector("#siteSettingsEditor"),
   statusText: document.querySelector("#statusText"),
   saveButton: document.querySelector("#saveButton"),
   reloadButton: document.querySelector("#reloadButton"),

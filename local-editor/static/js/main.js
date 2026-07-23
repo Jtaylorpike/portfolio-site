@@ -11,7 +11,8 @@ import {
   saveDataApi,
   saveGalleryCurationApi,
   saveGalleryCurationWallApi,
-  saveImageUpdatesApi
+  saveImageUpdatesApi,
+  saveSiteSeoApi
 } from "./api.js";
 import { elements } from "./dom.js";
 import {
@@ -20,6 +21,7 @@ import {
   collectImageCardSavePayload,
   collectGalleryCuration,
   collectGalleryCurationCard,
+  collectSiteSeoFromPage,
   collectImportReviewRecords,
   collectAboutImportReviewRecords,
   getFieldValue
@@ -62,7 +64,7 @@ import {
   rotateGalleryWallDegrees
 } from "./galleryGrid.js";
 
-const VALID_PAGE_ROUTES = new Set(["images", "import", "gallery", "about", "about-photos", "categories", "backups"]);
+const VALID_PAGE_ROUTES = new Set(["images", "import", "gallery", "about", "about-photos", "categories", "settings", "backups"]);
 const VALID_CROP_MODES = new Set(["hero", "gallery"]);
 
 const EDITOR_THEME_STORAGE_KEY = "taylor-pike-editor-theme";
@@ -97,6 +99,7 @@ let state = {
   galleryRoom: {},
   aboutPhotos: [],
   aboutCopy: {},
+  siteSeo: {},
   backups: []
 };
 
@@ -110,6 +113,57 @@ let suppressNextCategoryOrderClick = false;
 let activeGalleryWallDrag = null;
 let activeGallerySelectedWallId = null;
 let galleryTransparentDragImage = null;
+const GALLERY_UNDO_LIMIT = 30;
+let galleryUndoStack = [];
+let gallerySavedSnapshotKey = "[]";
+let galleryFieldEditSnapshot = null;
+
+function cloneGalleryCuration(records) {
+  return JSON.parse(JSON.stringify(records ?? []));
+}
+
+function getCurrentGalleryCurationSnapshot() {
+  return cloneGalleryCuration(collectGalleryCuration(state));
+}
+
+function updateGalleryUndoButton() {
+  const button = elements.galleryCurationList?.querySelector("[data-undo-gallery-curation]");
+  if (!button) return;
+  const entry = galleryUndoStack.at(-1);
+  button.disabled = !entry;
+  button.textContent = entry ? `Undo ${entry.label}` : "Undo";
+  button.title = entry ? `Undo ${entry.label} (Ctrl/Cmd+Z)` : "Nothing to undo";
+}
+
+function pushGalleryUndoSnapshot(label, snapshot = getCurrentGalleryCurationSnapshot()) {
+  const key = JSON.stringify(snapshot);
+  if (galleryUndoStack.at(-1)?.key === key) return;
+  galleryUndoStack.push({ label, records: cloneGalleryCuration(snapshot), key });
+  if (galleryUndoStack.length > GALLERY_UNDO_LIMIT) galleryUndoStack.shift();
+  updateGalleryUndoButton();
+}
+
+function resetGalleryUndoHistory(records = state.galleryCuration) {
+  galleryUndoStack = [];
+  galleryFieldEditSnapshot = null;
+  gallerySavedSnapshotKey = JSON.stringify(records ?? []);
+  updateGalleryUndoButton();
+}
+
+function undoGalleryCuration() {
+  const entry = galleryUndoStack.pop();
+  if (!entry) return;
+  const selectedWallId = activeGallerySelectedWallId;
+  state = { ...state, galleryCuration: cloneGalleryCuration(entry.records) };
+  renderAll(state, elements, { name: "gallery", page: "gallery" });
+  setEditorRoute({ name: "gallery", page: "gallery" });
+  syncGalleryPlacementCollisionState();
+  applyGalleryCurationFilters();
+  if (selectedWallId && getGalleryWallCardById(selectedWallId)) selectGalleryWall(selectedWallId);
+  const isDirty = JSON.stringify(state.galleryCuration) !== gallerySavedSnapshotKey;
+  setDirtyState(isDirty, `Undid ${entry.label}.`);
+  updateGalleryUndoButton();
+}
 
 function getGalleryTransparentDragImage() {
   if (galleryTransparentDragImage) {
@@ -1247,8 +1301,11 @@ function applyLoadedState(nextState, routeOverride = null) {
     galleryRoom: nextState.galleryRoom ?? state.galleryRoom ?? {},
     aboutPhotos: nextState.aboutPhotos ?? state.aboutPhotos ?? [],
     aboutCopy: nextState.aboutCopy ?? state.aboutCopy ?? {},
+    siteSeo: nextState.siteSeo ?? state.siteSeo ?? {},
     backups: nextState.backups ?? state.backups ?? []
   };
+
+  resetGalleryUndoHistory(state.galleryCuration);
 
   const route = routeOverride ?? getCurrentRoute();
 
@@ -1273,6 +1330,7 @@ function updateStateFromCurrentDom() {
     galleryRoom: state.galleryRoom ?? {},
     aboutPhotos: nextState.aboutPhotos ?? state.aboutPhotos ?? [],
     aboutCopy: nextState.aboutCopy ?? state.aboutCopy ?? {},
+    siteSeo: state.siteSeo ?? {},
     backups: state.backups ?? []
   };
 }
@@ -2251,6 +2309,7 @@ function rotateSelectedGalleryWall(delta) {
     return;
   }
 
+  pushGalleryUndoSnapshot("wall rotation");
   const field = card.querySelector('[data-gallery-curation-field="rotationYDegrees"]');
   const nextRotation = rotateGalleryWallDegrees(field?.value, delta);
 
@@ -2266,6 +2325,7 @@ function flipSelectedGalleryWall() {
     return;
   }
 
+  pushGalleryUndoSnapshot("wall flip");
   const field = card.querySelector('[data-gallery-curation-field="rotationYDegrees"]');
   const nextRotation = flipGalleryWallDegrees(field?.value);
 
@@ -2281,6 +2341,7 @@ function unplaceSelectedGalleryWall() {
     return;
   }
 
+  pushGalleryUndoSnapshot("wall removal from map");
   setGalleryWallPlacementStatus(card, false);
   setDirtyState(true, `Moved ${card.dataset.wallId} off the map. The wall card still exists and can be dragged back later.`);
   refreshGalleryPlacementMapFromCards();
@@ -2350,6 +2411,7 @@ function refreshGalleryPlacementMapFromCards() {
   syncGalleryPlacementCollisionState();
   applyGalleryCurationFilters();
   applyGalleryMapSelectionState();
+  updateGalleryUndoButton();
 }
 
 function beginGalleryWallDrag(wallId, source) {
@@ -2357,7 +2419,8 @@ function beginGalleryWallDrag(wallId, source) {
   activeGalleryWallDrag = {
     wallId,
     source,
-    droppedOnMap: false
+    droppedOnMap: false,
+    snapshot: getCurrentGalleryCurationSnapshot()
   };
 
   setGalleryDragVisualState(wallId, true);
@@ -2373,6 +2436,7 @@ function placeDraggedGalleryWallOnMap(event, mapElement) {
 
   const position = getGalleryGridDropPosition(event, mapElement);
 
+  pushGalleryUndoSnapshot("wall placement", activeGalleryWallDrag.snapshot);
   activeGalleryWallDrag.droppedOnMap = true;
   selectGalleryWall(wallId);
   setGalleryWallGridPosition(card, position.gridX, position.gridZ);
@@ -2390,6 +2454,7 @@ function endGalleryWallDrag() {
   const card = getGalleryWallCardById(wallId);
 
   if (source === "map" && !droppedOnMap && card) {
+    pushGalleryUndoSnapshot("wall removal from map", activeGalleryWallDrag.snapshot);
     setGalleryWallPlacementStatus(card, false);
     setDirtyState(true, `Moved ${wallId} off the map. The wall card still exists and can be dragged back later.`);
     refreshGalleryPlacementMapFromCards();
@@ -2457,6 +2522,7 @@ function getGalleryAddWallFieldValue(name, fallback = "") {
 }
 
 function addGalleryWallCardFromOverlay() {
+  pushGalleryUndoSnapshot("wall addition");
   const wallId = makeUniqueGalleryWallId();
   const nextRecord = {
     wallId,
@@ -2484,6 +2550,7 @@ function addGalleryWallCardFromOverlay() {
   applyGalleryCurationFilters();
   selectGalleryWall(wallId);
   setDirtyState(true, `Added ${wallId}. Drag it from the sidebar onto the map when you are ready to place it.`);
+  updateGalleryUndoButton();
 }
 
 function removeGalleryWallCard(card) {
@@ -2498,6 +2565,8 @@ function removeGalleryWallCard(card) {
   if (!confirmed) {
     return;
   }
+
+  pushGalleryUndoSnapshot("wall removal");
 
   card.remove();
   state = {
@@ -2660,6 +2729,7 @@ function chooseGalleryArtworkFromPicker(optionButton) {
   const card = cards.find((candidate) => candidate.dataset.wallId === targetWallId);
   const imageId = optionButton?.dataset.artworkPickerOption ?? "";
 
+  pushGalleryUndoSnapshot("artwork assignment");
   setGalleryCurationArtwork(card, imageId);
   closeGalleryArtworkPicker();
 }
@@ -2936,6 +3006,15 @@ async function saveData() {
     return;
   }
 
+  if (route.name === "settings") {
+    const savedData = await saveSiteSeoApi(collectSiteSeoFromPage(state));
+    state.siteSeo = savedData.siteSeo;
+    renderAll(state, elements, route);
+    setDirtyState(false);
+    setStatus(`Saved site and search settings.${getBackupStatusText(savedData)}`, "success");
+    return;
+  }
+
   await savePayload(collectEditorData(state));
 }
 
@@ -3039,7 +3118,7 @@ function moveGridCard(card, direction, successMessage) {
 }
 
 function getCategoryOrderGridFromNode(node) {
-  return node?.closest?.("[data-category-order-grid]") ?? null;
+  return node?.closest?.("[data-category-order-grid], [data-hero-order-grid]") ?? null;
 }
 
 function isCategoryOrderInteractiveTarget(target) {
@@ -3057,8 +3136,12 @@ function isCategoryOrderInteractiveTarget(target) {
 }
 
 function getCategoryOrderCards(grid) {
+  const cardSelector = grid.matches("[data-hero-order-grid]")
+    ? "[data-hero-order-card]"
+    : "[data-category-order-card]";
+
   return Array.from(grid.children)
-    .filter((node) => node.matches?.("[data-category-order-card]") && !node.classList.contains("is-dragging"))
+    .filter((node) => node.matches?.(cardSelector) && !node.classList.contains("is-dragging"))
     .filter((node) => !node.hidden && node.offsetParent !== null);
 }
 
@@ -3325,7 +3408,13 @@ function activateCategoryOrderDrag(event) {
   card.classList.add("is-dragging");
   grid.dataset.categoryDragging = "true";
   document.body.dataset.categoryImageDragging = "true";
-  setStatus("Dragging image card. Release to keep the new order, then save the category order.", "neutral");
+  const isHeroOrder = grid.matches("[data-hero-order-grid]");
+  setStatus(
+    isHeroOrder
+      ? "Dragging hero slide. Release to keep the new order, then save the hero order."
+      : "Dragging image card. Release to keep the new order, then save the category order.",
+    "neutral"
+  );
   moveCategoryOrderGhost(event);
   placeCategoryOrderPlaceholder(event);
 }
@@ -3401,7 +3490,13 @@ function finishCategoryOrderDrag(event, commit = true) {
     window.setTimeout(() => {
       suppressNextCategoryOrderClick = false;
     }, 0);
-    setDirtyState(true, "Reordered category images. Click Save Category Order to preserve it.");
+    const isHeroOrder = grid.matches("[data-hero-order-grid]");
+    setDirtyState(
+      true,
+      isHeroOrder
+        ? "Reordered hero slides. Click Save Hero Order to preserve it."
+        : "Reordered category images. Click Save Category Order to preserve it."
+    );
   }
 }
 
@@ -3893,6 +3988,10 @@ elements.aboutPhotoList?.addEventListener("change", (event) => {
   setDirtyState(true, "About photo edits are unsaved. Click Save Changes to preserve them.");
 });
 
+elements.siteSettingsEditor?.addEventListener("input", () => {
+  setDirtyState(true, "Site settings have unsaved changes.");
+});
+
 elements.aboutImportReviewList?.addEventListener("input", () => {
   setDirtyState(true, "About import review has unsaved changes. Import reviewed About photos to keep it.");
 });
@@ -3953,6 +4052,18 @@ elements.importReviewList.addEventListener("click", (event) => {
 
 
 // Tracks edits on the virtual gallery curation page.
+elements.galleryCurationList?.addEventListener("focusin", (event) => {
+  if (event.target.closest("[data-gallery-curation-field], [data-gallery-grid-field]")) {
+    galleryFieldEditSnapshot = getCurrentGalleryCurationSnapshot();
+  }
+});
+
+function captureGalleryFieldUndo(event) {
+  if (!event.target.closest("[data-gallery-curation-field], [data-gallery-grid-field]")) return;
+  pushGalleryUndoSnapshot("field edit", galleryFieldEditSnapshot ?? cloneGalleryCuration(state.galleryCuration));
+  galleryFieldEditSnapshot = null;
+}
+
 elements.galleryCurationList?.addEventListener("input", (event) => {
   const galleryFilter = event.target.closest("[data-gallery-curation-filter]");
   const artworkPickerFilter = event.target.closest("[data-artwork-picker-filter]");
@@ -3969,8 +4080,11 @@ elements.galleryCurationList?.addEventListener("input", (event) => {
   }
 
   if (gridField) {
+    captureGalleryFieldUndo(event);
     syncGalleryGridPlacementFromField(gridField);
   }
+
+  if (event.target.closest("[data-gallery-curation-field]")) captureGalleryFieldUndo(event);
 
   setDirtyState(true, "Gallery curation has unsaved changes. Click Save Wall or Save All Gallery Curation to preserve it.");
 });
@@ -3990,6 +4104,8 @@ elements.galleryCurationList?.addEventListener("change", (event) => {
     applyArtworkPickerFilters();
     return;
   }
+
+  captureGalleryFieldUndo(event);
 
   if (gridField) {
     syncGalleryGridPlacementFromField(gridField);
@@ -4032,6 +4148,7 @@ elements.galleryCurationList?.addEventListener("change", (event) => {
 });
 
 elements.galleryCurationList?.addEventListener("click", (event) => {
+  const undoGalleryButton = event.target.closest("[data-undo-gallery-curation]");
   const saveGalleryButton = event.target.closest("[data-save-gallery-curation]");
   const saveGalleryWallButton = event.target.closest("[data-save-gallery-curation-wall]");
   const moveGalleryButton = event.target.closest("[data-move-gallery-curation]");
@@ -4049,6 +4166,11 @@ elements.galleryCurationList?.addEventListener("click", (event) => {
   const rotateMapButton = event.target.closest("[data-gallery-map-rotate]");
   const flipMapButton = event.target.closest("[data-gallery-map-flip]");
   const unplaceMapButton = event.target.closest("[data-gallery-map-unplace]");
+
+  if (undoGalleryButton) {
+    undoGalleryCuration();
+    return;
+  }
 
   if (rotateMapButton) {
     rotateSelectedGalleryWall(Number(rotateMapButton.dataset.galleryMapRotate));
@@ -4140,6 +4262,7 @@ elements.galleryCurationList?.addEventListener("click", (event) => {
     const card = moveGalleryButton.closest("[data-gallery-curation-card]");
     const direction = moveGalleryButton.dataset.moveGalleryCuration;
 
+    pushGalleryUndoSnapshot("wall reorder");
     moveGridCard(card, direction, "Moved gallery wall assignment. Click Save Wall or Save All Gallery Curation to preserve it.");
   }
 });
@@ -4210,6 +4333,11 @@ elements.galleryCurationList?.addEventListener("dragend", () => {
 });
 
 elements.galleryCurationList?.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
+    event.preventDefault();
+    undoGalleryCuration();
+    return;
+  }
   const openPreviewButton = event.target.closest("[data-open-gallery-preview]");
 
   if (!openPreviewButton || (event.key !== "Enter" && event.key !== " ")) {
@@ -4248,13 +4376,13 @@ elements.backupList?.addEventListener("click", (event) => {
 });
 
 elements.editorList.addEventListener("dragstart", (event) => {
-  if (event.target.closest("[data-category-order-card]")) {
+  if (event.target.closest("[data-category-order-card], [data-hero-order-card]")) {
     event.preventDefault();
   }
 });
 
 elements.editorList.addEventListener("pointerdown", (event) => {
-  const card = event.target.closest("[data-category-order-card]");
+  const card = event.target.closest("[data-category-order-card], [data-hero-order-card]");
 
   if (event.button !== 0 || !card || !getCategoryOrderGridFromNode(card) || isCategoryOrderInteractiveTarget(event.target)) {
     return;
@@ -4292,7 +4420,7 @@ elements.editorList.addEventListener("click", (event) => {
     return;
   }
 
-  const card = event.target.closest("[data-category-order-card]");
+  const card = event.target.closest("[data-category-order-card], [data-hero-order-card]");
 
   if (card) {
     event.preventDefault();

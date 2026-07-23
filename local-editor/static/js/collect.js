@@ -671,6 +671,43 @@ export function collectEditorData(state) {
   };
 }
 
+export function collectSiteSeoFromPage(state) {
+  const current = state.siteSeo ?? {};
+  const value = (field) => document.querySelector(`[data-site-seo-field="${field}"]`)?.value?.trim() ?? "";
+  const lines = (field) => value(field).split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+  const routes = {};
+
+  document.querySelectorAll("[data-site-seo-route]").forEach((panel) => {
+    const routeId = panel.dataset.siteSeoRoute;
+
+    if (!routeId) {
+      return;
+    }
+
+    const routeValue = (field) => panel.querySelector(`[data-site-seo-route-field="${field}"]`)?.value?.trim() ?? "";
+    routes[routeId] = {
+      title: routeValue("title"),
+      description: routeValue("description"),
+      canonicalPath: routeValue("canonicalPath") || "/"
+    };
+  });
+
+  return {
+    ...current,
+    schemaVersion: 1,
+    siteName: value("siteName"),
+    authorName: value("authorName"),
+    siteUrl: value("siteUrl"),
+    locale: value("locale"),
+    themeColor: value("themeColor"),
+    defaultImage: value("defaultImage"),
+    contactEmail: value("contactEmail"),
+    keywords: lines("keywords"),
+    sameAs: lines("sameAs"),
+    routes
+  };
+}
+
 // Builds image metadata records for files waiting to be imported.
 export function collectImportReviewRecords(state) {
   const cards = Array.from(document.querySelectorAll("[data-import-card]"));

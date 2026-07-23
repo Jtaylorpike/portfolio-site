@@ -31,6 +31,7 @@ GALLERY_CURATION_PATH = DATA_DIR / "galleryCuration.json"
 GALLERY_ROOM_PATH = DATA_DIR / "galleryRoom.json"
 ABOUT_PHOTOS_PATH = DATA_DIR / "aboutPhotos.json"
 ABOUT_COPY_PATH = DATA_DIR / "aboutCopy.json"
+SITE_SEO_PATH = DATA_DIR / "siteSeo.json"
 
 DEFAULT_CATEGORIES = [
     {"id": "climbing", "label": "Climbing"},
@@ -421,7 +422,7 @@ def create_data_backup(reason: str) -> dict[str, Any]:
 
     backed_up_files: list[str] = []
 
-    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH, GALLERY_CURATION_PATH, GALLERY_ROOM_PATH, ABOUT_PHOTOS_PATH, ABOUT_COPY_PATH]:
+    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH, GALLERY_CURATION_PATH, GALLERY_ROOM_PATH, ABOUT_PHOTOS_PATH, ABOUT_COPY_PATH, SITE_SEO_PATH]:
         if not source_path.exists():
             continue
 
@@ -497,7 +498,7 @@ def summarize_backup_folder(backup_path: Path) -> dict[str, Any]:
     manifest = read_backup_manifest(backup_path)
     files = [
         file_name
-        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json", "aboutPhotos.json", "aboutCopy.json"]
+        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json", "aboutPhotos.json", "aboutCopy.json", "siteSeo.json"]
         if (backup_path / file_name).exists()
     ]
 
@@ -637,6 +638,11 @@ def restore_data_backup(backup_name: str) -> tuple[list[dict[str, str]], list[di
 
     if backup_about_copy_path.exists():
         write_json(ABOUT_COPY_PATH, normalize_about_copy(read_json(backup_about_copy_path)))
+
+    backup_site_seo_path = backup_path / "siteSeo.json"
+
+    if backup_site_seo_path.exists():
+        write_json(SITE_SEO_PATH, normalize_site_seo(read_json(backup_site_seo_path)))
 
     restored_backup = summarize_backup_folder(backup_path)
 
@@ -1550,6 +1556,79 @@ def save_about_copy(raw_about_copy: Any, backup_reason: str = "about-copy-save")
     write_json(ABOUT_COPY_PATH, about_copy)
 
     return about_copy, backup
+
+
+SITE_SEO_ROUTE_IDS = ("entry", "home", "portfolio", "about", "gallery")
+
+
+def normalize_string_list(raw_values: Any, limit: int = 24) -> list[str]:
+    if not isinstance(raw_values, list):
+        return []
+
+    values: list[str] = []
+
+    for raw_value in raw_values:
+        value = clean_string(raw_value)
+
+        if value and value not in values:
+            values.append(value)
+
+        if len(values) >= limit:
+            break
+
+    return values
+
+
+def normalize_site_seo(raw_seo: Any) -> dict[str, Any]:
+    """Normalize editable global and route-level search/social metadata."""
+
+    if not isinstance(raw_seo, dict):
+        raw_seo = {}
+
+    raw_routes = raw_seo.get("routes") if isinstance(raw_seo.get("routes"), dict) else {}
+    routes: dict[str, dict[str, str]] = {}
+
+    for route_id in SITE_SEO_ROUTE_IDS:
+        raw_route = raw_routes.get(route_id) if isinstance(raw_routes.get(route_id), dict) else {}
+        routes[route_id] = {
+            "title": clean_string(raw_route.get("title")),
+            "description": clean_string(raw_route.get("description")),
+            "canonicalPath": clean_string(raw_route.get("canonicalPath")) or "/",
+        }
+
+    site_url = clean_string(raw_seo.get("siteUrl"))
+
+    if site_url and not site_url.startswith(("https://", "http://")):
+        raise DataValidationError("Site URL must begin with https:// or http://.")
+
+    return {
+        "schemaVersion": 1,
+        "siteName": clean_string(raw_seo.get("siteName")),
+        "authorName": clean_string(raw_seo.get("authorName")),
+        "siteUrl": site_url,
+        "locale": clean_string(raw_seo.get("locale")) or "en_US",
+        "themeColor": clean_string(raw_seo.get("themeColor")) or "#060807",
+        "defaultImage": clean_string(raw_seo.get("defaultImage")),
+        "contactEmail": clean_string(raw_seo.get("contactEmail")),
+        "sameAs": normalize_string_list(raw_seo.get("sameAs")),
+        "keywords": normalize_string_list(raw_seo.get("keywords")),
+        "routes": routes,
+    }
+
+
+def get_current_site_seo() -> dict[str, Any]:
+    return normalize_site_seo(read_json(SITE_SEO_PATH))
+
+
+def save_site_seo(raw_site_seo: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    site_seo = normalize_site_seo(raw_site_seo)
+
+    if not site_seo["siteName"] or not site_seo["siteUrl"]:
+        raise DataValidationError("Site name and site URL are required.")
+
+    backup = create_data_backup("site-seo-save")
+    write_json(SITE_SEO_PATH, site_seo)
+    return site_seo, backup
 
 
 ABOUT_PHOTO_PLACEMENT_ROLES = {"upper-collage", "lower-collage", "background-float", "unused"}

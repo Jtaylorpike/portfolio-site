@@ -16,6 +16,7 @@ from .data_store import (
     get_current_about_copy,
     get_current_gallery_curation,
     get_current_gallery_room,
+    get_current_site_seo,
     get_gallery_curation_status,
     list_data_backups,
     restore_data_backup,
@@ -23,6 +24,7 @@ from .data_store import (
     save_gallery_curation,
     save_gallery_curation_wall,
     save_image_updates,
+    save_site_seo,
     rename_image_id,
 )
 from .image_importer import import_reviewed_images_from_request
@@ -49,6 +51,7 @@ def get_data():
         gallery_room = get_current_gallery_room()
         about_photos = get_current_about_photos()
         about_copy = get_current_about_copy()
+        site_seo = get_current_site_seo()
     except DataValidationError as error:
         return jsonify({"error": str(error)}), 400
 
@@ -62,8 +65,26 @@ def get_data():
             "galleryRoom": gallery_room,
             "aboutPhotos": about_photos,
             "aboutCopy": about_copy,
+            "siteSeo": site_seo,
         }
     )
+
+
+@bp.route("/api/site-seo", methods=["POST"])
+def save_site_seo_data():
+    """Validate and save global and route-level SEO metadata."""
+
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict) or not isinstance(payload.get("siteSeo"), dict):
+        return jsonify({"error": "siteSeo must be an object."}), 400
+
+    try:
+        site_seo, backup = save_site_seo(payload["siteSeo"])
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
+
+    return jsonify({"ok": True, "siteSeo": site_seo, "backup": backup})
 
 
 @bp.route("/api/save", methods=["POST"])

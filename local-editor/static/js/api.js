@@ -51,6 +51,21 @@ export async function saveGalleryCurationApi(galleryCuration) {
   return response.json();
 }
 
+export async function saveSiteSeoApi(siteSeo) {
+  const response = await fetch('/api/site-seo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ siteSeo })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.error ?? 'Could not save site settings.');
+  }
+
+  return response.json();
+}
+
 
 export async function saveGalleryCurationWallApi(wall) {
   const response = await fetch('/api/gallery-curation/wall', {

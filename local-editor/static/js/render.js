@@ -837,11 +837,12 @@ function renderHeroImageOverview(state, elements) {
   elements.editorList.innerHTML = `
     ${renderCategoryLinks(state, null, "hero")}
 
-    <div class="category-page-actions">
+    <div class="category-page-actions category-order-actions">
+      <p class="category-order-help">Press and hold a slide preview, title area, or another non-control part of a card to drag it into position. Buttons and the target-category menu remain directly interactive.</p>
       <button class="button primary" type="button" data-save-hero-order>Save Hero Order</button>
     </div>
 
-    <div class="image-overview-grid" data-hero-order-grid>
+    <div class="image-overview-grid" data-hero-order-grid aria-label="Reorder hero slideshow images">
       ${heroImages.map((item) => renderHeroOrderCard(state, item.image, item.slide)).join("")}
     </div>
   `;
@@ -2015,6 +2016,7 @@ function renderGalleryMapControls() {
         <button class="button gallery-map-icon-button" type="button" data-gallery-map-rotate="45" aria-label="Rotate selected wall right 45 degrees" title="Rotate right 45°" disabled>↻</button>
         <button class="button gallery-map-icon-button" type="button" data-gallery-map-flip aria-label="Flip selected wall facing direction" title="Flip facing direction" disabled>⇄</button>
         <button class="button" type="button" data-gallery-map-unplace disabled>Remove from map</button>
+        <button class="button" type="button" data-undo-gallery-curation disabled aria-keyshortcuts="Control+Z Meta+Z">Undo</button>
         <button class="button primary" type="button" data-save-gallery-curation>Save Gallery Curation</button>
       </div>
     </div>
@@ -3232,10 +3234,87 @@ function renderAboutPage(state, elements) {
   `;
 }
 
+const SITE_SEO_ROUTE_LABELS = {
+  entry: "Entry",
+  home: "Home",
+  portfolio: "Portfolio",
+  about: "About / Contact",
+  gallery: "Virtual Gallery"
+};
+
+function renderSiteSettings(state, elements) {
+  if (!elements.siteSettingsEditor) {
+    return;
+  }
+
+  const seo = state.siteSeo ?? {};
+  const routes = seo.routes ?? {};
+  const globalFields = [
+    ["siteName", "Site name", seo.siteName],
+    ["authorName", "Author name", seo.authorName],
+    ["siteUrl", "Canonical site URL", seo.siteUrl],
+    ["locale", "Locale", seo.locale],
+    ["themeColor", "Theme color", seo.themeColor],
+    ["defaultImage", "Default social image", seo.defaultImage],
+    ["contactEmail", "Contact email", seo.contactEmail]
+  ];
+
+  elements.siteSettingsEditor.innerHTML = `
+    <section class="panel">
+      <p class="eyebrow">Global</p>
+      <h2>Site identity</h2>
+      <div class="panel-grid">
+        ${globalFields.map(([field, label, value]) => `
+          <label class="${field === "siteUrl" || field === "defaultImage" ? "panel-wide" : ""}">
+            <span>${escapeHtml(label)}</span>
+            <input data-site-seo-field="${escapeHtml(field)}" value="${escapeHtml(value ?? "")}" />
+          </label>
+        `).join("")}
+        <label class="panel-wide">
+          <span>Keywords (one per line)</span>
+          <textarea data-site-seo-field="keywords">${escapeHtml((seo.keywords ?? []).join("\n"))}</textarea>
+        </label>
+        <label class="panel-wide">
+          <span>Profile URLs (one per line)</span>
+          <textarea data-site-seo-field="sameAs">${escapeHtml((seo.sameAs ?? []).join("\n"))}</textarea>
+        </label>
+      </div>
+    </section>
+    ${Object.entries(SITE_SEO_ROUTE_LABELS).map(([routeId, label]) => {
+      const route = routes[routeId] ?? {};
+      return `
+        <section class="panel" data-site-seo-route="${escapeHtml(routeId)}">
+          <p class="eyebrow">Route</p>
+          <h2>${escapeHtml(label)}</h2>
+          <div class="panel-grid">
+            <label class="panel-wide">
+              <span>Document title</span>
+              <input data-site-seo-route-field="title" value="${escapeHtml(route.title ?? "")}" />
+            </label>
+            <label class="panel-wide">
+              <span>Description</span>
+              <textarea data-site-seo-route-field="description">${escapeHtml(route.description ?? "")}</textarea>
+            </label>
+            <label>
+              <span>Canonical path</span>
+              <input data-site-seo-route-field="canonicalPath" value="${escapeHtml(route.canonicalPath ?? "/")}" />
+            </label>
+          </div>
+        </section>
+      `;
+    }).join("")}
+  `;
+}
+
 // Chooses which editor page to render for the current route.
 export function renderAll(state, elements, route) {
   renderCategories(state, elements);
   updateImportCategoryOptions(state, elements);
+
+  if (route.name === "settings") {
+    renderSiteSettings(state, elements);
+    return;
+  }
 
   if (route.name === "backups") {
     renderBackupPage(state, elements);
