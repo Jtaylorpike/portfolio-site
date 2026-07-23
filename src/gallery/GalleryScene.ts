@@ -76,6 +76,15 @@ type GallerySceneOptions = {
   inputMode?: GalleryInputMode;
 };
 
+export type GalleryRuntimeDiagnostics = {
+  renderPixelRatio: number;
+  drawCalls: number;
+  triangles: number;
+  geometries: number;
+  textures: number;
+  renderer: string;
+};
+
 type FrameDimensions = {
   width: number;
   height: number;
@@ -1176,6 +1185,14 @@ export class GalleryScene {
       ? this.createFramedArtworkTexture(sourceTexture, artwork, dimensions)
       : null;
 
+    if (framedTexture && sourceTextureUrl) {
+      this.renderer.initTexture(framedTexture);
+      this.markArtworkTexturePrepared(
+        sourceTextureUrl,
+        sourceTextureUrl === artwork.image ? 'full' : 'preview'
+      );
+    }
+
     const image = new THREE.Mesh(
       new THREE.PlaneGeometry(dimensions.width, dimensions.height),
       createArtworkImageMaterial(framedTexture)
@@ -1193,6 +1210,29 @@ export class GalleryScene {
     this.offsetArtworkFromWall(image, artwork.rotationY, this.artworkFrameDepth / 2 + 0.03);
 
     return image;
+  }
+
+  private markArtworkTexturePrepared(url: string, kind: 'preview' | 'full') {
+    if (kind === 'preview') {
+      this.preparedPreviewTextureUrls.add(url);
+      const requiredPreviewTextureUrls = new Set(
+        galleryArtworks
+          .map((artwork) => artwork.previewImage)
+          .filter((source): source is string => Boolean(source))
+      );
+
+      if ([...requiredPreviewTextureUrls].every((source) => this.preparedPreviewTextureUrls.has(source))) {
+        markGalleryGpuTierReady('balanced');
+      }
+      return;
+    }
+
+    this.preparedFullTextureUrls.add(url);
+    const requiredFullTextureUrls = new Set(galleryArtworks.map((artwork) => artwork.image));
+
+    if ([...requiredFullTextureUrls].every((source) => this.preparedFullTextureUrls.has(source))) {
+      markGalleryGpuTierReady('high');
+    }
   }
 
   private getTextureAspect(texture: THREE.Texture | null) {
@@ -1414,24 +1454,10 @@ export class GalleryScene {
       // of making the next visible render pay the upload cost.
       this.renderer.initTexture(framedTexture);
       if (isPreviewTexture) {
-        this.preparedPreviewTextureUrls.add(url);
-        const requiredPreviewTextureUrls = new Set(
-          galleryArtworks
-            .map((artwork) => artwork.previewImage)
-            .filter((source): source is string => Boolean(source))
-        );
-
-        if ([...requiredPreviewTextureUrls].every((source) => this.preparedPreviewTextureUrls.has(source))) {
-          markGalleryGpuTierReady('balanced');
-        }
+        this.markArtworkTexturePrepared(url, 'preview');
       }
       if (isFullTexture) {
-        this.preparedFullTextureUrls.add(url);
-        const requiredFullTextureUrls = new Set(galleryArtworks.map((artwork) => artwork.image));
-
-        if ([...requiredFullTextureUrls].every((source) => this.preparedFullTextureUrls.has(source))) {
-          markGalleryGpuTierReady('high');
-        }
+        this.markArtworkTexturePrepared(url, 'full');
       }
       const material = meshSet.image.material as THREE.MeshBasicMaterial | THREE.MeshStandardMaterial;
 
@@ -1571,15 +1597,16 @@ export class GalleryScene {
   }
 
   private animate = (timestamp?: number) => {
+    const workStartedAt = performance.now();
     const delta = this.movementController.getFrameDelta(timestamp);
-
-    if (typeof timestamp === 'number') {
-      recordGalleryFrame(timestamp);
-    }
 
     this.movementController.update(this.camera, this.lookController.getYaw(), delta);
     this.updateArtworkFocus();
     this.renderer.render(this.scene, this.camera);
+
+    if (typeof timestamp === 'number') {
+      recordGalleryFrame(timestamp, performance.now() - workStartedAt);
+    }
 
     this.animationFrameId = window.requestAnimationFrame(this.animate);
   };
@@ -1639,6 +1666,25 @@ export class GalleryScene {
 
   public clearTouchMovement() {
     this.movementController.clearTouchMovement();
+  }
+
+  public getRuntimeDiagnostics(): GalleryRuntimeDiagnostics {
+    const context = this.renderer.getContext();
+    const debugInfo = context.getExtension('WEBGL_debug_renderer_info') as {
+      UNMASKED_RENDERER_WEBGL: number;
+    } | null;
+    const rendererName = debugInfo
+      ? String(context.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL))
+      : String(context.getParameter(context.RENDERER));
+
+    return {
+      renderPixelRatio: this.renderer.getPixelRatio(),
+      drawCalls: this.renderer.info.render.calls,
+      triangles: this.renderer.info.render.triangles,
+      geometries: this.renderer.info.memory.geometries,
+      textures: this.renderer.info.memory.textures,
+      renderer: rendererName
+    };
   }
 
   public destroy() {

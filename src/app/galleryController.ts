@@ -17,6 +17,7 @@ import {
 } from '../gallery/artwork/galleryLayout';
 import {
   getGalleryAutomaticQualityCeiling,
+  getGalleryPerformanceDiagnostics,
   getGalleryQualityModeLabel,
   getGalleryQualitySettings,
   getGalleryQualityState,
@@ -26,6 +27,7 @@ import {
   type GalleryQualityMode,
   type GalleryQualityTier
 } from '../gallery/performance/galleryQuality';
+import type { GalleryRuntimeDiagnostics } from '../gallery/GalleryScene';
 
 type GalleryInputMode = 'desktop' | 'touch';
 
@@ -33,6 +35,7 @@ type GallerySceneInstance = {
   destroy: () => void;
   setTouchMovement: (localX: number, localZ: number) => void;
   clearTouchMovement: () => void;
+  getRuntimeDiagnostics: () => GalleryRuntimeDiagnostics;
 };
 
 let activeGallery: GallerySceneInstance | null = null;
@@ -214,6 +217,7 @@ export function setupGalleryController() {
   const galleryTouchControls = document.querySelector<HTMLElement>('#galleryTouchControls');
   const galleryTouchMove = document.querySelector<HTMLElement>('#galleryTouchMove');
   const galleryTouchMoveKnob = document.querySelector<HTMLElement>('#galleryTouchMoveKnob');
+  const galleryDiagnostics = document.querySelector<HTMLElement>('#galleryDiagnostics');
 
   const closeGalleryButton = document.querySelector<HTMLButtonElement>('#closeGalleryButton');
   const galleryQualitySelect = document.querySelector<HTMLSelectElement>('#galleryQualitySelect');
@@ -222,6 +226,99 @@ export function setupGalleryController() {
   const galleryInfoMeta = document.querySelector<HTMLElement>('#galleryInfoMeta');
   const galleryInfoTitle = document.querySelector<HTMLElement>('#galleryInfoTitle');
   const galleryInfoNote = document.querySelector<HTMLElement>('#galleryInfoNote');
+  const diagnosticsEnabled =
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    new URLSearchParams(window.location.search).get('galleryDiagnostics') === '1';
+  let diagnosticsInterval: number | null = null;
+
+  function setDiagnosticValue(name: string, value: string) {
+    const output = galleryDiagnostics?.querySelector<HTMLElement>(
+      `[data-gallery-diagnostic="${name}"]`
+    );
+
+    if (output) {
+      output.textContent = value;
+    }
+  }
+
+  function formatDiagnosticNumber(value: number, digits = 1) {
+    return Number.isFinite(value) ? value.toFixed(digits) : '--';
+  }
+
+  function updateGalleryDiagnostics() {
+    if (!diagnosticsEnabled || !activeGallery) {
+      return;
+    }
+
+    const quality = getGalleryQualityState();
+    const performance = getGalleryPerformanceDiagnostics();
+    const runtime = activeGallery.getRuntimeDiagnostics();
+    const navigatorHints = navigator as Navigator & {
+      deviceMemory?: number;
+      connection?: {
+        effectiveType?: string;
+        saveData?: boolean;
+      };
+    };
+    const connection = navigatorHints.connection;
+
+    setDiagnosticValue(
+      'quality',
+      `${getGalleryQualityModeLabel(quality.mode)} / ${getGalleryQualityTierLabel(quality.tier)} · ceiling ${getGalleryQualityTierLabel(quality.autoCeiling)}`
+    );
+    setDiagnosticValue(
+      'readiness',
+      `cache ${getGalleryQualityTierLabel(quality.cacheTier)} · GPU ${getGalleryQualityTierLabel(quality.gpuTier)}`
+    );
+    setDiagnosticValue(
+      'cadence',
+      `${formatDiagnosticNumber(performance.estimatedFps, 0)} fps · ${formatDiagnosticNumber(performance.averageIntervalMs)} ms avg · ${formatDiagnosticNumber(performance.p90IntervalMs)} p90`
+    );
+    setDiagnosticValue(
+      'work',
+      `${formatDiagnosticNumber(performance.averageWorkMs)} ms avg · ${formatDiagnosticNumber(performance.p90WorkMs)} p90 · ${performance.sampleCount} samples`
+    );
+    setDiagnosticValue(
+      'pixel-ratio',
+      `${formatDiagnosticNumber(runtime.renderPixelRatio, 2)} render · ${formatDiagnosticNumber(window.devicePixelRatio || 1, 2)} device · ${window.innerWidth}×${window.innerHeight}`
+    );
+    setDiagnosticValue('renderer', runtime.renderer);
+    setDiagnosticValue(
+      'scene',
+      `${runtime.drawCalls} calls · ${runtime.triangles.toLocaleString()} triangles · ${runtime.geometries} geometries · ${runtime.textures} textures`
+    );
+    setDiagnosticValue(
+      'device',
+      `${navigator.hardwareConcurrency || '?'} cores · ${navigatorHints.deviceMemory ?? '?'} GB hint · ${connection?.effectiveType ?? 'unknown'}${connection?.saveData ? ' · Save-Data' : ''}`
+    );
+  }
+
+  function startGalleryDiagnostics() {
+    if (!diagnosticsEnabled || !galleryDiagnostics) {
+      return;
+    }
+
+    galleryDiagnostics.hidden = false;
+    updateGalleryDiagnostics();
+
+    if (diagnosticsInterval !== null) {
+      window.clearInterval(diagnosticsInterval);
+    }
+
+    diagnosticsInterval = window.setInterval(updateGalleryDiagnostics, 500);
+  }
+
+  function stopGalleryDiagnostics() {
+    if (diagnosticsInterval !== null) {
+      window.clearInterval(diagnosticsInterval);
+      diagnosticsInterval = null;
+    }
+
+    if (galleryDiagnostics) {
+      galleryDiagnostics.hidden = true;
+    }
+  }
 
   function shouldDismissControlCard() {
     return hasMovedMouseInGallery && usedMovementDirections.size >= 2;
@@ -560,6 +657,10 @@ export function setupGalleryController() {
     const tierLabel = getGalleryQualityTierLabel(qualityState.tier);
 
     galleryQualitySelect.value = qualityState.mode;
+    galleryQualitySelect.dataset.qualityTier = qualityState.tier;
+    galleryQualitySelect.dataset.qualityAutoCeiling = qualityState.autoCeiling;
+    galleryQualitySelect.dataset.qualityCacheTier = qualityState.cacheTier;
+    galleryQualitySelect.dataset.qualityGpuTier = qualityState.gpuTier;
     const autoOption = galleryQualitySelect.querySelector<HTMLOptionElement>('option[value="auto"]');
     if (autoOption) {
       autoOption.textContent = qualityState.mode === 'auto'
@@ -663,6 +764,7 @@ export function setupGalleryController() {
         onArtworkClear: clearArtworkInfo,
         inputMode: activeGalleryInputMode
       });
+      startGalleryDiagnostics();
 
       bindGalleryInputListeners();
 
@@ -689,6 +791,7 @@ export function setupGalleryController() {
     }
 
     isGalleryOpening = false;
+    stopGalleryDiagnostics();
     galleryLoading?.classList.remove('is-active');
     setGalleryLoadingPhase('Preparing image textures');
 
@@ -769,8 +872,12 @@ export function setupGalleryController() {
     openGallery();
   });
 
-  subscribeToGalleryQuality(({ tier }) => {
+  subscribeToGalleryQuality(({ mode, tier, autoCeiling }) => {
     updateGalleryQualitySelect();
+
+    if (mode === 'auto' && activeGallery) {
+      prewarmGalleryAssets(autoCeiling, false);
+    }
 
     if (activeGallery && getGalleryQualitySettings(tier).artworkTexturePolicy !== 'focus') {
       void preloadGalleryImages(tier);

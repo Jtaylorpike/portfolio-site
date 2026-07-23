@@ -2,6 +2,15 @@
 
 This file records current and future release-level changes. The complete pre-consolidation changelog and all historical phase documents are preserved verbatim in `docs/PROJECT_HISTORY_ARCHIVE.md`.
 
+## 2026-07-23 - Adaptive-quality reassessment correction
+
+- Corrected Auto promotion timing so stable 60 Hz rendering can qualify; the former sub-11.5ms interval requirement was only attainable on high-refresh displays.
+- Added measured per-frame gallery work to the sustained-performance decision and shortened reassessment windows while retaining rapid demotion thresholds.
+- Changed conservative device hints from permanent tier caps into starting guidance that sustained real rendering can override; local Save-Data/2G/3G constraints remain hard ceilings.
+- Preserved a previously observed stable tier as local evidence on later visits.
+- Fixed GPU-readiness accounting for artwork textures already loaded before the Three.js scene subscribed, which could otherwise leave Auto permanently blocked at Low.
+- Added an opt-in, local-only gallery diagnostics panel reporting quality/readiness state, frame cadence, measured gallery work, render/device pixel ratio, WebGL renderer, scene counts, and conservative browser hardware/network hints without telemetry.
+
 ## 2026-07-23 - Phase 9A launch-readiness audit
 
 - Audited Home, Portfolio, and About routes at desktop and mobile sizes against the production build.

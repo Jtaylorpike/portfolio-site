@@ -1806,6 +1806,77 @@ button:focus-visible {
   display: block;
 }
 
+.gallery-diagnostics {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 5;
+  width: min(360px, calc(100vw - 36px));
+  padding: 12px;
+  border: 1px solid rgba(238, 231, 216, 0.22);
+  background: rgba(4, 5, 5, 0.78);
+  color: rgba(238, 231, 216, 0.82);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.035em;
+  line-height: 1.35;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.gallery-diagnostics[hidden] {
+  display: none;
+}
+
+.gallery-diagnostics-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 9px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(238, 231, 216, 0.13);
+  text-transform: uppercase;
+}
+
+.gallery-diagnostics-header strong {
+  color: var(--text);
+  font-size: 10px;
+  letter-spacing: 0.11em;
+}
+
+.gallery-diagnostics-header span {
+  color: rgba(238, 231, 216, 0.45);
+  font-size: 9px;
+}
+
+.gallery-diagnostics dl {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.gallery-diagnostics dl > div {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.gallery-diagnostics dt,
+.gallery-diagnostics dd {
+  margin: 0;
+}
+
+.gallery-diagnostics dt {
+  color: rgba(238, 231, 216, 0.48);
+  text-transform: uppercase;
+}
+
+.gallery-diagnostics dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: rgba(238, 231, 216, 0.88);
+}
+
 .gallery-control-card {
   position: absolute;
   left: 18px;
@@ -4545,6 +4616,12 @@ body.gallery-touch-enabled .gallery-canvas canvas {
 
 body.gallery-touch-enabled .gallery-control-card {
   display: none;
+}
+
+body.gallery-touch-enabled .gallery-diagnostics {
+  top: max(62px, calc(52px + env(safe-area-inset-top)));
+  left: max(12px, env(safe-area-inset-left));
+  width: min(340px, calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)));
 }
 
 body.gallery-touch-enabled .gallery-info-panel {

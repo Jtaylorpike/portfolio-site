@@ -16,6 +16,23 @@ export function renderSite(app: HTMLElement) {
       </select>
       <button class="gallery-close" id="closeGalleryButton" type="button" aria-label="Exit virtual gallery">Exit</button>
 
+      <aside class="gallery-diagnostics" id="galleryDiagnostics" aria-label="Local gallery diagnostics" hidden>
+        <div class="gallery-diagnostics-header">
+          <strong>Local Diagnostics</strong>
+          <span>No telemetry</span>
+        </div>
+        <dl>
+          <div><dt>Quality</dt><dd data-gallery-diagnostic="quality">--</dd></div>
+          <div><dt>Readiness</dt><dd data-gallery-diagnostic="readiness">--</dd></div>
+          <div><dt>Cadence</dt><dd data-gallery-diagnostic="cadence">--</dd></div>
+          <div><dt>Work</dt><dd data-gallery-diagnostic="work">--</dd></div>
+          <div><dt>Pixel ratio</dt><dd data-gallery-diagnostic="pixel-ratio">--</dd></div>
+          <div><dt>Renderer</dt><dd data-gallery-diagnostic="renderer">--</dd></div>
+          <div><dt>Scene</dt><dd data-gallery-diagnostic="scene">--</dd></div>
+          <div><dt>Device hints</dt><dd data-gallery-diagnostic="device">--</dd></div>
+        </dl>
+      </aside>
+
       <div class="gallery-control-card" id="galleryControlCard" aria-hidden="true">
         <p class="eyebrow">Controls</p>
         <dl>

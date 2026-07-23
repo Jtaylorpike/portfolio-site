@@ -25,7 +25,21 @@ export type GalleryQualityState = {
   gpuTier: GalleryQualityTier;
 };
 
+export type GalleryPerformanceDiagnostics = {
+  sampleCount: number;
+  averageIntervalMs: number;
+  p90IntervalMs: number;
+  averageWorkMs: number;
+  p90WorkMs: number;
+  estimatedFps: number;
+};
+
 type QualityStateListener = (state: GalleryQualityState) => void;
+
+type GalleryFrameSample = {
+  interval: number;
+  work: number;
+};
 
 type NavigatorWithDeviceHints = Navigator & {
   deviceMemory?: number;
@@ -126,6 +140,36 @@ function getAutomaticQualityCeiling(): GalleryQualityTier {
   return 'balanced';
 }
 
+function getAutomaticQualityHardCeiling(): GalleryQualityTier {
+  const connection = (navigator as NavigatorWithDeviceHints).connection;
+
+  if (
+    connection?.saveData ||
+    connection?.effectiveType === 'slow-2g' ||
+    connection?.effectiveType === '2g'
+  ) {
+    return 'low';
+  }
+
+  if (connection?.effectiveType === '3g') {
+    return 'balanced';
+  }
+
+  return 'high';
+}
+
+function getInitialAutomaticCeiling(
+  hintedCeiling: GalleryQualityTier,
+  hardCeiling: GalleryQualityTier
+) {
+  const storedTier = readStorage(observedTierStorageKey);
+  const evidenceTier = isQualityTier(storedTier)
+    ? tierOrder[Math.max(getTierRank(hintedCeiling), getTierRank(storedTier))]
+    : hintedCeiling;
+
+  return clampTierToCeiling(evidenceTier, hardCeiling);
+}
+
 function getInitialAutomaticTier(autoCeiling: GalleryQualityTier) {
   const storedTier = readStorage(observedTierStorageKey);
 
@@ -139,7 +183,9 @@ function getInitialAutomaticTier(autoCeiling: GalleryQualityTier) {
   return autoCeiling === 'high' ? 'balanced' : autoCeiling;
 }
 
-const autoCeiling = getAutomaticQualityCeiling();
+const hintedAutoCeiling = getAutomaticQualityCeiling();
+const hardAutoCeiling = getAutomaticQualityHardCeiling();
+const autoCeiling = getInitialAutomaticCeiling(hintedAutoCeiling, hardAutoCeiling);
 const storedMode = readStorage(qualityModeStorageKey);
 const initialMode: GalleryQualityMode = isQualityMode(storedMode) ? storedMode : 'auto';
 const initialTier = initialMode === 'auto'
@@ -155,8 +201,9 @@ let state: GalleryQualityState = {
 };
 
 let lastFrameTimestamp = 0;
-let warmupFramesRemaining = 45;
-let sampleWindow: number[] = [];
+let warmupFramesRemaining = 30;
+let sampleWindow: GalleryFrameSample[] = [];
+let diagnosticWindow: GalleryFrameSample[] = [];
 let stableUpgradeWindows = 0;
 let cooldownFramesRemaining = 0;
 
@@ -199,15 +246,19 @@ function getNextLowerTier(tier: GalleryQualityTier) {
 }
 
 function evaluateFrameWindow() {
-  if (state.mode !== 'auto' || sampleWindow.length < 120) {
+  if (state.mode !== 'auto' || sampleWindow.length < 90) {
     return;
   }
 
-  const average = sampleWindow.reduce((total, value) => total + value, 0) / sampleWindow.length;
-  const p90 = getPercentile(sampleWindow, 0.9);
+  const intervals = sampleWindow.map((sample) => sample.interval);
+  const workTimes = sampleWindow.map((sample) => sample.work);
+  const average = intervals.reduce((total, value) => total + value, 0) / intervals.length;
+  const p90 = getPercentile(intervals, 0.9);
+  const averageWork = workTimes.reduce((total, value) => total + value, 0) / workTimes.length;
+  const p90Work = getPercentile(workTimes, 0.9);
   sampleWindow = [];
 
-  if (average > 23 || p90 > 31) {
+  if (average > 23 || p90 > 31 || averageWork > 12 || p90Work > 18) {
     const lowerTier = getNextLowerTier(state.tier);
     if (lowerTier !== state.tier) {
       setTier(lowerTier, true);
@@ -216,20 +267,39 @@ function evaluateFrameWindow() {
   }
 
   const higherTier = getNextHigherTier(state.tier);
-  const canPromote =
-    higherTier !== state.tier &&
-    getTierRank(higherTier) <= getTierRank(state.autoCeiling) &&
-    getTierRank(higherTier) <= getTierRank(state.cacheTier) &&
-    getTierRank(higherTier) <= getTierRank(state.gpuTier);
+  const hasStableRendering =
+    average < 19.5 &&
+    p90 < 21.5 &&
+    averageWork < 8.5 &&
+    p90Work < 12;
 
-  // Promotion needs real render-time headroom for the unavoidable drawing
-  // buffer and shadow-map activation work. A merely acceptable 50-60 fps
-  // window is not sufficient evidence that a higher tier will be seamless.
-  if (canPromote && average < 11.5 && p90 < 13.5) {
+  // A stable 60 Hz display reports roughly 16.7 ms between animation frames,
+  // even when rendering has ample headroom. Evaluate both refresh cadence and
+  // measured gallery work instead of requiring intervals only possible on a
+  // high-refresh monitor.
+  if (higherTier !== state.tier && hasStableRendering) {
     stableUpgradeWindows += 1;
 
-    if (stableUpgradeWindows >= 3) {
-      setTier(higherTier, true);
+    if (stableUpgradeWindows >= 2) {
+      if (
+        getTierRank(higherTier) > getTierRank(state.autoCeiling) &&
+        getTierRank(higherTier) <= getTierRank(hardAutoCeiling)
+      ) {
+        state = { ...state, autoCeiling: higherTier };
+        notifyListeners();
+      }
+
+      const canPromote =
+        getTierRank(higherTier) <= getTierRank(state.autoCeiling) &&
+        getTierRank(higherTier) <= getTierRank(state.cacheTier) &&
+        getTierRank(higherTier) <= getTierRank(state.gpuTier);
+
+      if (canPromote) {
+        setTier(higherTier, true);
+        return;
+      }
+
+      stableUpgradeWindows = 0;
     }
     return;
   }
@@ -243,6 +313,26 @@ export function getGalleryQualityState(): GalleryQualityState {
 
 export function getGalleryQualitySettings(tier = state.tier): GalleryQualitySettings {
   return qualitySettings[tier];
+}
+
+export function getGalleryPerformanceDiagnostics(): GalleryPerformanceDiagnostics {
+  const intervals = diagnosticWindow.map((sample) => sample.interval);
+  const workTimes = diagnosticWindow.map((sample) => sample.work);
+  const averageIntervalMs = intervals.length
+    ? intervals.reduce((total, value) => total + value, 0) / intervals.length
+    : 0;
+  const averageWorkMs = workTimes.length
+    ? workTimes.reduce((total, value) => total + value, 0) / workTimes.length
+    : 0;
+
+  return {
+    sampleCount: diagnosticWindow.length,
+    averageIntervalMs,
+    p90IntervalMs: getPercentile(intervals, 0.9),
+    averageWorkMs,
+    p90WorkMs: getPercentile(workTimes, 0.9),
+    estimatedFps: averageIntervalMs > 0 ? 1000 / averageIntervalMs : 0
+  };
 }
 
 export function getGalleryAutomaticQualityCeiling() {
@@ -310,13 +400,14 @@ export function resetGalleryGpuTier() {
 
 export function resetGalleryPerformanceSampling() {
   lastFrameTimestamp = 0;
-  warmupFramesRemaining = 45;
+  warmupFramesRemaining = 30;
   sampleWindow = [];
+  diagnosticWindow = [];
   stableUpgradeWindows = 0;
   cooldownFramesRemaining = 0;
 }
 
-export function recordGalleryFrame(timestamp: number) {
+export function recordGalleryFrame(timestamp: number, workDuration = 0) {
   if (document.hidden) {
     lastFrameTimestamp = timestamp;
     return;
@@ -344,9 +435,18 @@ export function recordGalleryFrame(timestamp: number) {
     return;
   }
 
-  sampleWindow.push(frameTime);
+  const sample = {
+    interval: frameTime,
+    work: Math.max(0, workDuration)
+  };
 
-  if (sampleWindow.length >= 120) {
+  sampleWindow.push(sample);
+  diagnosticWindow.push(sample);
+  if (diagnosticWindow.length > 120) {
+    diagnosticWindow.shift();
+  }
+
+  if (sampleWindow.length >= 90) {
     evaluateFrameWindow();
   }
 }
