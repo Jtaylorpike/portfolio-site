@@ -173,13 +173,15 @@ function getInitialAutomaticCeiling(
 function getInitialAutomaticTier(autoCeiling: GalleryQualityTier) {
   const storedTier = readStorage(observedTierStorageKey);
 
-  if (isQualityTier(storedTier)) {
-    return clampTierToCeiling(storedTier, autoCeiling);
+  // Auto intentionally favors the lower-resolution option. A prior Low
+  // observation remains Low, while capable devices start at Medium rather
+  // than restoring or attempting High automatically.
+  if (storedTier === 'low') {
+    return 'low';
   }
 
-  // First-time high-capability visitors begin at balanced. Automatic mode can
-  // promote to high after the full gallery asset set is cached and the actual
-  // gallery frame timings remain stable.
+  // First-time high-capability visitors begin at Medium. Auto only steps
+  // down from there when sustained frame timings require it.
   return autoCeiling === 'high' ? 'balanced' : autoCeiling;
 }
 
@@ -204,7 +206,6 @@ let lastFrameTimestamp = 0;
 let warmupFramesRemaining = 30;
 let sampleWindow: GalleryFrameSample[] = [];
 let diagnosticWindow: GalleryFrameSample[] = [];
-let stableUpgradeWindows = 0;
 let cooldownFramesRemaining = 0;
 
 function notifyListeners() {
@@ -219,7 +220,6 @@ function setTier(tier: GalleryQualityTier, persistObservedTier: boolean) {
 
   state = { ...state, tier };
   cooldownFramesRemaining = 180;
-  stableUpgradeWindows = 0;
   sampleWindow = [];
 
   if (persistObservedTier) {
@@ -233,11 +233,6 @@ function getPercentile(values: number[], percentile: number) {
   const sorted = [...values].sort((a, b) => a - b);
   const index = Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * percentile)));
   return sorted[index] ?? 0;
-}
-
-function getNextHigherTier(tier: GalleryQualityTier) {
-  const rank = getTierRank(tier);
-  return tierOrder[Math.min(tierOrder.length - 1, rank + 1)];
 }
 
 function getNextLowerTier(tier: GalleryQualityTier) {
@@ -271,45 +266,9 @@ function evaluateFrameWindow() {
     return;
   }
 
-  const higherTier = getNextHigherTier(state.tier);
-  const hasStableRendering =
-    average < 19.5 &&
-    p90 < 21.5 &&
-    averageWork < 8.5 &&
-    p90Work < 12;
-
-  // A stable 60 Hz display reports roughly 16.7 ms between animation frames,
-  // even when rendering has ample headroom. Evaluate both refresh cadence and
-  // measured gallery work instead of requiring intervals only possible on a
-  // high-refresh monitor.
-  if (higherTier !== state.tier && hasStableRendering) {
-    stableUpgradeWindows += 1;
-
-    if (stableUpgradeWindows >= 2) {
-      if (
-        getTierRank(higherTier) > getTierRank(state.autoCeiling) &&
-        getTierRank(higherTier) <= getTierRank(hardAutoCeiling)
-      ) {
-        state = { ...state, autoCeiling: higherTier };
-        notifyListeners();
-      }
-
-      const canPromote =
-        getTierRank(higherTier) <= getTierRank(state.autoCeiling) &&
-        getTierRank(higherTier) <= getTierRank(state.cacheTier) &&
-        getTierRank(higherTier) <= getTierRank(state.gpuTier);
-
-      if (canPromote) {
-        setTier(higherTier, true);
-        return;
-      }
-
-      stableUpgradeWindows = 0;
-    }
-    return;
-  }
-
-  stableUpgradeWindows = 0;
+  // Auto mode is deliberately one-way. Stable performance never increases
+  // renderer resolution, texture work, or lighting quality during a session;
+  // this prevents quality thrashing and favors the lower-cost presentation.
 }
 
 export function getGalleryQualityState(): GalleryQualityState {
@@ -408,7 +367,6 @@ export function resetGalleryPerformanceSampling() {
   warmupFramesRemaining = 30;
   sampleWindow = [];
   diagnosticWindow = [];
-  stableUpgradeWindows = 0;
   cooldownFramesRemaining = 0;
 }
 
