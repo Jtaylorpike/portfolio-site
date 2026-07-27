@@ -58,7 +58,6 @@ import {
   markGalleryGpuTierReady,
   recordGalleryFrame,
   resetGalleryGpuTier,
-  resetGalleryPerformanceSampling,
   subscribeToGalleryQuality,
   type GalleryQualityTier
 } from './performance/galleryQuality';
@@ -755,7 +754,9 @@ export class GalleryScene {
       applyShadowQuality();
     }
 
-    resetGalleryPerformanceSampling();
+    // setTier() already resets sampling and starts its cooldown before it
+    // notifies subscribers. Resetting again here would clear that cooldown
+    // during every automatic quality transition.
   }
 
   private createWalls() {

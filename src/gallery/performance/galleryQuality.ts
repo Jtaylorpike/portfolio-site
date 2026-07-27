@@ -261,6 +261,11 @@ function evaluateFrameWindow() {
   if (average > 23 || p90 > 31 || averageWork > 12 || p90Work > 18) {
     const lowerTier = getNextLowerTier(state.tier);
     if (lowerTier !== state.tier) {
+      // A tier that has already exceeded the sustained-performance budget is
+      // not retried during this page session. Without this lock, the lighter
+      // tier immediately produces stable samples, promotes back up, and the
+      // gallery oscillates indefinitely between the same two tiers.
+      state = { ...state, autoCeiling: lowerTier };
       setTier(lowerTier, true);
     }
     return;
