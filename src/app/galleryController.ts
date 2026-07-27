@@ -220,17 +220,30 @@ export function setupGalleryController() {
   const galleryDiagnostics = document.querySelector<HTMLElement>('#galleryDiagnostics');
 
   const closeGalleryButton = document.querySelector<HTMLButtonElement>('#closeGalleryButton');
+  const galleryDiagnosticsToggle = document.querySelector<HTMLButtonElement>('#galleryDiagnosticsToggle');
   const galleryQualitySelect = document.querySelector<HTMLSelectElement>('#galleryQualitySelect');
 
   const galleryInfoPanel = document.querySelector<HTMLElement>('#galleryInfoPanel');
   const galleryInfoMeta = document.querySelector<HTMLElement>('#galleryInfoMeta');
   const galleryInfoTitle = document.querySelector<HTMLElement>('#galleryInfoTitle');
   const galleryInfoNote = document.querySelector<HTMLElement>('#galleryInfoNote');
-  const diagnosticsEnabled =
+  const diagnosticsEnabledByDefault =
     window.location.hostname === 'localhost' ||
     window.location.hostname === '127.0.0.1' ||
     new URLSearchParams(window.location.search).get('galleryDiagnostics') === '1';
+  let diagnosticsEnabled = diagnosticsEnabledByDefault;
   let diagnosticsInterval: number | null = null;
+
+  function updateDiagnosticsToggle() {
+    if (!galleryDiagnosticsToggle) {
+      return;
+    }
+
+    galleryDiagnosticsToggle.setAttribute('aria-pressed', String(diagnosticsEnabled));
+    galleryDiagnosticsToggle.title = diagnosticsEnabled
+      ? 'Hide gallery diagnostics'
+      : 'Show gallery diagnostics';
+  }
 
   function setDiagnosticValue(name: string, value: string) {
     const output = galleryDiagnostics?.querySelector<HTMLElement>(
@@ -318,6 +331,18 @@ export function setupGalleryController() {
     if (galleryDiagnostics) {
       galleryDiagnostics.hidden = true;
     }
+  }
+
+  function toggleGalleryDiagnostics() {
+    diagnosticsEnabled = !diagnosticsEnabled;
+    updateDiagnosticsToggle();
+
+    if (diagnosticsEnabled && activeGallery) {
+      startGalleryDiagnostics();
+      return;
+    }
+
+    stopGalleryDiagnostics();
   }
 
   function shouldDismissControlCard() {
@@ -885,5 +910,7 @@ export function setupGalleryController() {
   });
 
   galleryQualitySelect?.addEventListener('change', handleGalleryQualityChange);
+  galleryDiagnosticsToggle?.addEventListener('click', toggleGalleryDiagnostics);
   closeGalleryButton?.addEventListener('click', closeGallery);
+  updateDiagnosticsToggle();
 }

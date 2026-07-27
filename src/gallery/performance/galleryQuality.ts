@@ -180,9 +180,9 @@ function getInitialAutomaticTier(autoCeiling: GalleryQualityTier) {
     return 'low';
   }
 
-  // First-time high-capability visitors begin at Medium. Auto only steps
-  // down from there when sustained frame timings require it.
-  return autoCeiling === 'high' ? 'balanced' : autoCeiling;
+  // Qualifying hardware starts at High, then Auto only steps down if the
+  // measured gallery workload proves that tier is not sustainable.
+  return autoCeiling;
 }
 
 const hintedAutoCeiling = getAutomaticQualityCeiling();

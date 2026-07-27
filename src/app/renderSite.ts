@@ -8,12 +8,16 @@ export function renderSite(app: HTMLElement) {
     <div id="sitePage"></div>
 
     <div class="gallery-overlay" id="galleryOverlay" aria-hidden="true">
-      <select class="gallery-quality" id="galleryQualitySelect" aria-label="Gallery quality">
-        <option value="auto">Quality · Auto</option>
-        <option value="low">Quality · Low</option>
-        <option value="balanced">Quality · Medium</option>
-        <option value="high">Quality · High</option>
-      </select>
+      <div class="gallery-toolbar" aria-label="Gallery status and settings">
+        <span class="gallery-release-status" data-gallery-release="alpha">Gallery · Alpha</span>
+        <button class="gallery-diagnostics-toggle" id="galleryDiagnosticsToggle" type="button" aria-controls="galleryDiagnostics" aria-pressed="false">Diagnostics</button>
+        <select class="gallery-quality" id="galleryQualitySelect" aria-label="Gallery quality">
+          <option value="auto">Quality · Auto</option>
+          <option value="low">Quality · Low</option>
+          <option value="balanced">Quality · Medium</option>
+          <option value="high">Quality · High</option>
+        </select>
+      </div>
       <button class="gallery-close" id="closeGalleryButton" type="button" aria-label="Exit virtual gallery">Exit</button>
 
       <aside class="gallery-diagnostics" id="galleryDiagnostics" aria-label="Local gallery diagnostics" hidden>
@@ -51,6 +55,8 @@ export function renderSite(app: HTMLElement) {
         </dl>
       </div>
 
+      <p class="gallery-experimental-note">Experimental gallery · Features may change or be unavailable · Not the final product</p>
+
       <div class="gallery-crosshair" aria-hidden="true"></div>
 
       <div class="gallery-touch-controls" id="galleryTouchControls" aria-hidden="true">
@@ -74,6 +80,7 @@ export function renderSite(app: HTMLElement) {
           <p class="eyebrow">Loading Gallery</p>
           <h2>Preparing the room</h2>
           <p>Images are loading before the gallery opens so the first movement feels smoother.</p>
+          <p class="gallery-loading-disclaimer">This experimental gallery is still in alpha. Some features may be incomplete or unavailable, and this is not the final product.</p>
           <p class="gallery-loading-phase" id="galleryLoadingPhase">Preparing image textures</p>
           <div class="gallery-loading-bar" aria-hidden="true">
             <span></span>
