@@ -2,29 +2,29 @@
   "schemaVersion": 1,
   "hero": {
     "eyebrow": "About / Contact",
-    "headline": "A reserved space for the personal side of the archive.",
-    "intro": "A photographic practice shaped by movement, landscape, and time spent outside."
+    "headline": "A photographic practice shaped by movement, landscape, and time spent outside.",
+    "intro": "Photographer and multidisciplinary creative working across images, environments, and digital spaces."
   },
   "about": {
     "eyebrow": "About Me",
     "heading": "Personal background",
     "paragraphs": [
-      "I’m Taylor Pike, a photographer and creative working across climbing, landscape, portraiture, and personal projects. My work is grounded in time spent outside and an interest in the relationship between people and the environments they move through.",
-      "In 2012 I began stealing my parent's iPhone to take photos of the nature around me. Over the following years this passion snowballed into an active hobby. Eventually I earned my BS in Commercial Photography from Appalachian State University in 2020. I have also spent roughly a decade climbing, an experience that has shaped the way I understand movement, landscape, risk, and community. Those two parts of my life continue to overlap throughout my work."
+      "I’m Taylor Pike, a photographer and multidisciplinary creative working across climbing, landscape, portraiture, and personal projects. My work is grounded in time spent outside and an interest in how people move through and relate to their environments.",
+      "I started making photographs in 2012, borrowing a family iPhone to document the places around me. That curiosity grew into a serious practice, and in 2020 I earned my BS in Commercial Photography from Appalachian State University, where I also studied computer science. I’ve spent more than a decade climbing—an experience that continues to shape how I understand movement, landscape, risk, and community. Photography and climbing now overlap throughout my work."
     ]
   },
   "project": {
     "eyebrow": "Photography / Project",
     "heading": "Creative practice, technical crossover, and the archive system.",
     "paragraphs": [
-      "I approach creative processes through observation rather than strict control. Planning is secondary to being within the moment. This is an essential part of my photographic practice. I find myself continuously being drawn to natural lighting and vibrant colors that fill the world.",
-      "I built this archive as an extension of the photographic work. Its indexes, metadata, and virtual gallery are intended to make viewing the photographs feel spatial and exploratory rather than like moving through a conventional portfolio template. This space is intended to be a living ecosystem for my personal work whether that might be photography, web design or otherwise. Currently this website hosts my photography portfolio as well as an interactive art gallery that displays selected images in a 3-D space. This gallery represents my creative work outside the realm of photography and showcases my understanding of system architecture. In addition to the gallery I have built a completely standalone website editing client to not only edit the gallery but the website as a whole. My intention behind this is to make curation intuitive by taking inspiration from large website builders like Wix or Squarespace and putting a completely personal touch on them. Please continue to check back in on this project as additional creative works will continue to be added to this archive."
+      "I make photographs through observation rather than strict control. Even when an image is planned, I leave room for the moment and the environment to shape it. I’m drawn to natural light, vivid color, and the small details that give a place its character.",
+      "This site began as a home for my photography and continues to serve as its primary archive. It is also designed to grow beyond a conventional portfolio, making room for experiments in web design, digital environments, and other creative work.\n\nI built the custom editor behind the site as a way to organize and shape that archive on my own terms. Like the work it contains, the system will continue to change as new projects, ideas, and forms are added."
     ]
   },
   "contact": {
     "eyebrow": "Contact",
     "headline": "Available for selected projects, collaborations, and image work.",
-    "body": "Available for selected visual assignments and collaborative projects. The website + curation system is currently a work in progress. If you are interested in hiring me for building or redesigning your website with the digital curation system I have created please contact me for availability.",
+    "body": "Available for selected photographic assignments, collaborations, and web projects. If you are interested in working together on an image-based project or a custom portfolio site, get in touch.",
     "email": "jtaylorpike@gmail.com",
     "links": []
   }
