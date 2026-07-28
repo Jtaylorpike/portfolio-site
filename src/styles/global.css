@@ -4337,6 +4337,19 @@ button:focus-visible {
   background: transparent;
 }
 
+/* Explicit editor coordinates use the frame's top-left corner as their origin.
+   Remove the legacy centered-overlay translation so the public composition
+   matches the visual editor instead of shifting the upper overlay by 50%. */
+.modern-site[data-page='about'] .about-photo-frame.has-custom-collage-layout {
+  transform:
+    translate3d(
+      calc(var(--about-float-x, 0) * 1px),
+      calc(var(--about-float-y, 0) * 1px),
+      0
+    )
+    rotate(var(--about-photo-rotate, 0deg));
+}
+
 @supports not (overflow: clip) {
   .modern-site[data-page='about'] {
     overflow-x: hidden;
@@ -4409,6 +4422,17 @@ button:focus-visible {
 .modern-site[data-page='about'] .about-contact-email {
   width: fit-content;
   max-width: 100%;
+}
+
+/* Desktop About composition scale.
+   Keep the accepted collage proportions intact while fitting more of the
+   complete layout inside a conventional desktop viewport. */
+@media (min-width: 1181px) {
+  .modern-site[data-page='about'] .modern-about-page {
+    width: 88%;
+    margin-inline: 6%;
+    zoom: 0.88;
+  }
 }
 
 @media (max-width: 1180px) {

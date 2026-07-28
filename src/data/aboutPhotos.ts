@@ -25,6 +25,14 @@ export type AboutPhoto = {
   imageOrientation?: ImageOrientation;
   isActive?: boolean;
   placementRole?: AboutPhotoPlacement;
+  aboutPosition?: string;
+  aboutScale?: number;
+  backgroundX?: number;
+  backgroundY?: number;
+  backgroundWidth?: number;
+  collageX?: number;
+  collageY?: number;
+  collageWidth?: number;
   sourceType?: 'about' | 'portfolio-reference';
   sourceImageId?: string;
 };

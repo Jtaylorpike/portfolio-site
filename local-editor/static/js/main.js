@@ -32,7 +32,7 @@ import {
   renderAboutImportReview,
   updateFramingControl,
   updateGallerySizeControl
-} from "./render.js";
+} from "./render.js?v=105";
 import { formatObjectPosition, getFallbackCategoryId, slugify, titleFromFilename } from "./utils.js";
 import {
   getImportGalleryDefaultSize,
@@ -63,9 +63,10 @@ import {
   normalizeRotationDegrees,
   rotateGalleryWallDegrees
 } from "./galleryGrid.js";
+import { setupMacMenuBar } from "./menuBar.js";
 
 const VALID_PAGE_ROUTES = new Set(["images", "import", "gallery", "about", "about-photos", "categories", "settings", "backups"]);
-const VALID_CROP_MODES = new Set(["hero", "gallery"]);
+const VALID_CROP_MODES = new Set(["hero", "gallery", "about"]);
 
 const EDITOR_THEME_STORAGE_KEY = "taylor-pike-editor-theme";
 
@@ -109,6 +110,8 @@ let pendingAboutImportItems = [];
 let hasUnsavedChanges = false;
 let lastConfirmedHash = window.location.hash || "#/images";
 let isRestoringHash = false;
+let editorHistoryIndex = 0;
+let editorHistoryMaxIndex = 0;
 let activeCategoryOrderDrag = null;
 let suppressNextCategoryOrderClick = false;
 let activeGalleryWallDrag = null;
@@ -121,7 +124,661 @@ let galleryRoomSavedSnapshotKey = "{}";
 let galleryFieldEditSnapshot = null;
 const galleryArchitectureView = { zoom: 1, panX: 0, panY: 0 };
 let activeGalleryArchitectureDrag = null;
+let activeCropDrag = null;
+let activeCropModalState = null;
+let activeCropModalDrag = null;
+let activeAboutCollageDrag = null;
+let aboutCollageOpenSnapshot = null;
+let aboutCollageUndoStack = [];
 const GALLERY_ARCHITECTURE_SNAP_METERS = 1.5;
+
+function clampCropPercent(value) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function clampLooseCropPercent(value) {
+  return Math.max(-100, Math.min(200, Math.round(value)));
+}
+
+function parseCropPosition(value) {
+  const match = String(value ?? "").match(/(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%/);
+  return {
+    x: clampLooseCropPercent(Number(match?.[1] ?? 50)),
+    y: clampLooseCropPercent(Number(match?.[2] ?? 50))
+  };
+}
+
+const ABOUT_CROP_SLOT_ASPECTS = {
+  "upper-collage": [650 / 700, 390 / 470],
+  "lower-collage": [270 / 470, 230 / 340, 220 / 300, 250 / 290, 180 / 250, 160 / 180],
+  "background-float": [3 / 4]
+};
+
+function getAboutCropSlot(aboutPhoto) {
+  const placementRole = aboutPhoto?.placementRole;
+  const rolePhotos = (state.aboutPhotos ?? []).filter((photo) => (
+    photo.isActive !== false && photo.placementRole === placementRole
+  ));
+  const rawIndex = rolePhotos.findIndex((photo) => photo.id === aboutPhoto?.id);
+  const index = Math.max(0, rawIndex);
+  const aspects = ABOUT_CROP_SLOT_ASPECTS[placementRole] ?? [1];
+
+  const sourceAspect = Number(aboutPhoto?.imageAspectRatio)
+    || (aboutPhoto?.imageOrientation === "landscape" ? 3 / 2 : aboutPhoto?.imageOrientation === "square" ? 1 : 2 / 3);
+
+  return {
+    aspect: placementRole === "upper-collage" && index === 0
+      ? sourceAspect
+      : aspects[Math.min(index, aspects.length - 1)],
+    index
+  };
+}
+
+function getCropModalAspect(mode, image, aboutPhoto) {
+  if (mode === "hero") return 16 / 9;
+  if (mode === "about") return getAboutCropSlot(aboutPhoto).aspect;
+  const style = image?.galleryFrameStyle === "auto" ? image?.imageOrientation : image?.galleryFrameStyle;
+  if (style === "portrait") return 2 / 3;
+  if (style === "square") return 1;
+  return 3 / 2;
+}
+
+function getCropModalGeometry() {
+  const frame = document.querySelector("[data-crop-modal-frame]");
+  const image = document.querySelector("[data-crop-modal-image]");
+  if (!frame || !image || !activeCropModalState || !image.naturalWidth || !image.naturalHeight) return null;
+
+  const frameRect = frame.getBoundingClientRect();
+  const sourceAspect = image.naturalWidth / image.naturalHeight;
+  const baseWidth = Math.max(frameRect.width, frameRect.height * sourceAspect);
+  const baseHeight = Math.max(frameRect.height, frameRect.width / sourceAspect);
+  const width = baseWidth * activeCropModalState.scale;
+  const height = baseHeight * activeCropModalState.scale;
+
+  return {
+    frameWidth: frameRect.width,
+    frameHeight: frameRect.height,
+    baseWidth,
+    baseHeight,
+    width,
+    height,
+    overflowX: Math.max(0, width - frameRect.width),
+    overflowY: Math.max(0, height - frameRect.height)
+  };
+}
+
+function renderCropModalState() {
+  const modal = document.querySelector("[data-crop-modal]");
+  const frame = modal?.querySelector("[data-crop-modal-frame]");
+  const image = modal?.querySelector("[data-crop-modal-image]");
+  const zoomLabel = modal?.querySelector("[data-crop-modal-zoom-label]");
+  if (!modal || !frame || !image || !activeCropModalState) return;
+
+  frame.style.aspectRatio = String(activeCropModalState.aspect);
+  frame.style.width = activeCropModalState.aspect <= 1
+    ? `min(100%, ${Math.round(500 * activeCropModalState.aspect)}px)`
+    : "min(100%, 620px)";
+  const geometry = getCropModalGeometry();
+  if (geometry) {
+    image.style.width = `${geometry.width}px`;
+    image.style.height = `${geometry.height}px`;
+    image.style.left = `${-geometry.overflowX * (activeCropModalState.x / 100)}px`;
+    image.style.top = `${-geometry.overflowY * (activeCropModalState.y / 100)}px`;
+    const renderedPercent = Math.max(
+      geometry.width / image.naturalWidth,
+      geometry.height / image.naturalHeight
+    ) * 100;
+    if (zoomLabel) zoomLabel.textContent = `${Math.round(renderedPercent)}%`;
+  }
+}
+
+function updateCropModalResolutionLimit() {
+  const modal = document.querySelector("[data-crop-modal]");
+  const frame = modal?.querySelector("[data-crop-modal-frame]");
+  const image = modal?.querySelector("[data-crop-modal-image]");
+  const output = modal?.querySelector("[data-crop-modal-resolution]");
+  if (!frame || !image || !activeCropModalState || !image.naturalWidth || !image.naturalHeight) return;
+
+  const rect = frame.getBoundingClientRect();
+  const sourceAspect = image.naturalWidth / image.naturalHeight;
+  const baseWidth = Math.max(rect.width, rect.height * sourceAspect);
+  const baseHeight = Math.max(rect.height, rect.width / sourceAspect);
+  const density = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  activeCropModalState.maxScale = Math.max(1, Math.min(
+    4,
+    image.naturalWidth / Math.max(1, baseWidth * density),
+    image.naturalHeight / Math.max(1, baseHeight * density)
+  ));
+  activeCropModalState.scale = Math.min(activeCropModalState.scale, activeCropModalState.maxScale);
+  const maximumRenderedPercent = Math.max(
+    (baseWidth * activeCropModalState.maxScale) / image.naturalWidth,
+    (baseHeight * activeCropModalState.maxScale) / image.naturalHeight
+  ) * 100;
+  if (output) output.textContent = `Maximum safe size ${Math.round(maximumRenderedPercent)}%`;
+  renderCropModalState();
+}
+
+function openCropModal(trigger) {
+  const modal = document.querySelector("[data-crop-modal]");
+  const mode = trigger?.dataset.openCropModal;
+  const imageId = trigger?.dataset.cropImageId;
+  const aboutPhotoId = trigger?.dataset.cropAboutPhotoId;
+  const image = state.images.find((item) => item.id === imageId);
+  const aboutPhoto = mode === "about"
+    ? (state.aboutPhotos ?? []).find((photo) => photo.id === aboutPhotoId || photo.sourceImageId === imageId)
+    : null;
+
+  if (!modal || !mode || (mode !== "about" && !image) || (mode === "about" && !aboutPhoto)) return;
+  if (mode === "about" && aboutPhoto.placementRole === "unused") return;
+
+  const positionField = mode === "hero" ? "heroPosition" : mode === "gallery" ? "galleryPosition" : "aboutPosition";
+  const scaleField = mode === "hero" ? "heroScale" : mode === "gallery" ? "galleryScale" : "aboutScale";
+  const position = parseCropPosition((mode === "about" ? aboutPhoto : image)?.[positionField]);
+  const source = mode === "about"
+    ? aboutPhoto.fullSrc ?? aboutPhoto.src
+    : mode === "gallery"
+      ? image.textureSrc ?? image.src
+      : image.src;
+
+  activeCropModalState = {
+    mode,
+    imageId,
+    aboutPhotoId: aboutPhoto?.id,
+    positionField,
+    scaleField,
+    x: position.x,
+    y: position.y,
+    scale: Math.max(1, Number((mode === "about" ? aboutPhoto : image)?.[scaleField]) || 1),
+    maxScale: 1,
+    aspect: getCropModalAspect(mode, image, aboutPhoto)
+  };
+
+  modal.querySelector("[data-crop-modal-title]").textContent = (mode === "about" ? aboutPhoto?.title : image?.title) || "Crop Image";
+  const aboutSlot = mode === "about" ? getAboutCropSlot(aboutPhoto) : null;
+  const aboutRoleLabel = aboutPhoto?.placementRole === "upper-collage"
+    ? "Upper Collage"
+    : aboutPhoto?.placementRole === "lower-collage"
+      ? "Lower Collage"
+      : "Background Float";
+  modal.querySelector("[data-crop-modal-mode]").textContent = mode === "hero"
+    ? "Hero / 16:9"
+    : mode === "gallery"
+      ? "Virtual Gallery"
+      : `${aboutRoleLabel}${aboutPhoto?.placementRole === "background-float" ? "" : ` / Slot ${aboutSlot.index + 1}`}`;
+  const modalImage = modal.querySelector("[data-crop-modal-image]");
+  modalImage.removeAttribute("style");
+  modalImage.src = source;
+  modalImage.alt = "";
+  modal.hidden = false;
+  document.body.dataset.cropModalOpen = "true";
+  renderCropModalState();
+  if (modalImage.complete) requestAnimationFrame(updateCropModalResolutionLimit);
+}
+
+function closeCropModal() {
+  const modal = document.querySelector("[data-crop-modal]");
+  if (modal) modal.hidden = true;
+  document.body.dataset.cropModalOpen = "false";
+  activeCropModalState = null;
+}
+
+function adjustCropModalZoom(direction) {
+  if (!activeCropModalState) return;
+  const next = activeCropModalState.scale + Number(direction) * 0.05;
+  activeCropModalState.scale = Math.max(1, Math.min(activeCropModalState.maxScale, next));
+  renderCropModalState();
+}
+
+function applyCropModal() {
+  if (!activeCropModalState) return;
+  activeCropModalState.x = clampCropPercent(activeCropModalState.x);
+  activeCropModalState.y = clampCropPercent(activeCropModalState.y);
+  renderCropModalState();
+  const { mode, imageId, aboutPhotoId, positionField, scaleField, x, y, scale } = activeCropModalState;
+  const cleanX = Number(x.toFixed(2));
+  const cleanY = Number(y.toFixed(2));
+  const position = `${cleanX}% ${cleanY}%`;
+
+  if (mode === "about") {
+    state.aboutPhotos = (state.aboutPhotos ?? []).map((photo) => (
+      photo.id === aboutPhotoId ? { ...photo, [positionField]: position, [scaleField]: scale } : photo
+    ));
+  } else {
+    state.images = state.images.map((image) => (
+      image.id === imageId ? { ...image, [positionField]: position, [scaleField]: scale } : image
+    ));
+  }
+
+  closeCropModal();
+  rerenderCurrentRoute();
+  setDirtyState(true, "Crop applied in the editor. Click Save Changes to preserve it.");
+}
+
+document.addEventListener("pointerdown", (event) => {
+  const frame = event.target.closest?.("[data-crop-modal-frame]");
+  if (!frame || !activeCropModalState || event.button !== 0) return;
+  activeCropModalDrag = {
+    pointerId: event.pointerId,
+    frame,
+    startX: event.clientX,
+    startY: event.clientY,
+    x: activeCropModalState.x,
+    y: activeCropModalState.y
+  };
+  frame.setPointerCapture?.(event.pointerId);
+  frame.dataset.dragging = "true";
+  event.preventDefault();
+});
+
+document.addEventListener("pointermove", (event) => {
+  if (!activeCropModalDrag || !activeCropModalState || event.pointerId !== activeCropModalDrag.pointerId) return;
+  const geometry = getCropModalGeometry();
+  if (!geometry) return;
+  const deltaX = event.clientX - activeCropModalDrag.startX;
+  const deltaY = event.clientY - activeCropModalDrag.startY;
+  activeCropModalState.x = geometry.overflowX
+    ? clampLooseCropPercent(activeCropModalDrag.x - (deltaX / geometry.overflowX) * 100)
+    : 50;
+  activeCropModalState.y = geometry.overflowY
+    ? clampLooseCropPercent(activeCropModalDrag.y - (deltaY / geometry.overflowY) * 100)
+    : 50;
+  renderCropModalState();
+});
+
+document.addEventListener("pointerup", (event) => {
+  if (!activeCropModalDrag || event.pointerId !== activeCropModalDrag.pointerId) return;
+  activeCropModalDrag.frame.dataset.dragging = "false";
+  const modalImage = document.querySelector("[data-crop-modal-image]");
+  const snappedX = clampCropPercent(activeCropModalState?.x ?? 50);
+  const snappedY = clampCropPercent(activeCropModalState?.y ?? 50);
+  const didSnap = activeCropModalState && (snappedX !== activeCropModalState.x || snappedY !== activeCropModalState.y);
+  if (activeCropModalState) {
+    activeCropModalState.x = snappedX;
+    activeCropModalState.y = snappedY;
+  }
+  if (didSnap && modalImage) {
+    modalImage.dataset.snapping = "true";
+    renderCropModalState();
+    window.setTimeout(() => {
+      modalImage.dataset.snapping = "false";
+    }, 180);
+  }
+  activeCropModalDrag = null;
+});
+
+document.addEventListener("wheel", (event) => {
+  if (!event.target.closest?.("[data-crop-modal-frame]") || !activeCropModalState) return;
+  event.preventDefault();
+  adjustCropModalZoom(event.deltaY < 0 ? 1 : -1);
+}, { passive: false });
+
+document.addEventListener("load", (event) => {
+  if (event.target.matches?.("[data-crop-modal-image]")) updateCropModalResolutionLimit();
+}, true);
+
+function selectAboutCollagePhoto(photo) {
+  const workspace = photo?.closest("[data-about-collage-workspace]");
+  if (!workspace || !photo) return;
+
+  workspace.querySelectorAll("[data-about-collage-photo]").forEach((item) => {
+    item.dataset.selected = String(item === photo);
+  });
+  const status = workspace.querySelector("[data-about-collage-preview-status]");
+  if (status) {
+    status.querySelector("strong").textContent = photo.dataset.aboutCollageTitle || "Background photograph";
+    status.querySelector("span").textContent = "Selected background layer — drag anywhere within the scaled page.";
+  }
+}
+
+function updateAboutCollageUndoButton() {
+  const button = document.querySelector("[data-undo-about-collage]");
+  if (button) button.disabled = aboutCollageUndoStack.length === 0;
+}
+
+function deselectAboutCollagePhotos(page) {
+  const workspace = page?.closest("[data-about-collage-workspace]");
+  page?.querySelectorAll("[data-about-collage-photo]").forEach((photo) => {
+    photo.dataset.selected = "false";
+  });
+  const status = workspace?.querySelector("[data-about-collage-preview-status]");
+  if (status) {
+    status.querySelector("strong").textContent = "No image selected";
+    status.querySelector("span").textContent = "Select an image to move or resize it.";
+  }
+}
+
+function undoAboutCollageChange() {
+  const previous = aboutCollageUndoStack.pop();
+  if (!previous) return;
+  const photo = document.querySelector(`[data-about-collage-photo="${CSS.escape(previous.photoId)}"]`);
+  if (photo) {
+    photo.style.left = previous.left;
+    photo.style.top = previous.top;
+    photo.style.width = previous.width;
+    selectAboutCollagePhoto(photo);
+  }
+  updateAboutCollageUndoButton();
+}
+
+function closeAboutCollageModal({ apply = false } = {}) {
+  const modal = document.querySelector("[data-about-collage-modal]");
+  if (!modal) return;
+
+  if (apply) {
+    modal.querySelectorAll("[data-about-collage-photo]").forEach((photoElement) => {
+      const photoId = photoElement.dataset.aboutCollagePhoto;
+      const layoutX = Number.parseFloat(photoElement.style.left);
+      const layoutY = Number.parseFloat(photoElement.style.top);
+      const layoutWidth = Number.parseFloat(photoElement.style.width);
+      const isBackground = photoElement.dataset.aboutCollageKind === "background";
+      const aboutPhoto = (state.aboutPhotos ?? []).find((photo) => photo.id === photoId);
+      if (aboutPhoto && Number.isFinite(layoutX) && Number.isFinite(layoutY) && Number.isFinite(layoutWidth)) {
+        if (isBackground) {
+          aboutPhoto.backgroundX = layoutX;
+          aboutPhoto.backgroundY = layoutY;
+          aboutPhoto.backgroundWidth = layoutWidth;
+        } else {
+          aboutPhoto.collageX = layoutX;
+          aboutPhoto.collageY = layoutY;
+          aboutPhoto.collageWidth = layoutWidth;
+        }
+      }
+      const card = document.querySelector(`[data-about-photo-card][data-about-photo-id="${CSS.escape(photoId)}"]`);
+      const fieldPrefix = isBackground ? "background" : "collage";
+      const xField = card?.querySelector(`[data-field="${fieldPrefix}X"]`);
+      const yField = card?.querySelector(`[data-field="${fieldPrefix}Y"]`);
+      const widthField = card?.querySelector(`[data-field="${fieldPrefix}Width"]`);
+      if (xField) xField.value = String(layoutX);
+      if (yField) yField.value = String(layoutY);
+      if (widthField) widthField.value = String(layoutWidth);
+    });
+    setDirtyState(true, "Background collage arrangement applied. Click Save Changes to preserve it.");
+  } else if (aboutCollageOpenSnapshot) {
+    modal.querySelectorAll("[data-about-collage-photo]").forEach((photoElement) => {
+      const saved = aboutCollageOpenSnapshot.get(photoElement.dataset.aboutCollagePhoto);
+      if (!saved) return;
+      photoElement.style.left = saved.left;
+      photoElement.style.top = saved.top;
+      photoElement.style.width = saved.width;
+    });
+  }
+
+  modal.hidden = true;
+  document.body.dataset.aboutCollageOpen = "false";
+  aboutCollageOpenSnapshot = null;
+  aboutCollageUndoStack = [];
+  activeAboutCollageDrag?.preview?.remove();
+  activeAboutCollageDrag = null;
+}
+
+document.addEventListener("click", (event) => {
+  const openButton = event.target.closest?.("[data-open-about-collage]");
+  if (openButton) {
+    const modal = document.querySelector("[data-about-collage-modal]");
+    if (!modal) return;
+    aboutCollageOpenSnapshot = new Map(
+      Array.from(modal.querySelectorAll("[data-about-collage-photo]")).map((photo) => [
+        photo.dataset.aboutCollagePhoto,
+        { left: photo.style.left, top: photo.style.top, width: photo.style.width }
+      ])
+    );
+    const workspace = modal.querySelector("[data-about-collage-workspace]");
+    const layerToggle = modal.querySelector("[data-toggle-about-collage-landmarks]");
+    if (workspace) workspace.dataset.backgroundOnly = "false";
+    if (layerToggle) {
+      layerToggle.setAttribute("aria-pressed", "false");
+      layerToggle.textContent = "Background Only";
+    }
+    aboutCollageUndoStack = [];
+    updateAboutCollageUndoButton();
+    modal.hidden = false;
+    document.body.dataset.aboutCollageOpen = "true";
+    modal.querySelector("[data-about-collage-photo]")?.focus();
+    return;
+  }
+
+  if (event.target.closest?.("[data-undo-about-collage]")) {
+    undoAboutCollageChange();
+    return;
+  }
+
+  const layerToggle = event.target.closest?.("[data-toggle-about-collage-landmarks]");
+  if (layerToggle) {
+    const workspace = layerToggle.closest("[data-about-collage-workspace]");
+    const backgroundOnly = workspace?.dataset.backgroundOnly !== "true";
+    if (workspace) workspace.dataset.backgroundOnly = String(backgroundOnly);
+    layerToggle.setAttribute("aria-pressed", String(backgroundOnly));
+    layerToggle.textContent = backgroundOnly ? "Show Page" : "Background Only";
+    layerToggle.title = backgroundOnly
+      ? "Show page copy and foreground collage"
+      : "Hide page copy and foreground collage";
+    return;
+  }
+
+  if (event.target.closest?.("[data-accept-about-collage]")) {
+    closeAboutCollageModal({ apply: true });
+    saveData().catch((error) => {
+      console.error(error);
+      setStatus(error.message, "error");
+    });
+    return;
+  }
+
+  if (event.target.closest?.("[data-cancel-about-collage]")) {
+    closeAboutCollageModal();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && document.body.dataset.aboutCollageOpen === "true") {
+    closeAboutCollageModal();
+  }
+});
+
+document.addEventListener("pointerdown", (event) => {
+  const photo = event.target.closest?.("[data-about-collage-photo]");
+  const page = event.target.closest?.("[data-about-collage-page]");
+  if (!page || event.button !== 0) return;
+  if (!photo) {
+    deselectAboutCollagePhotos(page);
+    return;
+  }
+
+  selectAboutCollagePhoto(photo);
+  const resizeHandle = event.target.closest?.("[data-about-collage-resize]");
+  const coordinateRoot = photo.dataset.aboutCollageKind === "foreground"
+    ? photo.parentElement
+    : page;
+  activeAboutCollageDrag = {
+    pointerId: event.pointerId,
+    photo,
+    page,
+    coordinateRoot,
+    startClientX: event.clientX,
+    startClientY: event.clientY,
+    startX: Number.parseFloat(photo.style.left) || 0,
+    startY: Number.parseFloat(photo.style.top) || 0,
+    startWidth: Number.parseFloat(photo.style.width) || 42,
+    mode: resizeHandle ? "resize" : "move",
+    corner: resizeHandle?.dataset.aboutCollageResize ?? "se",
+    aspect: Math.max(0.1, Number(photo.dataset.aboutCollageAspect) || 0.75),
+    kind: photo.dataset.aboutCollageKind
+  };
+  if (activeAboutCollageDrag.mode === "resize") {
+    const preview = document.createElement("div");
+    preview.className = "about-collage-resize-preview";
+    preview.style.left = photo.style.left;
+    preview.style.top = photo.style.top;
+    preview.style.width = photo.style.width;
+    preview.style.aspectRatio = String(activeAboutCollageDrag.aspect);
+    coordinateRoot.append(preview);
+    activeAboutCollageDrag.preview = preview;
+    activeAboutCollageDrag.pendingWidth = activeAboutCollageDrag.startWidth;
+    activeAboutCollageDrag.pendingX = activeAboutCollageDrag.startX;
+    activeAboutCollageDrag.pendingY = activeAboutCollageDrag.startY;
+  }
+  photo.dataset.dragging = "true";
+  photo.dataset.resizing = String(activeAboutCollageDrag.mode === "resize");
+  photo.setPointerCapture?.(event.pointerId);
+  event.preventDefault();
+});
+
+document.addEventListener("pointermove", (event) => {
+  if (!activeAboutCollageDrag || event.pointerId !== activeAboutCollageDrag.pointerId) return;
+  const rect = activeAboutCollageDrag.coordinateRoot.getBoundingClientRect();
+  if (activeAboutCollageDrag.mode === "resize") {
+    const fromLeft = activeAboutCollageDrag.corner.endsWith("w");
+    const fromTop = activeAboutCollageDrag.corner.startsWith("n");
+    const horizontalDelta = ((event.clientX - activeAboutCollageDrag.startClientX) / rect.width) * 100;
+    const deltaWidth = fromLeft ? -horizontalDelta : horizontalDelta;
+    const maximumWidth = activeAboutCollageDrag.kind === "foreground" ? 100 : 90;
+    const minimumPosition = activeAboutCollageDrag.kind === "foreground" ? -35 : -12;
+    const width = Math.max(12, Math.min(maximumWidth, activeAboutCollageDrag.startWidth + deltaWidth));
+    const startHeightPercent = ((activeAboutCollageDrag.startWidth / 100) * rect.width / activeAboutCollageDrag.aspect / rect.height) * 100;
+    const nextHeightPercent = ((width / 100) * rect.width / activeAboutCollageDrag.aspect / rect.height) * 100;
+    const left = fromLeft
+      ? activeAboutCollageDrag.startX + activeAboutCollageDrag.startWidth - width
+      : activeAboutCollageDrag.startX;
+    const top = fromTop
+      ? activeAboutCollageDrag.startY + startHeightPercent - nextHeightPercent
+      : activeAboutCollageDrag.startY;
+    const safeLeft = Math.max(-35, Math.min(100, left));
+    const safeTop = Math.max(minimumPosition, Math.min(100, top));
+    activeAboutCollageDrag.pendingWidth = width;
+    activeAboutCollageDrag.pendingX = safeLeft;
+    activeAboutCollageDrag.pendingY = safeTop;
+    if (activeAboutCollageDrag.preview) {
+      activeAboutCollageDrag.preview.style.width = `${width.toFixed(2)}%`;
+      activeAboutCollageDrag.preview.style.left = `${safeLeft.toFixed(2)}%`;
+      activeAboutCollageDrag.preview.style.top = `${safeTop.toFixed(2)}%`;
+    }
+    return;
+  }
+  const x = activeAboutCollageDrag.startX + ((event.clientX - activeAboutCollageDrag.startClientX) / rect.width) * 100;
+  const y = activeAboutCollageDrag.startY + ((event.clientY - activeAboutCollageDrag.startClientY) / rect.height) * 100;
+  activeAboutCollageDrag.photo.style.left = `${Math.max(-35, Math.min(100, x)).toFixed(2)}%`;
+  const minimumY = activeAboutCollageDrag.kind === "foreground" ? -35 : -12;
+  activeAboutCollageDrag.photo.style.top = `${Math.max(minimumY, Math.min(100, y)).toFixed(2)}%`;
+});
+
+document.addEventListener("pointerup", (event) => {
+  if (!activeAboutCollageDrag || event.pointerId !== activeAboutCollageDrag.pointerId) return;
+  activeAboutCollageDrag.photo.dataset.dragging = "false";
+  activeAboutCollageDrag.photo.dataset.resizing = "false";
+  const before = {
+    photoId: activeAboutCollageDrag.photo.dataset.aboutCollagePhoto,
+    left: `${activeAboutCollageDrag.startX}%`,
+    top: `${activeAboutCollageDrag.startY}%`,
+    width: `${activeAboutCollageDrag.startWidth}%`
+  };
+  if (activeAboutCollageDrag.mode === "resize" && Number.isFinite(activeAboutCollageDrag.pendingWidth)) {
+    activeAboutCollageDrag.photo.style.width = `${activeAboutCollageDrag.pendingWidth.toFixed(2)}%`;
+    activeAboutCollageDrag.photo.style.left = `${activeAboutCollageDrag.pendingX.toFixed(2)}%`;
+    activeAboutCollageDrag.photo.style.top = `${activeAboutCollageDrag.pendingY.toFixed(2)}%`;
+  }
+  activeAboutCollageDrag.preview?.remove();
+  const didChange = Math.abs(activeAboutCollageDrag.startX - Number.parseFloat(activeAboutCollageDrag.photo.style.left)) > 0.01
+    || Math.abs(activeAboutCollageDrag.startY - Number.parseFloat(activeAboutCollageDrag.photo.style.top)) > 0.01
+    || Math.abs(activeAboutCollageDrag.startWidth - Number.parseFloat(activeAboutCollageDrag.photo.style.width)) > 0.01;
+  if (didChange) {
+    aboutCollageUndoStack.push(before);
+    updateAboutCollageUndoButton();
+  }
+  const status = activeAboutCollageDrag.photo.closest("[data-about-collage-workspace]")
+    ?.querySelector("[data-about-collage-preview-status] span");
+  if (status) {
+    status.textContent = "Position changed — choose ✓ to apply or × to discard.";
+  }
+  activeAboutCollageDrag = null;
+});
+
+document.addEventListener("dblclick", (event) => {
+  const selected = event.target.closest?.('[data-about-collage-photo][data-selected="true"]');
+  if (!selected) return;
+  selected.style.pointerEvents = "none";
+  const underneath = document.elementsFromPoint(event.clientX, event.clientY)
+    .map((element) => element.closest?.("[data-about-collage-photo]"))
+    .find((photo) => photo && photo !== selected);
+  selected.style.pointerEvents = "";
+  if (underneath && underneath !== selected) {
+    selectAboutCollagePhoto(underneath);
+    event.preventDefault();
+  }
+});
+
+function updateCropZoomControl(range) {
+  const cropEditor = range?.closest("[data-crop-editor]");
+  const image = cropEditor?.querySelector("[data-crop-preview-image]");
+  const output = cropEditor?.querySelector("[data-crop-zoom-output]");
+  const scaleField = cropEditor?.dataset.cropScaleField;
+  const hidden = scaleField
+    ? cropEditor.querySelector(`[data-crop-setting="${scaleField}"]`)
+    : null;
+  const scale = Math.max(1, Number(range?.value) || 1);
+
+  if (image) image.style.setProperty("scale", String(scale), "important");
+  if (output) output.textContent = `${Math.round(scale * 100)}%`;
+  if (hidden) hidden.value = String(scale);
+}
+
+function constrainCropZoomToSource(cropEditor) {
+  const image = cropEditor?.querySelector("[data-crop-preview-image]");
+  const range = cropEditor?.querySelector("[data-crop-zoom]");
+  const frame = cropEditor?.querySelector(".crop-preview");
+  if (!image || !range || !frame || !image.naturalWidth || !image.naturalHeight) return;
+
+  const rect = frame.getBoundingClientRect();
+  const density = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const pixelSafeMax = Math.min(
+    image.naturalWidth / Math.max(1, rect.width * density),
+    image.naturalHeight / Math.max(1, rect.height * density)
+  );
+  const maxScale = Math.max(1, Math.min(4, Math.floor(pixelSafeMax * 100) / 100));
+  range.max = String(maxScale);
+  if (Number(range.value) > maxScale) range.value = String(maxScale);
+  updateCropZoomControl(range);
+}
+
+function beginCropDrag(event) {
+  const cropEditor = event.target.closest("[data-crop-editor]");
+  const frame = event.target.closest(".crop-preview");
+  const image = event.target.closest("[data-crop-preview-image]");
+  if (!cropEditor || !frame || !image || event.button !== 0) return;
+
+  const xSlider = cropEditor.querySelector('[data-position-axis="x"]');
+  const ySlider = cropEditor.querySelector('[data-position-axis="y"]');
+  if (!xSlider || !ySlider) return;
+
+  activeCropDrag = {
+    pointerId: event.pointerId,
+    frame,
+    xSlider,
+    ySlider,
+    startX: event.clientX,
+    startY: event.clientY,
+    positionX: Number(xSlider.value),
+    positionY: Number(ySlider.value)
+  };
+  frame.setPointerCapture?.(event.pointerId);
+  frame.dataset.cropDragging = "true";
+  event.preventDefault();
+}
+
+function moveCropDrag(event) {
+  const drag = activeCropDrag;
+  if (!drag || drag.pointerId !== event.pointerId) return;
+  const rect = drag.frame.getBoundingClientRect();
+  drag.xSlider.value = String(clampCropPercent(drag.positionX - ((event.clientX - drag.startX) / rect.width) * 100));
+  drag.ySlider.value = String(clampCropPercent(drag.positionY - ((event.clientY - drag.startY) / rect.height) * 100));
+  updateFramingControl(drag.xSlider);
+  setDirtyState(true, "Crop position updated. Click Save Crop to preserve it.");
+}
+
+function endCropDrag(event) {
+  if (!activeCropDrag || activeCropDrag.pointerId !== event.pointerId) return;
+  activeCropDrag.frame.dataset.cropDragging = "false";
+  activeCropDrag = null;
+}
 
 function getGalleryArchitectureModules(room = state.galleryRoom) {
   const layout = room?.layout ?? {};
@@ -251,7 +908,8 @@ function updateGalleryUndoButton() {
   if (!button) return;
   const entry = galleryUndoStack.at(-1);
   button.disabled = !entry;
-  button.textContent = entry ? `Undo ${entry.label}` : "Undo";
+  button.textContent = "Undo";
+  button.setAttribute("aria-label", entry ? `Undo ${entry.label}` : "Nothing to undo");
   button.title = entry ? `Undo ${entry.label} (Ctrl/Cmd+Z)` : "Nothing to undo";
 }
 
@@ -968,7 +1626,7 @@ function getPortfolioImageReferenceFromCard(card, fallbackImage) {
   };
 }
 
-function addPortfolioImageToAbout(imageId, triggerButton) {
+function addPortfolioImageToAbout(imageId, triggerButton, placementRole = "unused") {
   const card = triggerButton?.closest("[data-image-card]");
   const fallbackImage = state.images.find((image) => image.id === imageId) ?? null;
   const reference = getPortfolioImageReferenceFromCard(card, fallbackImage);
@@ -1002,7 +1660,7 @@ function addPortfolioImageToAbout(imageId, triggerButton) {
     imageAspectRatio: reference.imageAspectRatio,
     imageOrientation: reference.imageOrientation,
     isActive: true,
-    placementRole: "lower-collage",
+    placementRole,
     sourceType: "portfolio-reference",
     sourceImageId: reference.sourceImageId
   };
@@ -1202,7 +1860,9 @@ function collectRenameMetadataFromCard(card) {
     "isPublic",
     "thumbnailPosition",
     "heroPosition",
+    "heroScale",
     "galleryPosition",
+    "galleryScale",
     "galleryFitMode",
     "galleryFrameStyle",
     "gallerySize",
@@ -1422,6 +2082,78 @@ function setEditorRoute(route = getCurrentRoute()) {
   }
 }
 
+function applyAboutPortfolioLibraryFilters() {
+  const library = elements.aboutPhotoList?.querySelector(".about-portfolio-library");
+  if (!library) return;
+
+  const search = String(library.querySelector("[data-about-library-search]")?.value ?? "").trim().toLowerCase();
+  const category = String(library.querySelector("[data-about-library-category]")?.value ?? "all");
+  let visibleCount = 0;
+
+  library.querySelectorAll("[data-about-library-card]").forEach((card) => {
+    const matchesSearch = !search || String(card.dataset.aboutLibrarySearchText ?? "").includes(search);
+    const matchesCategory = category === "all" || card.dataset.aboutLibraryCategory === category;
+    card.hidden = !(matchesSearch && matchesCategory);
+    if (!card.hidden) visibleCount += 1;
+  });
+
+  const output = library.querySelector("[data-about-library-result]");
+  if (output) output.textContent = `${visibleCount} image${visibleCount === 1 ? "" : "s"} shown`;
+}
+
+function syncImageAboutPosition(controls) {
+  const imageId = controls?.closest("[data-image-card]")?.dataset.imageId;
+  const position = controls?.querySelector("[data-position-output]")?.value;
+  if (!imageId || !position) return;
+
+  state.aboutPhotos = (state.aboutPhotos ?? []).map((photo) => (
+    photo.sourceType === "portfolio-reference" && photo.sourceImageId === imageId
+      ? { ...photo, aboutPosition: position }
+      : photo
+  ));
+}
+
+function updateHistoryButtons() {
+  if (elements.historyBackButton) {
+    elements.historyBackButton.disabled = editorHistoryIndex <= 0;
+  }
+
+  if (elements.historyForwardButton) {
+    elements.historyForwardButton.disabled = editorHistoryIndex >= editorHistoryMaxIndex;
+  }
+}
+
+function initializeEditorHistory() {
+  const storedIndex = Number(window.history.state?.editorHistoryIndex);
+  editorHistoryIndex = Number.isInteger(storedIndex) ? storedIndex : 0;
+  editorHistoryMaxIndex = editorHistoryIndex;
+  window.history.replaceState(
+    { ...(window.history.state ?? {}), editorHistoryIndex },
+    "",
+    window.location.href
+  );
+  updateHistoryButtons();
+}
+
+function syncEditorHistoryEntry() {
+  const storedIndex = Number(window.history.state?.editorHistoryIndex);
+
+  if (Number.isInteger(storedIndex)) {
+    editorHistoryIndex = storedIndex;
+    editorHistoryMaxIndex = Math.max(editorHistoryMaxIndex, editorHistoryIndex);
+  } else {
+    editorHistoryIndex += 1;
+    editorHistoryMaxIndex = editorHistoryIndex;
+    window.history.replaceState(
+      { ...(window.history.state ?? {}), editorHistoryIndex },
+      "",
+      window.location.href
+    );
+  }
+
+  updateHistoryButtons();
+}
+
 // Stores data returned by the backend and re-renders an editor route.
 // Most saves should render the current hash route. ID renames pass an explicit
 // new route because the old hash becomes invalid as soon as the ID changes.
@@ -1566,6 +2298,10 @@ function updateBulkSelectionCount() {
   toolbar.dataset.bulkReady = selectedCount > 0 && hasChanges ? "true" : "false";
 
   output.textContent = `${selectedCount} image${selectedCount === 1 ? "" : "s"} selected`;
+
+  if (selectedCount > 0 && toolbar instanceof HTMLDetailsElement) {
+    toolbar.open = true;
+  }
 
   if (applyButton) {
     applyButton.disabled = !(selectedCount > 0 && hasChanges);
@@ -3373,10 +4109,24 @@ function getCropPageUpdatesFromDom() {
 
 async function saveCropPage() {
   const { imageId, updates } = getCropPageUpdatesFromDom();
+  const cropMode = document.querySelector("[data-crop-editor]")?.dataset.cropMode;
 
   setStatus("Saving crop settings...", "neutral");
 
-  const savedData = await saveImageUpdatesApi(imageId, updates);
+  const savedData = cropMode === "about"
+    ? await saveDataApi({
+        ...collectEditorData(state),
+        aboutPhotos: (state.aboutPhotos ?? []).map((photo) => (
+          photo.sourceImageId === imageId
+            ? {
+                ...photo,
+                aboutPosition: updates.aboutPosition ?? photo.aboutPosition ?? "50% 50%",
+                aboutScale: Number(updates.aboutScale ?? photo.aboutScale ?? 1)
+              }
+            : photo
+        ))
+      })
+    : await saveImageUpdatesApi(imageId, updates);
 
   applyLoadedState(savedData);
   setDirtyState(false);
@@ -4001,6 +4751,8 @@ window.addEventListener("hashchange", () => {
     return;
   }
 
+  syncEditorHistoryEntry();
+
   if (!confirmDiscardUnsavedChanges("switch editor sections")) {
     isRestoringHash = true;
     window.location.hash = lastConfirmedHash;
@@ -4033,6 +4785,18 @@ window.addEventListener("hashchange", () => {
       console.error(error);
       setStatus(error.message, "error");
     });
+  }
+});
+
+elements.historyBackButton?.addEventListener("click", () => {
+  if (editorHistoryIndex > 0) {
+    window.history.back();
+  }
+});
+
+elements.historyForwardButton?.addEventListener("click", () => {
+  if (editorHistoryIndex < editorHistoryMaxIndex) {
+    window.history.forward();
   }
 });
 
@@ -4163,6 +4927,7 @@ elements.categoryList.addEventListener("click", (event) => {
 // Live-preview slider changes without saving them yet.
 elements.editorList.addEventListener("input", (event) => {
   const slider = event.target.closest("[data-position-axis]");
+  const cropZoom = event.target.closest("[data-crop-zoom]");
   const gallerySizeRange = event.target.closest("[data-gallery-size-range]");
   const editableField = event.target.closest("[data-field], [data-category-field], [data-image-id-suggestion]");
   const imageCard = event.target.closest("[data-image-card]");
@@ -4177,7 +4942,15 @@ elements.editorList.addEventListener("input", (event) => {
 
   if (slider) {
     updateFramingControl(slider);
+    if (slider.closest('[data-position-field="aboutPosition"]')) {
+      syncImageAboutPosition(slider.closest("[data-framing-controls]"));
+    }
     setDirtyState(true, "Preview updated. Save the crop or JSON to keep this change.");
+  }
+
+  if (cropZoom) {
+    updateCropZoomControl(cropZoom);
+    setDirtyState(true, "Crop zoom updated. Click Save Crop to preserve it.");
   }
 
   if (gallerySizeRange) {
@@ -4207,10 +4980,27 @@ elements.editorList.addEventListener("change", (event) => {
     return;
   }
 
-  updateStateFromCurrentDom();
   setDirtyState(true, "Preview updated. Click Save Changes or Save Crop to preserve it.");
-  rerenderCurrentRoute();
+
+  // Only settings that alter a rendered preview need a full route rebuild.
+  // Re-rendering for ordinary fields (including the hero checkbox) closes the
+  // disclosure panel the user is actively editing.
+  if (cropSetting || imageEditorSetting) {
+    updateStateFromCurrentDom();
+    rerenderCurrentRoute();
+  }
+
 });
+
+elements.editorList.addEventListener("pointerdown", beginCropDrag);
+elements.editorList.addEventListener("pointermove", moveCropDrag);
+elements.editorList.addEventListener("pointerup", endCropDrag);
+elements.editorList.addEventListener("pointercancel", endCropDrag);
+
+elements.editorList.addEventListener("load", (event) => {
+  const image = event.target.closest?.("[data-crop-preview-image]");
+  if (image) constrainCropZoomToSource(image.closest("[data-crop-editor]"));
+}, true);
 
 elements.importReviewList.addEventListener("input", (event) => {
   const slider = event.target.closest("[data-position-axis]");
@@ -4885,6 +5675,10 @@ elements.editorList.addEventListener("click", (event) => {
 
   if (bulkClearSelectionButton) {
     resetBulkControls();
+    const toolbar = getBulkEditorToolbar();
+    if (toolbar instanceof HTMLDetailsElement) {
+      toolbar.open = false;
+    }
     setStatus("Cleared bulk editor selection.", "neutral");
     return;
   }
@@ -5058,9 +5852,51 @@ elements.clearImportReviewButton.addEventListener("click", () => {
 });
 
 document.body.addEventListener("click", (event) => {
+  const openCropModalButton = event.target.closest("[data-open-crop-modal]");
+  const cropModalZoomButton = event.target.closest("[data-crop-modal-zoom]");
   const removeAboutImportButton = event.target.closest("[data-remove-about-import]");
   const moveAboutPhotoButton = event.target.closest("[data-move-about-photo]");
   const removeAboutPhotoButton = event.target.closest("[data-remove-about-photo]");
+  const addAboutLibraryImageButton = event.target.closest("[data-about-library-add]");
+  if (openCropModalButton) {
+    openCropModal(openCropModalButton);
+    return;
+  }
+
+  if (cropModalZoomButton) {
+    adjustCropModalZoom(cropModalZoomButton.dataset.cropModalZoom);
+    return;
+  }
+
+  if (event.target.closest("[data-crop-modal-apply]")) {
+    applyCropModal();
+    return;
+  }
+
+  if (event.target.closest("[data-crop-modal-reset]")) {
+    if (activeCropModalState) {
+      activeCropModalState.x = 50;
+      activeCropModalState.y = 50;
+      activeCropModalState.scale = 1;
+      renderCropModalState();
+    }
+    return;
+  }
+
+  if (event.target.closest("[data-crop-modal-cancel]")) {
+    closeCropModal();
+    return;
+  }
+
+  if (addAboutLibraryImageButton) {
+    const library = addAboutLibraryImageButton.closest(".about-portfolio-library");
+    const placementRole = library?.querySelector("[data-about-library-placement]")?.value || "unused";
+    addPortfolioImageToAbout(addAboutLibraryImageButton.dataset.aboutLibraryAdd, addAboutLibraryImageButton, placementRole);
+    rerenderCurrentRoute();
+    const rerenderedLibrary = elements.aboutPhotoList?.querySelector(".about-portfolio-library");
+    if (rerenderedLibrary instanceof HTMLDetailsElement) rerenderedLibrary.open = true;
+    return;
+  }
 
   if (removeAboutImportButton) {
     removePendingAboutImportItem(Number(removeAboutImportButton.dataset.removeAboutImport));
@@ -5079,6 +5915,35 @@ document.body.addEventListener("click", (event) => {
 
   if (event.target.closest("[data-import-lightbox-close]")) {
     closeImportLightbox();
+  }
+});
+
+elements.aboutPhotoList?.addEventListener("input", (event) => {
+  const slider = event.target.closest("[data-position-axis]");
+
+  if (slider) {
+    updateFramingControl(slider);
+    setDirtyState(true, "About crop updated. Click Save Changes to preserve it.");
+    return;
+  }
+
+  if (event.target.closest("[data-about-library-search]")) {
+    applyAboutPortfolioLibraryFilters();
+  }
+});
+
+elements.aboutPhotoList?.addEventListener("change", (event) => {
+  const placementField = event.target.closest('[data-field="placementRole"]');
+
+  if (placementField) {
+    updateStateFromCurrentDom();
+    rerenderCurrentRoute();
+    setDirtyState(true, "About placement updated. Click Save Changes to preserve it.");
+    return;
+  }
+
+  if (event.target.closest("[data-about-library-category]")) {
+    applyAboutPortfolioLibraryFilters();
   }
 });
 
@@ -5159,8 +6024,10 @@ window.addEventListener("beforeunload", (event) => {
 });
 
 // Start the editor by selecting the initial route and loading JSON data.
+setupMacMenuBar();
 updateThemeToggleButton();
 setEditorRoute();
+initializeEditorHistory();
 lastConfirmedHash = window.location.hash || "#/images";
 
 loadData().then(() => {
@@ -5178,6 +6045,7 @@ elements.galleryCurationList?.addEventListener("mousedown", (event) => {
   const module = event.target.closest("[data-gallery-architecture-module]");
   const map = event.target.closest("[data-gallery-architecture-map]");
   if (!map) return;
+  if (!module && event.target.closest(".gallery-layout-map-controls, button, input, select, textarea")) return;
 
   if (module) {
     const card = elements.galleryCurationList?.querySelector(

@@ -1,6 +1,12 @@
 export const elements = {
   editorRouteLinks: document.querySelectorAll("[data-editor-route-link]"),
   editorPages: document.querySelectorAll("[data-editor-page]"),
+  editorContextPalette: document.querySelector("#editorContextPalette"),
+  editorContextTitle: document.querySelector("#editorContextTitle"),
+  editorContextPaletteContent: document.querySelector("#editorContextPaletteContent"),
+  editorWindowTitle: document.querySelector("#editorWindowTitle"),
+  historyBackButton: document.querySelector("#historyBackButton"),
+  historyForwardButton: document.querySelector("#historyForwardButton"),
 
   imagesPageEyebrow: document.querySelector("#imagesPageEyebrow"),
   imagesPageTitle: document.querySelector("#imagesPageTitle"),

@@ -70,6 +70,7 @@ export type GalleryArtwork = {
   imageOrientation?: ImageOrientation;
 
   galleryPosition?: string;
+  galleryScale?: number;
   galleryFitMode: GalleryFitMode;
   galleryFrameStyle: GalleryFrameStyle;
   gallerySize: number;
@@ -303,6 +304,7 @@ export const galleryArtworks: GalleryArtwork[] = wallBlocks.flatMap((wall, wallI
       imageOrientation: normalizeOrientation(image.imageOrientation),
 
       galleryPosition: image.galleryPosition ?? '50% 50%',
+      galleryScale: Math.max(1, Number(image.galleryScale ?? 1)),
       galleryFitMode: normalizeFitMode(image.galleryFitMode),
       galleryFrameStyle: normalizeFrameStyle(image.galleryFrameStyle),
       gallerySize: normalizeGallerySize(image.gallerySize),

@@ -3,28 +3,28 @@
   "hero": {
     "eyebrow": "About / Contact",
     "headline": "A reserved space for the personal side of the archive.",
-    "intro": "Placeholder copy. Replace this with your final About introduction when you are ready."
+    "intro": "A photographic practice shaped by movement, landscape, and time spent outside."
   },
   "about": {
     "eyebrow": "About Me",
     "heading": "Personal background",
     "paragraphs": [
-      "Placeholder copy. Use this block for the short version of who you are, where you are from, and what shaped your creative point of view.",
-      "Placeholder copy. Use this second paragraph for photography, climbing, community, technical work, and the personal thread between them."
+      "I’m Taylor Pike, a photographer and creative working across climbing, landscape, portraiture, and personal projects. My work is grounded in time spent outside and an interest in the relationship between people and the environments they move through.",
+      "In 2012 I began stealing my parent's iPhone to take photos of the nature around me. Over the following years this passion snowballed into an active hobby. Eventually I earned my BS in Commercial Photography from Appalachian State University in 2020. I have also spent roughly a decade climbing, an experience that has shaped the way I understand movement, landscape, risk, and community. Those two parts of my life continue to overlap throughout my work."
     ]
   },
   "project": {
     "eyebrow": "Photography / Project",
     "heading": "Creative practice, technical crossover, and the archive system.",
     "paragraphs": [
-      "Placeholder copy. Use this block for how you think about photography, climbing, landscape, portrait work, commercial work, visual storytelling, and building this site as an evolving archive.",
-      "Placeholder copy. Use this block for the bridge between photography, editing, web development, support work, and the interactive gallery concept."
+      "I approach creative processes through observation rather than strict control. Planning is secondary to being within the moment. This is an essential part of my photographic practice. I find myself continuously being drawn to natural lighting and vibrant colors that fill the world.",
+      "I built this archive as an extension of the photographic work. Its indexes, metadata, and virtual gallery are intended to make viewing the photographs feel spatial and exploratory rather than like moving through a conventional portfolio template. This space is intended to be a living ecosystem for my personal work whether that might be photography, web design or otherwise. Currently this website hosts my photography portfolio as well as an interactive art gallery that displays selected images in a 3-D space. This gallery represents my creative work outside the realm of photography and showcases my understanding of system architecture. In addition to the gallery I have built a completely standalone website editing client to not only edit the gallery but the website as a whole. My intention behind this is to make curation intuitive by taking inspiration from large website builders like Wix or Squarespace and putting a completely personal touch on them. Please continue to check back in on this project as additional creative works will continue to be added to this archive."
     ]
   },
   "contact": {
     "eyebrow": "Contact",
     "headline": "Available for selected projects, collaborations, and image work.",
-    "body": "Placeholder copy. Replace this with your preferred contact language and availability notes.",
+    "body": "Available for selected visual assignments and collaborative projects. The website + curation system is currently a work in progress. If you are interested in hiring me for building or redesigning your website with the digital curation system I have created please contact me for availability.",
     "email": "jtaylorpike@gmail.com",
     "links": []
   }

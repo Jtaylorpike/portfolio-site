@@ -918,6 +918,8 @@ def normalize_image(
     image["thumbnailPosition"] = normalize_object_position(raw_image.get("thumbnailPosition"))
     image["heroPosition"] = normalize_object_position(raw_image.get("heroPosition"))
     image["galleryPosition"] = normalize_object_position(raw_image.get("galleryPosition"))
+    image["heroScale"] = clean_number(raw_image.get("heroScale"), 1.0, 1.0, 4.0)
+    image["galleryScale"] = clean_number(raw_image.get("galleryScale"), 1.0, 1.0, 4.0)
 
     gallery_frame_style = normalize_frame_style(raw_image.get("galleryFrameStyle"))
 
@@ -1734,8 +1736,24 @@ def normalize_about_photo(raw_photo: Any) -> dict[str, Any]:
         "alt": alt,
         "imageOrientation": orientation,
         "placementRole": placement_role,
+        "aboutPosition": normalize_object_position(raw_photo.get("aboutPosition")),
+        "aboutScale": max(1.0, min(4.0, clean_number(raw_photo.get("aboutScale"), 1.0))),
         "sourceType": clean_string(raw_photo.get("sourceType")) or "about",
     }
+
+    if raw_photo.get("backgroundX") not in (None, "") and raw_photo.get("backgroundY") not in (None, ""):
+        normalized["backgroundX"] = max(-35.0, min(100.0, clean_number(raw_photo.get("backgroundX"), 0.0)))
+        normalized["backgroundY"] = max(-12.0, min(100.0, clean_number(raw_photo.get("backgroundY"), 0.0)))
+
+    if raw_photo.get("backgroundWidth") not in (None, ""):
+        normalized["backgroundWidth"] = max(12.0, min(90.0, clean_number(raw_photo.get("backgroundWidth"), 42.0)))
+
+    if raw_photo.get("collageX") not in (None, "") and raw_photo.get("collageY") not in (None, ""):
+        normalized["collageX"] = max(-35.0, min(100.0, clean_number(raw_photo.get("collageX"), 0.0)))
+        normalized["collageY"] = max(-35.0, min(100.0, clean_number(raw_photo.get("collageY"), 0.0)))
+
+    if raw_photo.get("collageWidth") not in (None, ""):
+        normalized["collageWidth"] = max(12.0, min(100.0, clean_number(raw_photo.get("collageWidth"), 42.0)))
 
     if raw_photo.get("isActive") is False:
         normalized["isActive"] = False
@@ -2060,7 +2078,9 @@ def rename_image_id(
 DIRECT_IMAGE_UPDATE_FIELDS = {
     "thumbnailPosition",
     "heroPosition",
+    "heroScale",
     "galleryPosition",
+    "galleryScale",
     "galleryFitMode",
     "galleryFrameStyle",
     "gallerySize",
@@ -2079,6 +2099,12 @@ def normalize_direct_image_updates(raw_updates: dict[str, Any]) -> dict[str, Any
 
     if "galleryPosition" in raw_updates:
         updates["galleryPosition"] = normalize_object_position(raw_updates.get("galleryPosition"))
+
+    if "heroScale" in raw_updates:
+        updates["heroScale"] = clean_number(raw_updates.get("heroScale"), 1.0, 1.0, 4.0)
+
+    if "galleryScale" in raw_updates:
+        updates["galleryScale"] = clean_number(raw_updates.get("galleryScale"), 1.0, 1.0, 4.0)
 
 
     if "galleryFitMode" in raw_updates:

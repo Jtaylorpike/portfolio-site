@@ -135,7 +135,9 @@ function collectEditedImageFromCard(card, fallbackCategoryId, validCategoryIds) 
     "textureSrc",
     "thumbnailPosition",
     "heroPosition",
+    "heroScale",
     "galleryPosition",
+    "galleryScale",
     "galleryFitMode",
     "galleryFrameStyle",
     "gallerySize",
@@ -532,9 +534,32 @@ function collectAboutPhotosFromPage(state) {
       imageAspectRatio: getFieldValue(card, "imageAspectRatio"),
       imageOrientation: getFieldValue(card, "imageOrientation"),
       placementRole: getFieldValue(card, "placementRole") || "lower-collage",
+      aboutPosition: getFieldValue(card, "aboutPosition") || "50% 50%",
+      aboutScale: Number(getFieldValue(card, "aboutScale") || 1),
       sourceType: getFieldValue(card, "sourceType") || "about",
       sourceImageId: getFieldValue(card, "sourceImageId")
     };
+
+    const backgroundX = getFieldValue(card, "backgroundX");
+    const backgroundY = getFieldValue(card, "backgroundY");
+    const backgroundWidth = getFieldValue(card, "backgroundWidth");
+    const collageX = getFieldValue(card, "collageX");
+    const collageY = getFieldValue(card, "collageY");
+    const collageWidth = getFieldValue(card, "collageWidth");
+    if (backgroundX !== "" && backgroundY !== "") {
+      photo.backgroundX = Number(backgroundX);
+      photo.backgroundY = Number(backgroundY);
+    }
+    if (backgroundWidth !== "") {
+      photo.backgroundWidth = Number(backgroundWidth);
+    }
+    if (collageX !== "" && collageY !== "") {
+      photo.collageX = Number(collageX);
+      photo.collageY = Number(collageY);
+    }
+    if (collageWidth !== "") {
+      photo.collageWidth = Number(collageWidth);
+    }
 
     if (!getCheckboxValue(card, "isActive")) {
       photo.isActive = false;

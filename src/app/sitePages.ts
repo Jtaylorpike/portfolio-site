@@ -546,14 +546,35 @@ function getFallbackAboutPhotos(excludedIds: Set<string>, limit: number): AboutP
 function renderAboutFigure(photo: AboutPhoto, index: number, className: string, motionSpeed = 0): string {
   const imageSource = getAboutPhotoImageSource(photo);
   const motionAttribute = motionSpeed ? ` data-about-float data-about-float-speed="${motionSpeed}"` : '';
+  const sourceAspect = Number(photo.imageAspectRatio)
+    || (photo.imageOrientation === 'landscape' ? 3 / 2 : photo.imageOrientation === 'square' ? 1 : 2 / 3);
+  const lowerAspectBySlot = [270 / 470, 230 / 340, 220 / 300, 250 / 290, 180 / 250, 160 / 180];
+  const lowerSlotMatch = className.match(/about-lower-photo-(\d+)/);
+  const frameAspect = className.includes('about-photo-frame-1')
+    ? sourceAspect
+    : className.includes('about-photo-frame-2')
+      ? 390 / 470
+      : lowerSlotMatch
+        ? lowerAspectBySlot[Math.max(0, Number(lowerSlotMatch[1]) - 1)] ?? sourceAspect
+        : sourceAspect;
+  const hasCustomLayout = Number.isFinite(photo.collageX)
+    && Number.isFinite(photo.collageY)
+    && Number.isFinite(photo.collageWidth);
+  const layoutStyle = hasCustomLayout
+    ? ` style="left:${photo.collageX}%;right:auto;top:${photo.collageY}%;bottom:auto;width:${photo.collageWidth}%;height:auto;aspect-ratio:${frameAspect};"`
+    : className.includes('about-photo-frame-1')
+      ? ` style="height:auto;aspect-ratio:${frameAspect};"`
+      : '';
+  const resolvedClassName = `${className}${hasCustomLayout ? ' has-custom-collage-layout' : ''}`;
 
   return `
-    <figure class="${className}"${motionAttribute}>
+    <figure class="${resolvedClassName}"${motionAttribute}${layoutStyle}>
       <img
         src="${escapeHtml(imageSource)}"
         alt="${escapeHtml(getAboutPhotoAlt(photo))}"
         loading="${index === 0 ? 'eager' : 'lazy'}"
         decoding="async"
+        style="object-position: ${escapeHtml(photo.aboutPosition ?? '50% 50%')}; transform-origin: ${escapeHtml(photo.aboutPosition ?? '50% 50%')}; scale: ${Math.max(1, Number(photo.aboutScale ?? 1))};"
       />
       <figcaption>
         <span>${formatTwoDigitNumber(index)}</span>
@@ -664,6 +685,9 @@ function renderAboutFloatingPhotos(): string {
             data-about-float
             data-about-float-speed="${ySpeed.toFixed(3)}"
             data-about-float-x-speed="${xSpeed.toFixed(3)}"
+            ${Number.isFinite(photo.backgroundX) && Number.isFinite(photo.backgroundY)
+              ? `style="left:${photo.backgroundX}%;right:auto;top:${photo.backgroundY}%;bottom:auto;${Number.isFinite(photo.backgroundWidth) ? `width:${photo.backgroundWidth}%;` : ''}"`
+              : ''}
           >
             <img src="${escapeHtml(getAboutPhotoImageSource(photo))}" alt="" loading="lazy" decoding="async" />
           </div>

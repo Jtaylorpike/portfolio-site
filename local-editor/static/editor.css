@@ -7996,12 +7996,38 @@ html[data-editor-theme="dark"] .backup-restore-state {
 }
 
 .about-editor-section-header {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: start;
+  padding-left: 18px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--editor-control-border);
+  cursor: pointer;
+  list-style: none;
+}
+
+.about-editor-section-header::-webkit-details-marker {
+  display: none;
+}
+
+.about-editor-section-header::before {
+  content: "▶";
+  position: absolute;
+  top: 2px;
+  left: 0;
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+}
+
+.about-editor-section[open] > .about-editor-section-header::before {
+  content: "▼";
+}
+
+.about-editor-section:not([open]) > .about-editor-section-header {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .about-editor-section-header h3 {
@@ -8403,4 +8429,3697 @@ label > span,
   .gallery-layout-module-fields {
     grid-template-columns: repeat(2, minmax(110px, 1fr));
   }
+}
+
+/* Macintosh editor overhaul — foundation, slice 01.
+   Establishes the style-guide palette, typography roles, square geometry,
+   one-bit desktop texture, and direct control feedback. Workspace structure
+   and editor behavior remain unchanged in this slice. */
+:root {
+  --mac-paper: #f5f5f1;
+  --mac-white: #ffffff;
+  --mac-light: #e6e6e1;
+  --mac-mid: #b8b8b2;
+  --mac-desktop: #6a6a68;
+  --mac-ink: #111111;
+  --mac-focus: #165ed8;
+  --mac-shadow: 4px 4px 0 rgba(17, 17, 17, 0.28);
+  --editor-chrome-font: ChicagoFLF, Charcoal, "Arial Narrow", Arial, sans-serif;
+  --editor-ui-font: Geneva, Verdana, Arial, sans-serif;
+
+  --background: var(--mac-light);
+  --background-deep: var(--mac-mid);
+  --workspace: var(--mac-desktop);
+  --surface: var(--mac-paper);
+  --surface-strong: var(--mac-white);
+  --surface-muted: var(--mac-light);
+  --surface-sunken: #d8d8d2;
+  --text: var(--mac-ink);
+  --text-soft: #2f2f2d;
+  --muted: #62625e;
+  --muted-strong: #444441;
+  --line: #8f8f89;
+  --line-strong: var(--mac-ink);
+  --accent: var(--mac-ink);
+  --accent-soft: rgba(17, 17, 17, 0.08);
+  --editor-workspace: var(--mac-desktop);
+  --editor-grid-line: rgba(17, 17, 17, 0.16);
+  --editor-panel: var(--mac-paper);
+  --editor-panel-raised: var(--mac-white);
+  --editor-panel-soft: var(--mac-light);
+  --editor-control: var(--mac-white);
+  --editor-control-hover: var(--mac-light);
+  --editor-control-border: #767672;
+  --editor-control-border-strong: var(--mac-ink);
+  --editor-input: var(--mac-white);
+  --editor-input-focus: var(--mac-white);
+  --editor-selection: var(--mac-focus);
+  --editor-selection-soft: rgba(22, 94, 216, 0.12);
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --shadow-sm: none;
+  --shadow-md: none;
+}
+
+html[data-editor-theme="dark"] {
+  --mac-paper: #242422;
+  --mac-white: #30302e;
+  --mac-light: #1d1d1c;
+  --mac-mid: #454542;
+  --mac-desktop: #111110;
+  --mac-ink: #f5f5f1;
+  --mac-focus: #4f88e8;
+  --text-soft: #dfdfda;
+  --muted: #aaa9a2;
+  --muted-strong: #cecdc6;
+  --line: #686863;
+  --line-strong: #d8d8d2;
+  --accent-soft: rgba(245, 245, 241, 0.1);
+  --editor-grid-line: rgba(245, 245, 241, 0.09);
+  --editor-control-border: #85857f;
+  --editor-selection-soft: rgba(79, 136, 232, 0.18);
+}
+
+body,
+html[data-editor-theme="dark"] body {
+  background-color: var(--editor-workspace);
+  background-image: radial-gradient(var(--editor-grid-line) 0.75px, transparent 0.75px);
+  background-size: 4px 4px;
+  color: var(--text);
+  font-family: var(--editor-ui-font);
+}
+
+body::before {
+  display: none !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+.eyebrow,
+.header .dirty-indicator,
+.editor-nav a,
+.button,
+button,
+label > span,
+legend {
+  font-family: var(--editor-chrome-font);
+}
+
+.header,
+.editor-nav,
+.status,
+.section-heading,
+.panel,
+.image-card,
+.image-overview-card,
+.import-card,
+.backup-card,
+.category-row,
+.gallery-display-summary,
+.gallery-mode-panel,
+.gallery-curation-summary,
+.gallery-curation-filters,
+.gallery-curation-card,
+.gallery-editor-section,
+.bulk-editor-toolbar {
+  border-color: var(--line-strong);
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.header {
+  box-shadow: var(--mac-shadow);
+}
+
+.editor-nav {
+  overflow: visible;
+}
+
+.editor-nav a,
+.button,
+a.button,
+button.button,
+input,
+select,
+textarea {
+  border-radius: 0;
+}
+
+.button,
+a.button,
+button.button {
+  border: 1px solid var(--line-strong);
+  background: var(--editor-control);
+  color: var(--text);
+  box-shadow: none;
+  transform: none;
+}
+
+.button:hover,
+.button:focus-visible,
+a.button:hover,
+a.button:focus-visible,
+button.button:hover,
+button.button:focus-visible {
+  border-color: var(--line-strong);
+  background: var(--editor-control-hover);
+  color: var(--text);
+  box-shadow: none;
+  transform: none;
+}
+
+.button.primary,
+a.button.primary,
+button.button.primary,
+.editor-nav a.is-active {
+  border-color: var(--mac-ink);
+  background: var(--mac-ink);
+  color: var(--mac-paper);
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--mac-focus);
+  outline-offset: 1px;
+}
+
+/* Macintosh editor overhaul — desktop shell, slice 02.
+   Adds the global menu bar, document-window title bar, and a real status strip.
+   Menu labels are deliberately presentational until actual commands exist. */
+.mac-menu-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  min-height: 24px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 10px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--mac-paper);
+  color: var(--mac-ink);
+  font-family: var(--editor-chrome-font);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.mac-menu-mark {
+  min-width: 22px;
+  font-size: 10px;
+  letter-spacing: -0.04em;
+}
+
+.mac-menu-items {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 24px);
+  white-space: nowrap;
+}
+
+.mac-menu-context {
+  color: var(--muted-strong);
+  font-family: var(--editor-ui-font);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.header {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+}
+
+.mac-window-titlebar {
+  min-height: 18px;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 3px;
+  border-bottom: 1px solid var(--line-strong);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--mac-paper) 0 2px,
+      var(--mac-ink) 2px 3px
+    );
+  color: var(--mac-ink);
+  font-family: var(--editor-chrome-font);
+  text-align: center;
+}
+
+.mac-window-titlebar strong {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 1px 8px;
+  overflow: hidden;
+  background: var(--mac-paper);
+  font-size: 11px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mac-window-box {
+  width: 13px;
+  height: 13px;
+  display: block;
+  border: 1px solid var(--line-strong);
+  background: var(--mac-paper);
+}
+
+.mac-window-box-collapse::after {
+  content: "";
+  width: 7px;
+  height: 1px;
+  display: block;
+  margin: 8px auto 0;
+  background: var(--mac-ink);
+}
+
+.header-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 16px;
+}
+
+.editor-status-strip {
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 3px 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--mac-light);
+  color: var(--text);
+  font-family: var(--editor-ui-font);
+  font-size: 11px;
+}
+
+.editor-status-label {
+  color: var(--muted);
+  font-family: var(--editor-chrome-font);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.editor-status-strip .dirty-indicator {
+  min-width: 58px;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  background: var(--mac-paper);
+  color: var(--text);
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+  text-align: center;
+}
+
+.editor-status-strip .status {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.editor-status-strip .status::before {
+  width: 6px;
+  height: 6px;
+}
+
+@media (max-width: 760px) {
+  .mac-menu-items span:nth-child(3),
+  .mac-menu-items span:nth-child(4),
+  .mac-menu-items span:nth-child(5) {
+    display: none;
+  }
+
+  .mac-menu-context {
+    display: none;
+  }
+
+  .mac-menu-bar {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .header-content {
+    grid-template-columns: 1fr;
+  }
+
+  .header-actions {
+    justify-content: flex-start !important;
+  }
+
+  .editor-status-strip {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .editor-status-strip .editor-status-label:nth-of-type(2) {
+    display: none;
+  }
+
+  .editor-status-strip .status {
+    grid-column: 1 / -1;
+    padding-top: 3px;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* Macintosh editor overhaul — section palette, slice 03.
+   Wide screens use the guide's floating vertical section palette. Compact
+   screens dock the same real route links above the active workspace. */
+.editor-workspace-shell {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.editor-workspace-content {
+  min-width: 0;
+}
+
+.editor-nav {
+  position: sticky;
+  top: 36px;
+  z-index: 30;
+  display: grid;
+  align-content: start;
+  gap: 0;
+  margin: 0;
+  padding: 4px;
+  overflow: visible;
+  border: 1px solid var(--line-strong);
+  background: var(--mac-paper);
+  box-shadow: var(--mac-shadow);
+}
+
+.editor-nav-title {
+  display: block;
+  margin: -4px -4px 4px;
+  padding: 5px 8px 4px;
+  background: var(--mac-ink);
+  color: var(--mac-paper);
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.editor-nav a {
+  min-height: 31px;
+  justify-content: flex-start;
+  padding: 0 8px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--editor-ui-font);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.editor-nav a:last-child {
+  border-bottom: 0;
+}
+
+.editor-nav a:hover,
+.editor-nav a:focus-visible {
+  background: var(--mac-light);
+  color: var(--text);
+}
+
+.editor-nav a.is-active {
+  border-color: var(--mac-focus);
+  background: var(--mac-focus);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .editor-workspace-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editor-nav {
+    top: 28px;
+    display: flex;
+    flex-wrap: nowrap;
+    margin-bottom: 10px;
+    padding: 4px;
+    overflow-x: auto;
+    box-shadow: none;
+    scrollbar-width: thin;
+  }
+
+  .editor-nav-title {
+    display: none;
+  }
+
+  .editor-nav a {
+    min-width: max-content;
+    justify-content: center;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+
+  .editor-nav a:last-child {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .editor-nav {
+    position: static;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .editor-nav a {
+    flex: 1 1 calc(50% - 1px);
+    min-width: 0;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .editor-nav a:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+}
+
+/* Macintosh editor overhaul — unified controls, slice 15. */
+.page .button.primary,
+.page a.button.primary,
+.page button.button.primary,
+html[data-editor-theme="dark"] .page .button.primary,
+html[data-editor-theme="dark"] .page a.button.primary,
+html[data-editor-theme="dark"] .page button.button.primary {
+  border-color: var(--mac-white) var(--mac-ink) var(--mac-ink) var(--mac-white);
+  background: var(--mac-light);
+  color: var(--text);
+  outline: 2px solid var(--mac-ink);
+  outline-offset: 1px;
+  box-shadow: inset -1px -1px 0 var(--mac-mid);
+}
+
+.page .button.primary:hover:not(:disabled),
+.page .button.primary:focus-visible:not(:disabled),
+.page a.button.primary:hover,
+.page a.button.primary:focus-visible {
+  background: var(--mac-paper);
+  color: var(--text);
+}
+
+.page .button.primary:active:not(:disabled),
+.page a.button.primary:active {
+  border-color: var(--mac-ink) var(--mac-white) var(--mac-white) var(--mac-ink);
+  background: var(--mac-mid);
+  color: var(--text);
+  box-shadow: inset 1px 1px 0 rgba(17, 17, 17, 0.22);
+}
+
+.page .button.danger,
+.page .button.danger.subtle,
+.page button.button.danger {
+  border-color: var(--mac-white) var(--mac-ink) var(--mac-ink) var(--mac-white);
+  background: var(--mac-light);
+  color: var(--text);
+}
+
+.page .button.danger:hover,
+.page .button.danger:focus-visible {
+  border-color: var(--mac-ink);
+  background: var(--mac-paper);
+  color: var(--text);
+}
+
+.page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+.page textarea,
+.page select {
+  min-height: 28px;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background-color: var(--editor-input);
+  color: var(--text);
+  box-shadow:
+    inset 1px 1px 0 var(--mac-mid),
+    inset -1px -1px 0 var(--mac-white);
+}
+
+.page select {
+  appearance: none;
+  padding-right: 28px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--mac-ink) 50%),
+    linear-gradient(135deg, var(--mac-ink) 50%, transparent 50%),
+    linear-gradient(to left, var(--mac-light) 0 22px, transparent 22px);
+  background-position:
+    calc(100% - 11px) 50%,
+    calc(100% - 7px) 50%,
+    100% 0;
+  background-size: 4px 4px, 4px 4px, 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.page input[type="checkbox"] {
+  appearance: none;
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+  min-height: 14px;
+  margin: 1px 0 0;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background: var(--mac-white);
+  box-shadow: inset 1px 1px 0 var(--mac-mid);
+}
+
+.page input[type="checkbox"]::before {
+  content: "✓";
+  width: 12px;
+  height: 12px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mac-ink);
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  transform: none;
+}
+
+.page input[type="checkbox"]:checked {
+  border-color: var(--mac-ink);
+  background: var(--mac-white);
+}
+
+.page input[type="checkbox"]:checked::before {
+  opacity: 1;
+  transform: none;
+}
+
+.page .public-visibility-control {
+  min-height: 0;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+.page .public-visibility-control > span {
+  display: grid;
+  gap: 2px;
+  color: var(--text);
+  font-family: var(--editor-ui-font);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.page .public-visibility-control > span strong {
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.page .public-visibility-control > span small {
+  color: var(--muted-strong);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+/* Visual About-page background composition workspace. */
+.about-collage-launcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 16px;
+}
+
+.about-collage-launcher > div {
+  display: grid;
+  gap: 4px;
+}
+
+.about-collage-launcher h2,
+.about-collage-launcher p {
+  margin: 0;
+}
+
+.about-collage-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  background: rgba(0, 0, 0, .76);
+}
+
+.about-collage-modal[hidden] {
+  display: none;
+}
+
+body[data-about-collage-open="true"] {
+  overflow: hidden;
+}
+
+.about-collage-modal .about-collage-workspace {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: 100%;
+  height: calc(100vh - 28px);
+  margin: 0;
+  border: 2px solid #000;
+  outline: 1px solid #fff;
+  box-shadow: 0 18px 70px rgba(0, 0, 0, .65);
+}
+
+.about-collage-workspace {
+  overflow: hidden;
+  padding: 0;
+}
+
+.about-collage-window-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.about-collage-window-controls > span {
+  margin-right: 7px;
+}
+
+.about-collage-window-controls button {
+  display: grid;
+  width: 22px;
+  height: 18px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #000;
+  background: #f4f4ef;
+  color: #000;
+  font-family: var(--editor-chrome-font);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.about-collage-window-controls .about-collage-layer-toggle {
+  width: auto;
+  min-width: 92px;
+  padding-inline: 8px;
+  font-size: 9px;
+}
+
+.about-collage-window-controls .about-collage-undo {
+  width: auto;
+  min-width: 42px;
+  padding-inline: 7px;
+  font-size: 9px;
+}
+
+.about-collage-window-controls button:hover,
+.about-collage-window-controls button:focus-visible {
+  background: #000;
+  color: #fff;
+  outline: 1px solid #fff;
+  outline-offset: -3px;
+}
+
+.about-collage-workspace-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.about-collage-workspace-heading h2,
+.about-collage-workspace-heading p {
+  margin: 0;
+}
+
+.about-collage-workspace-heading h2 {
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.about-collage-workspace-heading .eyebrow {
+  display: none;
+}
+
+.about-collage-workspace-heading p {
+  max-width: 920px;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.about-collage-workspace-heading > div:first-child {
+  display: grid;
+  gap: 2px;
+  max-width: 820px;
+}
+
+.about-collage-preview-status {
+  display: grid;
+  min-width: 250px;
+  gap: 3px;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel-soft);
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+}
+
+.about-collage-workspace[data-background-only="true"] .about-collage-site-header,
+.about-collage-workspace[data-background-only="true"] .about-collage-page-section {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.about-collage-preview-status span {
+  color: var(--muted-strong);
+  font-family: var(--editor-mono-font);
+  font-size: 9px;
+}
+
+.about-collage-viewport {
+  min-height: 0;
+  overflow: auto;
+  padding: 18px;
+  background: #777773;
+}
+
+.about-collage-page {
+  position: relative;
+  width: min(100%, 1120px);
+  aspect-ratio: 1440 / 2700;
+  min-height: 1100px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #060606;
+  background:
+    linear-gradient(rgba(238, 231, 216, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(238, 231, 216, .035) 1px, transparent 1px),
+    #070908;
+  background-size: 6.25% 4%, 6.25% 4%, auto;
+  color: #eee7d8;
+  isolation: isolate;
+}
+
+.about-collage-site-header {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 2.8%;
+  min-height: 42px;
+  padding: 0 3%;
+  border-bottom: 1px solid rgba(238, 231, 216, .13);
+  background: rgba(4, 5, 5, .94);
+  font-family: Arial, sans-serif;
+  font-size: clamp(6px, .7vw, 11px);
+}
+
+.about-collage-site-header strong {
+  letter-spacing: .42em;
+}
+
+.about-collage-site-header span {
+  color: rgba(238, 231, 216, .65);
+}
+
+.about-collage-site-header nav {
+  margin-left: auto;
+  color: rgba(238, 231, 216, .72);
+}
+
+.about-collage-page-section {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  padding: 4.5% 5%;
+}
+
+.about-collage-page-hero {
+  grid-template-columns: .92fr 1.08fr;
+  min-height: 26%;
+}
+
+.about-collage-page-writing {
+  min-height: 20%;
+  align-items: center;
+}
+
+.about-collage-page-project {
+  grid-template-columns: 1fr .9fr;
+  min-height: 27%;
+}
+
+.about-collage-page-contact {
+  min-height: 24.2%;
+  align-items: center;
+}
+
+.about-collage-copy-card,
+.about-collage-wide-copy {
+  position: relative;
+  z-index: 4;
+  align-self: center;
+  padding: 7%;
+  border: 1px solid rgba(238, 231, 216, .18);
+  background: rgba(7, 9, 8, .88);
+  font-family: Arial, sans-serif;
+}
+
+.about-collage-copy-card small,
+.about-collage-wide-copy small {
+  color: rgba(238, 231, 216, .62);
+  font-size: clamp(6px, .65vw, 10px);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.about-collage-copy-card h3,
+.about-collage-wide-copy h3 {
+  margin: 4% 0;
+  color: #eee7d8;
+  font-family: Arial, sans-serif;
+  font-size: clamp(20px, 4.2vw, 62px);
+  line-height: .96;
+  letter-spacing: -.055em;
+  font-weight: 400;
+}
+
+.about-collage-copy-card p,
+.about-collage-wide-copy p {
+  margin: 0;
+  color: rgba(238, 231, 216, .7);
+  font-size: clamp(7px, .9vw, 13px);
+  line-height: 1.55;
+}
+
+.about-collage-wide-copy {
+  width: 74%;
+  margin-inline: auto;
+}
+
+.about-collage-upper-stack,
+.about-collage-lower-stack {
+  position: relative;
+  min-height: 100%;
+}
+
+.about-collage-foreground {
+  position: absolute;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid rgba(238, 231, 216, .28);
+  background: #111;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .42);
+  padding: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.about-collage-foreground img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+.about-collage-foreground > span {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 3;
+  padding: 2px 4px;
+  border: 1px solid #fff;
+  background: #000;
+  color: #fff;
+  font-family: var(--editor-mono-font);
+  font-size: 9px;
+}
+
+.about-collage-foreground:hover,
+.about-collage-foreground[data-selected="true"] {
+  z-index: 7;
+  border-color: #fff;
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+.about-collage-foreground[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.about-collage-upper-1 {
+  inset: 3% 2% 6% 10%;
+}
+
+.about-collage-upper-2 {
+  z-index: 2;
+  top: 31%;
+  left: 29%;
+  width: 54%;
+  height: 55%;
+}
+
+.about-collage-lower-1 { left: 18%; top: 14%; width: 42%; height: 58%; z-index: 4; }
+.about-collage-lower-2 { left: 42%; top: 23%; width: 36%; height: 42%; z-index: 3; }
+.about-collage-lower-3 { left: 5%; bottom: 9%; width: 35%; height: 36%; z-index: 2; }
+.about-collage-lower-4 { right: 7%; bottom: 8%; width: 38%; height: 34%; z-index: 1; }
+
+.about-collage-background-photo {
+  position: absolute;
+  z-index: 1;
+  width: 42%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  opacity: .12;
+  cursor: grab;
+  touch-action: none;
+  filter: grayscale(1) contrast(1.1);
+  transform: rotate(-2deg);
+}
+
+.about-collage-background-photo:nth-of-type(even) {
+  transform: rotate(2deg);
+}
+
+.about-collage-background-photo:hover,
+.about-collage-background-photo[data-selected="true"] {
+  z-index: 5;
+  border-color: #fff;
+  opacity: .28;
+  outline: 2px solid #000;
+  outline-offset: 2px;
+  filter: grayscale(.35) contrast(1.05);
+}
+
+.about-collage-background-photo[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.about-collage-background-photo[data-resizing="true"] {
+  cursor: nwse-resize;
+}
+
+.about-collage-background-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+.about-collage-resize-handle {
+  position: absolute;
+  z-index: 3;
+  display: none;
+  width: 22px;
+  height: 22px;
+  border-top: 1px solid #fff;
+  border-left: 1px solid #fff;
+  background:
+    linear-gradient(135deg, transparent 42%, #fff 43% 49%, transparent 50% 62%, #fff 63% 69%, transparent 70%),
+    #000;
+  cursor: nwse-resize;
+}
+
+.about-collage-resize-handle.is-nw { top: 0; left: 0; transform: rotate(180deg); }
+.about-collage-resize-handle.is-ne { top: 0; right: 0; transform: rotate(-90deg); cursor: nesw-resize; }
+.about-collage-resize-handle.is-sw { bottom: 0; left: 0; transform: rotate(90deg); cursor: nesw-resize; }
+.about-collage-resize-handle.is-se { right: 0; bottom: 0; }
+
+.about-collage-resize-preview {
+  position: absolute;
+  z-index: 8;
+  aspect-ratio: 3 / 4;
+  border: 2px dashed #fff;
+  outline: 1px solid #000;
+  background:
+    linear-gradient(90deg, transparent calc(50% - .5px), rgba(255, 255, 255, .6) 50%, transparent calc(50% + .5px)),
+    linear-gradient(transparent calc(50% - .5px), rgba(255, 255, 255, .6) 50%, transparent calc(50% + .5px)),
+    rgba(0, 0, 0, .14);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .35);
+  pointer-events: none;
+}
+
+.about-collage-background-photo[data-selected="true"] .about-collage-resize-handle,
+.about-collage-foreground[data-selected="true"] .about-collage-resize-handle {
+  display: block;
+}
+
+.about-collage-background-photo > span {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 4px;
+  border: 1px solid #fff;
+  background: #000;
+  color: #fff;
+  font-family: var(--editor-mono-font);
+  font-size: 9px;
+}
+
+@media (max-width: 760px) {
+  .about-collage-launcher {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .about-collage-workspace-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .about-collage-preview-status {
+    min-width: 0;
+  }
+
+  .about-collage-viewport {
+    padding: 8px;
+  }
+}
+
+/* Compact wall-map console. */
+.gallery-curation-summary-heading {
+  gap: 16px;
+  padding: 7px 10px;
+}
+
+.gallery-curation-summary-heading .eyebrow,
+.gallery-curation-summary-heading h3,
+.gallery-curation-summary-heading p:not(.eyebrow) {
+  display: inline;
+}
+
+.gallery-curation-summary-heading .eyebrow {
+  margin: 0 8px 0 0;
+}
+
+.gallery-curation-summary-heading h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.gallery-curation-summary-heading p:not(.eyebrow) {
+  margin: 0 0 0 10px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.gallery-curation-ledger-cell {
+  padding: 6px 10px;
+}
+
+.gallery-curation-ledger-cell dt {
+  margin-bottom: 2px;
+}
+
+.gallery-curation-ledger-cell strong {
+  font-size: 16px;
+}
+
+.gallery-curation-type-label,
+.gallery-curation-type-entry {
+  min-height: 24px;
+  padding: 3px 8px;
+}
+
+.gallery-placement-map-intro {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 3px 10px;
+  max-width: 100%;
+}
+
+.gallery-placement-map-intro > .eyebrow {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+}
+
+.gallery-placement-map-intro > h4 {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0 !important;
+  font-size: 16px;
+}
+
+.gallery-placement-map-intro > h4 + p {
+  grid-column: 1 / -1;
+  margin: 0 !important;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.gallery-placement-map-intro > .gallery-placement-map-warning,
+.gallery-placement-map-intro > .gallery-placement-map-success,
+.gallery-placement-map-intro > .gallery-room-map-selector {
+  grid-column: 1 / -1;
+}
+
+.gallery-placement-map-intro > .gallery-room-map-selector {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 420px);
+  align-items: center;
+  gap: 8px;
+}
+
+.gallery-placement-map-room > .gallery-map-controls {
+  width: min(480px, calc(100% - 16px));
+}
+
+.gallery-placement-map-room > .gallery-map-controls .gallery-map-control-buttons {
+  min-width: 0;
+  flex-wrap: nowrap;
+  gap: 2px;
+}
+
+.gallery-placement-map-room > .gallery-map-controls .button {
+  min-width: 0;
+  padding-inline: 5px;
+}
+
+.about-portfolio-library {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background: var(--mac-paper);
+}
+
+.about-portfolio-library > summary {
+  min-height: 30px;
+  padding: 5px 9px;
+  border-bottom: 0;
+  background-color: var(--mac-paper);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    var(--mac-ink) 2px 3px
+  );
+  cursor: pointer;
+  list-style: none;
+}
+
+.about-portfolio-library[open] > summary {
+  border-bottom: 1px solid var(--mac-ink);
+}
+
+.about-portfolio-library > summary::-webkit-details-marker {
+  display: none;
+}
+
+.about-portfolio-library > summary > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 1px 6px;
+  background: var(--mac-paper);
+}
+
+.about-portfolio-library > summary strong {
+  font-family: var(--editor-chrome-font);
+  font-size: 11px;
+}
+
+.about-portfolio-library > summary small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.about-portfolio-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 6px;
+  max-height: min(520px, 65vh);
+  padding: 8px;
+  overflow: auto;
+  background: var(--surface-sunken);
+}
+
+.about-portfolio-library-tools {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.5fr) minmax(150px, .8fr) minmax(150px, .8fr) auto;
+  align-items: end;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid var(--mac-mid);
+  background: var(--mac-light);
+}
+
+.about-portfolio-library-tools label {
+  display: grid;
+  gap: 3px;
+}
+
+.about-portfolio-library-tools output {
+  min-width: 90px;
+  padding-bottom: 7px;
+  color: var(--muted);
+  font-family: var(--editor-ui-font);
+  font-size: 9px;
+  text-align: right;
+}
+
+.about-portfolio-library-card {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px;
+  border: 1px solid var(--mac-ink);
+  background: var(--mac-paper);
+}
+
+.about-portfolio-library-card[hidden] {
+  display: none;
+}
+
+.about-portfolio-library-card img {
+  width: 58px;
+  height: 46px;
+  border: 1px solid var(--mac-ink);
+  object-fit: cover;
+}
+
+.about-portfolio-library-card > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.about-portfolio-library-card > div strong,
+.about-portfolio-library-card > div small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-portfolio-library-card > div strong {
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+}
+
+.about-portfolio-library-card > div small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+@media (max-width: 900px) {
+  .about-portfolio-library-tools {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .about-portfolio-library-tools output {
+    text-align: left;
+  }
+}
+
+.about-import-workspace {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background: var(--mac-paper);
+}
+
+.about-import-workspace > summary {
+  min-height: 30px;
+  padding: 5px 9px;
+  background-color: var(--mac-paper);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    var(--mac-ink) 2px 3px
+  );
+  cursor: pointer;
+  list-style: none;
+}
+
+.about-import-workspace > summary::-webkit-details-marker {
+  display: none;
+}
+
+.about-import-workspace > summary > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 1px 6px;
+  background: var(--mac-paper);
+}
+
+.about-import-workspace > summary strong {
+  font-family: var(--editor-chrome-font);
+  font-size: 11px;
+}
+
+.about-import-workspace > summary small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.about-import-workspace[open] > summary {
+  border-bottom: 1px solid var(--mac-ink);
+}
+
+.about-import-workspace-body {
+  padding: 10px;
+}
+
+.about-import-workspace-body .panel-grid {
+  gap: 7px 10px;
+}
+
+.about-import-workspace-body textarea {
+  min-height: 54px;
+}
+
+.about-import-prepare-actions {
+  margin-top: 8px;
+}
+
+.about-import-workspace-body .import-summary:empty {
+  display: none;
+}
+
+.about-import-workspace-body .about-import-review:not(.is-active) {
+  display: none;
+}
+
+.about-editor-summary {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 10px;
+}
+
+.about-editor-summary .eyebrow,
+.about-editor-summary h2 {
+  margin: 0;
+}
+
+.about-editor-summary h2 {
+  font-size: 15px;
+}
+
+.about-editor-summary .category-manager-summary {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0;
+  margin: 0;
+}
+
+.about-editor-summary .category-manager-summary span {
+  padding: 3px 7px;
+  border-right: 1px solid var(--mac-mid);
+  border-radius: 0;
+  background: transparent;
+  font-size: 9px;
+}
+
+.about-import-workspace > summary,
+.about-portfolio-library > summary {
+  position: relative;
+  padding-left: 32px;
+  box-shadow:
+    inset 1px 1px 0 var(--mac-white),
+    inset -1px -1px 0 var(--mac-mid);
+}
+
+.about-import-workspace > summary::before,
+.about-portfolio-library > summary::before {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border: 1px solid var(--mac-ink);
+  background: var(--mac-paper);
+  color: var(--mac-ink);
+  content: "▶";
+  font-family: var(--editor-ui-font);
+  font-size: 8px;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.about-import-workspace[open] > summary::before,
+.about-portfolio-library[open] > summary::before {
+  content: "▼";
+}
+
+.about-import-workspace:not([open]) > summary:hover,
+.about-portfolio-library:not([open]) > summary:hover {
+  background-color: var(--mac-light);
+}
+
+.about-editor-summary {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background: var(--mac-paper);
+}
+
+.about-editor-summary > .mac-panel-titlebar {
+  margin: 0;
+}
+
+.about-editor-summary-ledger {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0;
+}
+
+.about-editor-summary-ledger span {
+  min-width: 0;
+  padding: 6px 7px;
+  border-right: 1px solid var(--mac-mid);
+  background: var(--mac-paper);
+  color: var(--muted);
+  font-size: 9px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.about-editor-summary-ledger span:last-child {
+  border-right: 0;
+}
+
+.about-editor-summary-ledger strong {
+  color: var(--mac-ink);
+  font-family: var(--editor-chrome-font);
+  font-size: 11px;
+}
+
+@media (max-width: 1000px) {
+  .about-editor-summary-ledger {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .about-editor-summary-ledger span:nth-child(-n + 4) {
+    border-bottom: 1px solid var(--mac-mid);
+  }
+}
+
+.image-to-about-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.image-to-about-panel > summary {
+  padding: 6px 9px;
+}
+
+.image-to-about-panel-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px;
+}
+
+.image-about-crop-workspace {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--mac-mid);
+}
+
+.image-about-crop-preview {
+  height: 180px;
+  overflow: hidden;
+  border: 1px solid var(--mac-ink);
+  background: var(--surface-sunken);
+}
+
+.image-about-crop-preview.is-upper-collage {
+  aspect-ratio: 4 / 5;
+  width: min(100%, 145px);
+  height: auto;
+}
+
+.image-about-crop-preview.is-lower-collage {
+  aspect-ratio: 5 / 4;
+  height: auto;
+}
+
+.image-about-crop-preview.is-background-float {
+  aspect-ratio: 3 / 4;
+  width: min(100%, 150px);
+  height: auto;
+  opacity: .55;
+}
+
+.image-about-crop-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.about-editor-thumb {
+  padding: 0;
+  cursor: crosshair;
+}
+
+.about-editor-thumb:focus-visible {
+  outline: 2px solid var(--mac-focus);
+  outline-offset: 2px;
+}
+
+.about-card-crop-panel {
+  padding: 8px;
+  border: 1px solid var(--mac-ink);
+  background: var(--mac-light);
+}
+
+.about-card-crop-panel[hidden] {
+  display: none;
+}
+
+.about-card-crop-panel .framing-controls {
+  margin: 0;
+}
+
+.crop-preview {
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.crop-preview[data-crop-dragging="true"] {
+  cursor: grabbing;
+}
+
+.crop-preview [data-crop-preview-image] {
+  pointer-events: auto;
+  transform-origin: center;
+  will-change: object-position, scale;
+}
+
+.crop-zoom-control {
+  display: grid;
+  grid-template-columns: auto minmax(140px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--mac-ink);
+  background: var(--mac-light);
+}
+
+.crop-zoom-control > span,
+.crop-zoom-control > strong {
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+}
+
+.crop-drag-note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.crop-modal[hidden] {
+  display: none;
+}
+
+.crop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.crop-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: rgba(0, 0, 0, .68);
+}
+
+.crop-modal-window {
+  position: relative;
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  border: 1px solid var(--mac-ink);
+  background: var(--mac-paper);
+  box-shadow: 7px 7px 0 rgba(0, 0, 0, .45);
+}
+
+.crop-modal-window > .mac-panel-titlebar {
+  margin: 0;
+}
+
+.crop-modal-body {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.crop-modal-stage {
+  display: grid;
+  min-height: min(64vh, 560px);
+  place-items: center;
+  padding: 18px;
+  overflow: hidden;
+  background: #242422;
+}
+
+.crop-modal-frame {
+  position: relative;
+  width: min(100%, 620px);
+  max-height: min(58vh, 500px);
+  overflow: hidden;
+  border: 2px solid #fff;
+  background: #111;
+  cursor: grab;
+  touch-action: none;
+  box-shadow: 0 0 0 1px #000, 0 8px 24px rgba(0, 0, 0, .4);
+}
+
+.crop-modal-frame[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.crop-modal-frame > img {
+  position: absolute;
+  display: block;
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  pointer-events: none;
+  will-change: left, top, width, height;
+}
+
+.crop-modal-frame > img[data-snapping="true"] {
+  transition:
+    left 180ms cubic-bezier(.2, .8, .2, 1),
+    top 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.crop-modal-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, transparent 33.2%, rgba(255,255,255,.5) 33.2% 33.5%, transparent 33.5% 66.5%, rgba(255,255,255,.5) 66.5% 66.8%, transparent 66.8%),
+    linear-gradient(to bottom, transparent 33.2%, rgba(255,255,255,.5) 33.2% 33.5%, transparent 33.5% 66.5%, rgba(255,255,255,.5) 66.5% 66.8%, transparent 66.8%);
+  opacity: .55;
+}
+
+.crop-modal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.crop-modal-toolbar .button {
+  width: 32px;
+  min-width: 32px;
+}
+
+.crop-modal-toolbar > span {
+  margin-left: 10px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.crop-modal-instruction {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.crop-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--mac-ink);
+  background: var(--mac-light);
+}
+
+body[data-crop-modal-open="true"] {
+  overflow: hidden;
+}
+
+/* The application window uses a separate plane from the desktop behind it. */
+.editor-application-window,
+.editor-application-window > .editor-workspace-shell {
+  background-color: var(--mac-application-workspace);
+  background-image: none;
+}
+
+/* Macintosh editor overhaul — integrated window navigation, slice 16. */
+:root {
+  --mac-application-workspace: #858581;
+}
+
+html[data-editor-theme="dark"] {
+  --mac-application-workspace: #353533;
+}
+
+.editor-application-window,
+.editor-application-window > .editor-workspace-shell {
+  background-color: var(--mac-application-workspace);
+}
+
+.mac-window-titlebar {
+  min-height: 24px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.mac-window-left-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-right: 5px;
+  background: var(--mac-paper);
+}
+
+.mac-window-titlebar .mac-history-toolbar {
+  min-height: 0;
+  display: inline-flex;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.page .mac-window-titlebar .mac-history-toolbar .button {
+  width: 19px;
+  min-width: 19px;
+  height: 17px;
+  min-height: 17px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  font-family: var(--editor-ui-font);
+  font-size: 7px;
+  line-height: 1;
+}
+
+.page .mac-window-titlebar .mac-history-toolbar .button:disabled {
+  color: var(--muted);
+  text-shadow: 1px 1px 0 var(--mac-white);
+}
+
+.editor-application-window .editor-workspace-content {
+  background: transparent;
+}
+
+/* Macintosh editor overhaul — controls, slice 05.
+   Gives working controls the raised, pressed, default, and recessed states
+   used throughout the reference interface without changing their behavior. */
+.page .button,
+.page a.button,
+.page button.button {
+  min-height: 28px;
+  padding: 5px 12px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--mac-white) var(--mac-ink) var(--mac-ink) var(--mac-white);
+  background: var(--mac-light);
+  color: var(--text);
+  box-shadow: inset -1px -1px 0 var(--mac-mid);
+}
+
+.page .button:hover:not(:disabled),
+.page .button:focus-visible:not(:disabled),
+.page a.button:hover,
+.page a.button:focus-visible {
+  background: var(--mac-paper);
+}
+
+.page .button:active:not(:disabled),
+.page a.button:active {
+  border-color: var(--mac-ink) var(--mac-white) var(--mac-white) var(--mac-ink);
+  background: var(--mac-mid);
+  box-shadow: inset 1px 1px 0 rgba(17, 17, 17, 0.22);
+  transform: translate(1px, 1px);
+}
+
+.page .button.primary,
+.page a.button.primary,
+.page button.button.primary {
+  border-color: var(--mac-paper);
+  background: var(--mac-ink);
+  color: var(--mac-paper);
+  outline: 2px solid var(--mac-ink);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.page .button:disabled,
+.page button.button:disabled {
+  border-color: var(--mac-white) var(--mac-mid) var(--mac-mid) var(--mac-white);
+  color: var(--muted);
+  background: var(--mac-light);
+  box-shadow: none;
+  text-shadow: 1px 1px 0 var(--mac-white);
+}
+
+.page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+.page select,
+.page textarea {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--mac-ink) var(--mac-white) var(--mac-white) var(--mac-ink);
+  background: var(--editor-input);
+  box-shadow: inset 1px 1px 0 var(--mac-mid);
+}
+
+.page input:focus,
+.page select:focus,
+.page textarea:focus {
+  border-color: var(--mac-ink);
+  outline: 2px solid var(--mac-focus);
+  outline-offset: 1px;
+  box-shadow: inset 1px 1px 0 var(--mac-mid);
+}
+
+/* Macintosh editor overhaul — functional menus + contextual palette, slice 04. */
+.mac-menu-group {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: stretch;
+}
+
+.mac-menu-trigger {
+  min-width: 0;
+  min-height: 0;
+  padding: 2px 7px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--mac-ink);
+  font-family: var(--editor-chrome-font);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: default;
+}
+
+.mac-menu-trigger:hover,
+.mac-menu-trigger:focus-visible,
+.mac-menu-trigger.is-open {
+  outline: 0;
+  background: var(--mac-ink);
+  color: var(--mac-paper);
+}
+
+.mac-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 110;
+  width: max-content;
+  min-width: 210px;
+  max-width: calc(100vw - 16px);
+  padding: 3px;
+  border: 1px solid var(--line-strong);
+  background: var(--mac-paper);
+  color: var(--mac-ink);
+  box-shadow: var(--mac-shadow);
+}
+
+.mac-menu-dropdown[hidden] {
+  display: none;
+}
+
+.mac-menu-dropdown [role="menuitem"] {
+  width: 100%;
+  min-height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 3px 18px 3px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--mac-ink);
+  font-family: var(--editor-ui-font);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.15;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.mac-menu-dropdown [role="menuitem"]:hover,
+.mac-menu-dropdown [role="menuitem"]:focus-visible,
+.mac-menu-dropdown [role="menuitem"].is-active {
+  outline: 0;
+  background: var(--mac-focus);
+  color: #ffffff;
+}
+
+.mac-menu-dropdown kbd {
+  color: inherit;
+  font-family: var(--editor-ui-font);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.mac-menu-separator {
+  height: 1px;
+  display: block;
+  margin: 3px 2px;
+  background: var(--line);
+}
+
+.editor-workspace-shell:has(.editor-context-palette[hidden]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.editor-context-palette {
+  position: sticky;
+  top: 36px;
+  z-index: 30;
+  min-width: 0;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  background: var(--mac-paper);
+  box-shadow: var(--mac-shadow);
+}
+
+.editor-context-palette[hidden] {
+  display: none;
+}
+
+.editor-context-title {
+  display: block;
+  margin: -4px -4px 4px;
+  padding: 5px 8px 4px;
+  background: var(--mac-ink);
+  color: var(--mac-paper);
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.editor-context-palette .category-jump-nav {
+  position: static;
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.editor-context-palette .category-jump-nav a {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 7px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--editor-ui-font);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.15;
+  text-align: left;
+  text-decoration: none;
+}
+
+.editor-context-palette .category-jump-nav a:last-child {
+  border-bottom: 0;
+}
+
+.editor-context-palette .category-jump-nav a:hover,
+.editor-context-palette .category-jump-nav a:focus-visible,
+.editor-context-palette .category-jump-nav a.is-active {
+  outline: 0;
+  background: var(--mac-focus);
+  color: #ffffff;
+}
+
+@media (max-width: 1100px) {
+  .editor-context-palette {
+    top: 28px;
+    box-shadow: none;
+  }
+
+  .editor-context-palette .category-jump-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .editor-context-palette .category-jump-nav a {
+    min-width: max-content;
+    justify-content: center;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .mac-menu-bar {
+    gap: 4px;
+    padding-inline: 5px;
+  }
+
+  .mac-menu-items {
+    gap: 0;
+  }
+
+  .mac-menu-trigger {
+    padding-inline: 6px;
+  }
+
+  .editor-context-palette {
+    position: static;
+  }
+
+  .editor-context-palette .category-jump-nav {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .editor-context-palette .category-jump-nav a {
+    flex: 1 1 50%;
+    min-width: 0;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* Macintosh editor overhaul — Images panel hierarchy, slice 06. */
+.mac-image-library-panel {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow: var(--mac-shadow);
+}
+
+.mac-panel-titlebar {
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 7px;
+  border-bottom: 1px solid var(--line-strong);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--mac-paper) 0 1px,
+      var(--mac-ink) 1px 2px,
+      var(--mac-paper) 2px 4px
+    );
+  color: var(--text);
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.mac-panel-titlebar strong,
+.mac-panel-titlebar span {
+  padding: 1px 5px;
+  background: var(--surface);
+}
+
+.mac-panel-titlebar span {
+  color: var(--muted-strong);
+  font-family: var(--editor-ui-font);
+  font-size: 9px;
+}
+
+.mac-panel-body {
+  padding: 10px;
+  background: var(--surface-sunken);
+  box-shadow:
+    inset 1px 1px 0 var(--mac-mid),
+    inset -1px -1px 0 var(--mac-white);
+}
+
+.bulk-editor-toolbar .mac-panel-titlebar {
+  margin: -14px -14px 12px;
+}
+
+.image-card > .mac-panel-titlebar {
+  grid-column: 1 / -1;
+  margin: -14px -14px 0;
+}
+
+.mac-image-library-panel .image-overview-grid {
+  margin: 0;
+}
+
+.mac-image-library-panel .image-overview-card {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  box-shadow:
+    1px 1px 0 var(--mac-white),
+    2px 2px 0 var(--mac-mid);
+}
+
+.mac-image-library-panel .image-overview-card:focus-within {
+  outline: 2px solid var(--mac-focus);
+  outline-offset: 1px;
+}
+
+.mac-image-library-panel .image-overview-card[data-public-status="hidden"] {
+  background: var(--mac-light);
+}
+
+@media (max-width: 640px) {
+  .mac-panel-titlebar {
+    align-items: flex-start;
+  }
+
+  .mac-panel-titlebar span {
+    max-width: 55%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mac-panel-body {
+    padding: 7px;
+  }
+}
+
+/* Macintosh editor overhaul — condensed application hierarchy, slice 07. */
+.header-content {
+  display: none;
+}
+
+.header-actions {
+  width: auto;
+  margin-left: auto;
+}
+
+.editor-status-strip {
+  min-height: 24px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 7px;
+  padding: 3px 7px;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.editor-status-strip .dirty-indicator {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.editor-status-strip .dirty-indicator::after {
+  content: " —";
+}
+
+.editor-status-strip .status {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted-strong);
+  font-size: 10px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-status-strip .status::before {
+  display: none;
+}
+
+.editor-page-section[data-editor-page="images"] > .section-heading {
+  display: none;
+}
+
+.bulk-editor-toolbar {
+  padding: 10px;
+}
+
+.bulk-editor-toolbar .mac-panel-titlebar {
+  margin: -10px -10px 8px;
+}
+
+.bulk-editor-toolbar .bulk-editor-count {
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+}
+
+.bulk-editor-selection-actions {
+  margin: 0 0 7px;
+}
+
+.bulk-editor-controls {
+  padding: 7px;
+  border-color: var(--line);
+  background: var(--surface-sunken);
+}
+
+.bulk-editor-note {
+  margin: 6px 0 0;
+  font-size: 10px;
+}
+
+.category-page-actions.category-order-actions {
+  min-height: 0;
+  justify-content: flex-end;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mac-panel-body > .category-order-actions {
+  margin: 0 0 8px;
+}
+
+@media (max-width: 640px) {
+  .header-content {
+    display: none;
+  }
+}
+
+/* Macintosh editor overhaul — document chrome, slice 08. */
+.mac-window-titlebar {
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+}
+
+.mac-window-document-state {
+  min-width: 66px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 3px;
+  background: var(--mac-paper);
+}
+
+.mac-window-document-state .dirty-indicator {
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted-strong);
+  font-family: var(--editor-chrome-font);
+  font-size: 9px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mac-window-document-state .dirty-indicator::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  display: block;
+  border: 1px solid var(--line-strong);
+  background: var(--mac-paper);
+}
+
+.mac-window-document-state .dirty-indicator[data-dirty-state="dirty"] {
+  background: transparent;
+  color: var(--text);
+}
+
+.mac-window-document-state .dirty-indicator[data-dirty-state="dirty"]::before {
+  background: var(--mac-focus);
+}
+
+.editor-status-strip {
+  grid-template-columns: 14px minmax(0, 1fr);
+  background: var(--surface-sunken);
+  box-shadow:
+    inset 1px 1px 0 var(--mac-mid),
+    inset -1px -1px 0 var(--mac-white);
+}
+
+.mac-status-icon {
+  width: 12px;
+  height: 12px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--mac-paper);
+  color: var(--text);
+  font-family: Georgia, serif;
+  font-size: 9px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .mac-window-document-state {
+    min-width: 18px;
+  }
+
+  .mac-window-document-state .dirty-indicator {
+    width: 8px;
+    overflow: hidden;
+    color: transparent;
+  }
+}
+
+/* Macintosh editor overhaul — image records, slice 09. */
+.mac-image-library-panel .image-overview-card {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 7px;
+}
+
+.mac-image-library-panel .image-overview-card-link {
+  gap: 6px;
+}
+
+.mac-image-library-panel .image-overview-meta {
+  min-width: 0;
+  gap: 2px;
+}
+
+.mac-image-library-panel .image-overview-meta strong {
+  overflow: hidden;
+  font-family: var(--editor-chrome-font);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mac-image-library-panel .image-overview-meta > span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mac-image-library-panel .image-status-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  margin-top: 2px;
+}
+
+.mac-image-library-panel .image-status-badge,
+html[data-editor-theme="dark"] .mac-image-library-panel .image-status-badge {
+  min-height: 0;
+  display: inline-flex;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted-strong);
+  font-family: var(--editor-ui-font);
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+}
+
+.mac-image-library-panel .image-status-badge > span {
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: var(--mac-paper);
+}
+
+.mac-image-library-panel .image-status-badge[data-image-status="hero"] > span {
+  background: var(--mac-ink);
+}
+
+.mac-image-library-panel .image-status-badge[data-image-status="hidden"] > span {
+  background: var(--mac-mid);
+}
+
+.mac-image-library-panel .bulk-image-select-control,
+html[data-editor-theme="dark"] .mac-image-library-panel .bulk-image-select-control {
+  position: static;
+  width: fit-content;
+  min-width: 0;
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted-strong);
+  font-family: var(--editor-ui-font);
+  font-size: 9px;
+}
+
+.mac-image-library-panel .bulk-image-select-control:hover,
+.mac-image-library-panel .bulk-image-select-control:focus-within,
+.mac-image-library-panel .bulk-image-select-control:has(input[type="checkbox"]:checked),
+.mac-image-library-panel .image-overview-card[data-bulk-selected="true"] .bulk-image-select-control {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+}
+
+.mac-image-library-panel .bulk-image-select-control::after {
+  display: none;
+}
+
+.mac-image-library-panel .bulk-image-select-control input[type="checkbox"] {
+  position: static;
+  inset: auto;
+  width: 12px;
+  min-width: 12px;
+  height: 12px;
+  min-height: 12px;
+  margin: 0;
+  opacity: 1;
+}
+
+.image-record-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 5px;
+  border-top: 1px solid var(--line);
+}
+
+.image-card-command-menu {
+  position: relative;
+  margin-left: auto;
+  font-size: 9px;
+}
+
+.image-card-command-menu summary {
+  min-height: 18px;
+  display: flex;
+  align-items: center;
+  padding: 1px 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--mac-light);
+  color: var(--text);
+  font-family: var(--editor-chrome-font);
+  list-style: none;
+}
+
+.image-card-command-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.image-card-command-menu summary::after {
+  content: " ▾";
+  margin-left: 5px;
+}
+
+.image-card-command-menu[open] summary {
+  background: var(--mac-ink);
+  color: var(--mac-paper);
+}
+
+.image-card-command-menu .image-overview-actions {
+  position: absolute;
+  right: 0;
+  z-index: 4;
+  width: max-content;
+  min-width: 112px;
+  display: grid;
+  gap: 0;
+  padding: 2px;
+  border: 1px solid var(--line-strong);
+  background: var(--mac-paper);
+  box-shadow: var(--mac-shadow);
+}
+
+.image-card-command-menu .image-overview-actions .button {
+  width: 100%;
+  min-height: 22px;
+  justify-content: flex-start;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.image-card-command-menu .image-overview-actions .button:hover,
+.image-card-command-menu .image-overview-actions .button:focus-visible {
+  background: var(--mac-focus);
+  color: #ffffff;
+}
+
+.mac-image-library-panel .image-overview-card[data-bulk-selected="true"] {
+  outline: 2px solid var(--mac-focus);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+/* Macintosh editor overhaul — bulk utility panel, slice 10. */
+details.bulk-editor-toolbar {
+  padding: 0;
+}
+
+.bulk-editor-toolbar > summary.mac-panel-titlebar {
+  margin: 0;
+  cursor: default;
+  list-style: none;
+}
+
+.bulk-editor-toolbar > summary.mac-panel-titlebar::-webkit-details-marker {
+  display: none;
+}
+
+.bulk-editor-toolbar > summary.mac-panel-titlebar strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bulk-editor-toolbar > summary.mac-panel-titlebar strong::before {
+  content: "▶";
+  font-family: var(--editor-ui-font);
+  font-size: 7px;
+}
+
+.bulk-editor-toolbar[open] > summary.mac-panel-titlebar strong::before {
+  content: "▼";
+}
+
+.bulk-editor-body {
+  padding: 10px;
+  border-top: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.bulk-editor-toolbar[data-bulk-has-selection="true"] > summary.mac-panel-titlebar {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--editor-selection-soft) 0 1px,
+      var(--mac-ink) 1px 2px,
+      var(--editor-selection-soft) 2px 4px
+    );
+}
+
+/* Macintosh editor overhaul — image document shell, slice 11. */
+.image-card {
+  grid-template-columns: minmax(260px, 390px) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.image-record-preview-pane,
+.image-record-inspector {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.mac-subpanel-title {
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--mac-ink);
+  color: var(--mac-paper);
+  font-family: var(--editor-chrome-font);
+  font-size: 9px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.image-record-preview-pane {
+  align-self: start;
+}
+
+.image-record-preview-pane .preview {
+  margin: 7px;
+  border-color: var(--line-strong);
+  background: var(--surface-sunken);
+  box-shadow:
+    inset 1px 1px 0 var(--mac-mid),
+    inset -1px -1px 0 var(--mac-white);
+}
+
+.image-record-inspector > .fields {
+  gap: 8px;
+  padding: 9px;
+  background: var(--surface);
+}
+
+.image-record-inspector .image-card-actions {
+  margin: 2px -9px -9px;
+  padding: 8px 9px;
+  border-top: 1px solid var(--line-strong);
+  background: var(--mac-light);
+}
+
+@media (max-width: 900px) {
+  .image-card {
+    grid-template-columns: 1fr;
+  }
+
+  .image-record-preview-pane,
+  .image-record-inspector {
+    grid-column: 1;
+  }
+}
+
+/* Macintosh editor overhaul — document status tooltip, slice 12. */
+.header {
+  overflow: visible;
+}
+
+.mac-window-titlebar {
+  position: relative;
+  z-index: 20;
+}
+
+.mac-window-document-state {
+  position: relative;
+}
+
+.mac-window-document-state .dirty-indicator:focus-visible {
+  outline: 1px solid var(--mac-focus);
+  outline-offset: 2px;
+}
+
+.mac-document-tooltip {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 30;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 24px));
+  min-height: 0;
+  margin: 0;
+  padding: 6px 8px;
+  visibility: hidden;
+  border: 1px solid var(--line-strong);
+  background: var(--mac-paper);
+  box-shadow: var(--mac-shadow);
+  color: var(--text);
+  font-family: var(--editor-ui-font);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mac-window-document-state:hover .mac-document-tooltip,
+.mac-window-document-state:focus-within .mac-document-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Macintosh editor overhaul — inspector disclosure, slice 13. */
+.inspector-disclosure {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.inspector-disclosure > summary {
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  padding: 3px 7px;
+  background: var(--mac-light);
+  color: var(--text);
+  font-family: var(--editor-chrome-font);
+  font-size: 9px;
+  line-height: 1;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.inspector-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.inspector-disclosure > summary::before {
+  content: "▶";
+  width: 12px;
+  font-family: var(--editor-ui-font);
+  font-size: 7px;
+}
+
+.inspector-disclosure[open] > summary {
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.inspector-disclosure[open] > summary::before {
+  content: "▼";
+}
+
+.inspector-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  background: var(--surface-sunken);
+  box-shadow: inset 1px 1px 0 var(--mac-mid);
+}
+
+.inspector-fields-grid > .hero-controls {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .inspector-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Macintosh editor overhaul — containing application window, slice 14. */
+.editor-application-window {
+  min-height: calc(100vh - 42px);
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  border: 1px solid var(--line-strong);
+  background: var(--editor-workspace);
+  box-shadow: var(--mac-shadow);
+}
+
+.editor-application-window > .header {
+  flex: 0 0 auto;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  box-shadow: none;
+}
+
+.editor-application-window > .header .mac-window-titlebar {
+  border-bottom: 0;
+}
+
+.mac-history-toolbar {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--mac-light);
+  box-shadow:
+    inset 0 1px 0 var(--mac-white),
+    inset 0 -1px 0 var(--mac-mid);
+}
+
+.page .mac-history-toolbar .button {
+  min-width: 72px;
+  min-height: 22px;
+  height: 22px;
+  padding: 2px 8px;
+  font-size: 9px;
+}
+
+.page .mac-history-toolbar .button:disabled {
+  text-shadow: 1px 1px 0 var(--mac-white);
+}
+
+.editor-application-window > .editor-workspace-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 8px;
+  background: var(--editor-workspace);
+}
+
+.editor-application-window .editor-workspace-content {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .editor-application-window {
+    min-height: calc(100vh - 32px);
+  }
+
+  .editor-application-window > .editor-workspace-shell {
+    padding: 5px;
+  }
+}
+
+/* Final application-layer control normalization. */
+.gallery-curation-summary {
+  display: block;
+  padding: 0;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background: var(--mac-paper);
+  box-shadow:
+    inset 1px 1px 0 var(--mac-white),
+    inset -1px -1px 0 var(--mac-mid);
+}
+
+.gallery-curation-summary-titlebar {
+  margin: 0;
+}
+
+.gallery-curation-summary-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--mac-ink);
+  background: var(--mac-light);
+}
+
+.gallery-curation-summary-copy {
+  min-width: 0;
+}
+
+.gallery-curation-summary-heading .eyebrow {
+  margin: 0 0 3px;
+}
+
+.gallery-curation-summary-heading h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.gallery-curation-summary-heading p:not(.eyebrow) {
+  max-width: none;
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.gallery-curation-summary-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.gallery-curation-save-state {
+  max-width: 250px;
+  color: var(--muted);
+  font-family: var(--editor-ui-font);
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.gallery-curation-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--mac-ink);
+  background: var(--mac-paper);
+}
+
+.gallery-curation-ledger-cell {
+  min-width: 0;
+  padding: 10px 12px 9px;
+  border-right: 1px solid var(--mac-mid);
+  border-radius: 0;
+  background: transparent;
+}
+
+.gallery-curation-ledger-cell:last-child {
+  border-right: 0;
+}
+
+.gallery-curation-ledger-cell dt {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.gallery-curation-ledger-cell dd {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.gallery-curation-ledger-cell strong {
+  color: var(--mac-ink);
+  font-family: var(--editor-ui-font);
+  font-size: 19px;
+  line-height: 1;
+}
+
+.gallery-curation-ledger-cell small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gallery-curation-type-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--mac-light);
+}
+
+.gallery-curation-type-label,
+.gallery-curation-type-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 0;
+  border-right: 1px solid var(--mac-mid);
+  border-radius: 0;
+  background: transparent;
+  color: var(--mac-ink);
+  font-size: 10px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.gallery-curation-type-label {
+  background: var(--mac-ink);
+  color: var(--mac-paper);
+}
+
+.gallery-curation-type-entry strong {
+  font-family: var(--editor-ui-font);
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .gallery-curation-summary-heading {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .gallery-curation-summary-actions {
+    justify-content: space-between;
+  }
+
+  .gallery-curation-save-state {
+    max-width: none;
+    text-align: left;
+  }
+
+  .gallery-curation-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gallery-curation-ledger-cell:nth-child(2) {
+    border-right: 0;
+  }
+
+  .gallery-curation-ledger-cell:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--mac-mid);
+  }
+
+  .gallery-curation-type-strip {
+    flex-wrap: wrap;
+  }
+}
+
+.editor-application-window,
+.editor-application-window > .editor-workspace-shell {
+  background-color: var(--mac-application-workspace);
+  background-image: none;
+}
+
+.import-workspace-panel {
+  padding: 0;
+  overflow: hidden;
+  border-color: var(--line-strong);
+  background: var(--surface);
+  box-shadow: var(--mac-shadow);
+}
+
+.mac-page-window {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow: var(--mac-shadow);
+}
+
+.gallery-workspace-window > .editor-list {
+  gap: 10px;
+  padding: 10px;
+  background: var(--surface-sunken);
+  box-shadow:
+    inset 1px 1px 0 var(--mac-mid),
+    inset -1px -1px 0 var(--mac-white);
+}
+
+.gallery-placement-map-room,
+.gallery-layout-preview {
+  position: relative;
+}
+
+.gallery-layout-builder {
+  width: min(100%, 920px);
+  margin: 10px auto;
+  padding: 12px;
+}
+
+.gallery-layout-builder > .gallery-layout-preview {
+  width: min(100%, 680px, 72svh);
+  margin: 14px auto;
+}
+
+.gallery-placement-map-main {
+  display: grid;
+  place-items: start center;
+}
+
+.gallery-placement-map-room[data-gallery-placement-map] {
+  width: min(100%, 680px, 72svh) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 1 / 1;
+}
+
+.gallery-curation-filters {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background: var(--mac-paper);
+}
+
+.gallery-finder-titlebar {
+  margin: 0;
+}
+
+.gallery-filter-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 8px 12px 0;
+}
+
+.gallery-filter-heading h4,
+.gallery-filter-heading p {
+  margin: 0;
+}
+
+.gallery-filter-heading p {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.gallery-filter-grid {
+  gap: 0;
+  padding: 8px 12px 12px;
+}
+
+.gallery-filter-grid > label {
+  padding-right: 10px;
+}
+
+.gallery-filter-grid > label:last-child {
+  padding-right: 0;
+}
+
+.gallery-curation-list-header.mac-panel-titlebar {
+  min-height: 28px;
+  margin: 0;
+  padding: 2px 4px 2px 10px;
+}
+
+.gallery-curation-list-header .gallery-curation-filter-result {
+  display: inline-block;
+  margin: 0;
+  padding: 1px 5px;
+  background: var(--mac-paper);
+  color: var(--mac-ink);
+  font-family: var(--editor-chrome-font);
+  font-size: 11px;
+  line-height: 16px;
+  text-decoration: none;
+}
+
+.gallery-curation-summary > .gallery-placement-map {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background: var(--mac-paper);
+}
+
+.gallery-placement-map-intro .gallery-placement-map-warning,
+.gallery-placement-map-intro .gallery-placement-map-success {
+  min-height: 26px;
+  margin: 2px 0 0 !important;
+  padding: 5px 8px 5px 28px;
+  border: 1px solid var(--mac-mid) !important;
+  border-radius: 0;
+  background-color: var(--mac-light) !important;
+  background-image:
+    linear-gradient(45deg, transparent 46%, var(--mac-ink) 46% 54%, transparent 54%),
+    linear-gradient(-45deg, transparent 46%, var(--mac-ink) 46% 54%, transparent 54%);
+  background-position: 9px 9px, 13px 9px;
+  background-repeat: no-repeat;
+  background-size: 7px 7px;
+  color: var(--mac-ink) !important;
+  font-family: var(--editor-ui-font);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.gallery-placement-map-intro .gallery-placement-map-warning {
+  border-color: var(--mac-ink) !important;
+  background-color: var(--mac-paper) !important;
+}
+
+.gallery-placement-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background: var(--mac-paper);
+  box-shadow:
+    inset 1px 1px 0 var(--mac-white),
+    inset -1px -1px 0 var(--mac-mid);
+}
+
+.gallery-placement-sidebar-titlebar {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.gallery-placement-sidebar-heading {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--mac-mid);
+  background: var(--mac-light);
+}
+
+.gallery-placement-sidebar-heading h5 {
+  margin: 0 0 3px;
+  font-size: 14px;
+}
+
+.gallery-placement-sidebar-heading p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.gallery-placement-sidebar-list {
+  gap: 0;
+  padding: 6px;
+  background: var(--mac-paper);
+}
+
+.gallery-placement-sidebar-item {
+  min-height: 58px;
+  margin: 0 0 4px;
+  padding: 7px 9px;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background: var(--mac-white);
+  box-shadow: none;
+}
+
+.gallery-placement-sidebar-item:last-child {
+  margin-bottom: 0;
+}
+
+.gallery-placement-sidebar-item:hover,
+.gallery-placement-sidebar-item:focus-visible {
+  background: var(--mac-light);
+  transform: none;
+}
+
+.gallery-placement-map-room > .gallery-map-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 12;
+  width: min(520px, calc(100% - 16px));
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) auto;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: var(--mac-paper);
+  box-shadow: var(--mac-shadow);
+}
+
+.gallery-placement-map-room > .gallery-map-controls .eyebrow,
+.gallery-placement-map-room > .gallery-map-controls small {
+  display: none;
+}
+
+.gallery-placement-map-room > .gallery-map-controls strong {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--editor-chrome-font);
+  font-size: 9px;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gallery-placement-map-room > .gallery-map-controls .gallery-map-control-buttons {
+  flex-wrap: nowrap;
+  gap: 2px;
+}
+
+.gallery-placement-map-room > .gallery-map-controls .button {
+  min-width: 22px;
+  min-height: 22px;
+  height: 22px;
+  padding: 2px 6px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.gallery-layout-preview > .gallery-layout-map-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 12;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  background: var(--mac-paper);
+  box-shadow: var(--mac-shadow);
+}
+
+.gallery-map-zoom-controls,
+.gallery-map-pan-controls {
+  display: grid;
+  gap: 2px;
+}
+
+.gallery-map-zoom-controls {
+  grid-template-columns: repeat(2, 22px);
+}
+
+.gallery-map-pan-controls {
+  grid-template-columns: repeat(3, 22px);
+}
+
+.gallery-map-zoom-controls > span,
+.gallery-map-pan-controls > span {
+  color: var(--text);
+  font-family: var(--editor-chrome-font);
+  font-size: 8px;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.gallery-map-zoom-controls > span {
+  grid-column: 1 / -1;
+}
+
+.gallery-map-pan-controls > span {
+  grid-column: 1 / -1;
+}
+
+.gallery-map-pan-controls .is-up {
+  grid-column: 2;
+}
+
+.gallery-map-pan-controls .is-left {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.gallery-map-pan-controls .is-right {
+  grid-column: 3;
+  grid-row: 3;
+}
+
+.gallery-map-pan-controls .is-down {
+  grid-column: 2;
+  grid-row: 4;
+}
+
+.page .gallery-layout-preview > .gallery-layout-map-controls .button {
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  font-size: 10px;
+}
+
+@media (max-width: 760px) {
+  .gallery-placement-map-room > .gallery-map-controls {
+    left: 6px;
+    right: 6px;
+    width: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-placement-map-room > .gallery-map-controls .gallery-map-control-buttons {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
+
+.import-workspace-panel > .mac-panel-titlebar {
+  margin: 0;
+}
+
+.import-workspace-panel > .eyebrow,
+.import-workspace-panel > h2 {
+  display: none;
+}
+
+.import-workspace-panel > .panel-grid,
+.import-workspace-panel > .actions,
+.import-workspace-panel > .import-summary,
+.import-workspace-panel > .import-review {
+  margin-inline: 10px;
+}
+
+.import-workspace-panel > .panel-grid {
+  margin-top: 10px;
+}
+
+.import-workspace-panel > .import-review {
+  margin-bottom: 10px;
+}
+
+.import-workspace-panel > .import-review.is-active {
+  padding: 0;
+  overflow: visible;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.import-review > .mac-subpanel-title {
+  margin: 0;
+}
+
+.import-review > .eyebrow,
+.import-review > h2 {
+  display: none;
+}
+
+.import-review > .import-review-actions {
+  margin: 0;
+  padding: 7px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--mac-light);
+}
+
+.import-review > .import-progress,
+.import-review > .import-review-list {
+  margin: 8px;
+}
+
+.import-workspace-panel > .import-source-field {
+  display: grid;
+  gap: 4px;
+  margin: 10px;
+}
+
+.import-workspace-panel > .import-defaults-disclosure {
+  margin: 0 10px;
+}
+
+.import-defaults-disclosure > .inspector-fields-grid {
+  margin: 0;
+}
+
+.page input[type="file"] {
+  padding: 3px;
+}
+
+.page input[type="file"]::file-selector-button {
+  min-height: 22px;
+  margin-right: 8px;
+  padding: 3px 9px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--mac-white) var(--mac-ink) var(--mac-ink) var(--mac-white);
+  border-radius: 0;
+  background: var(--mac-light);
+  color: var(--text);
+  font-family: var(--editor-chrome-font);
+  font-size: 9px;
+  box-shadow: inset -1px -1px 0 var(--mac-mid);
+}
+
+.page input[type="file"]::file-selector-button:active {
+  border-color: var(--mac-ink) var(--mac-white) var(--mac-white) var(--mac-ink);
+  background: var(--mac-mid);
+}
+
+.page .button.primary,
+.page a.button.primary,
+.page button.button.primary,
+html[data-editor-theme="dark"] .page .button.primary,
+html[data-editor-theme="dark"] .page a.button.primary,
+html[data-editor-theme="dark"] .page button.button.primary {
+  border-color: var(--mac-white) var(--mac-ink) var(--mac-ink) var(--mac-white);
+  background: var(--mac-light);
+  color: var(--text);
+  outline: 2px solid var(--mac-ink);
+  outline-offset: 1px;
+  box-shadow: inset -1px -1px 0 var(--mac-mid);
+}
+
+.page .button.primary:hover:not(:disabled),
+.page .button.primary:focus-visible:not(:disabled),
+.page a.button.primary:hover,
+.page a.button.primary:focus-visible {
+  background: var(--mac-paper);
+  color: var(--text);
+}
+
+.page .button.primary:active:not(:disabled),
+.page a.button.primary:active {
+  border-color: var(--mac-ink) var(--mac-white) var(--mac-white) var(--mac-ink);
+  background: var(--mac-mid);
+  color: var(--text);
+}
+
+.page .button.danger,
+.page .button.danger.subtle,
+.page button.button.danger {
+  border-color: var(--mac-white) var(--mac-ink) var(--mac-ink) var(--mac-white);
+  background: var(--mac-light);
+  color: var(--text);
+}
+
+.page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+.page textarea,
+.page select {
+  min-height: 28px;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background-color: var(--editor-input);
+  color: var(--text);
+  box-shadow:
+    inset 1px 1px 0 var(--mac-mid),
+    inset -1px -1px 0 var(--mac-white);
+}
+
+.page select {
+  appearance: none;
+  padding-right: 28px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--mac-ink) 50%),
+    linear-gradient(135deg, var(--mac-ink) 50%, transparent 50%),
+    linear-gradient(to left, var(--mac-light) 0 22px, transparent 22px);
+  background-position:
+    calc(100% - 11px) 50%,
+    calc(100% - 7px) 50%,
+    100% 0;
+  background-size: 4px 4px, 4px 4px, 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.page input[type="checkbox"] {
+  appearance: none;
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+  min-height: 14px;
+  margin: 1px 0 0;
+  border: 1px solid var(--mac-ink);
+  border-radius: 0;
+  background: var(--mac-white);
+  box-shadow: inset 1px 1px 0 var(--mac-mid);
+}
+
+.page input[type="checkbox"]::before {
+  content: "✓";
+  width: 12px;
+  height: 12px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mac-ink);
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  transform: none;
+}
+
+.page input[type="checkbox"]:checked {
+  border-color: var(--mac-ink);
+  background: var(--mac-white);
+}
+
+.page input[type="checkbox"]:checked::before {
+  opacity: 1;
+  transform: none;
+}
+
+.page .public-visibility-control {
+  min-height: 0;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+.page .public-visibility-control > span {
+  display: grid;
+  gap: 2px;
+  color: var(--text);
+  font-family: var(--editor-ui-font);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.page .public-visibility-control > span strong {
+  font-family: var(--editor-chrome-font);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.page .public-visibility-control > span small {
+  color: var(--muted-strong);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 1.3;
 }

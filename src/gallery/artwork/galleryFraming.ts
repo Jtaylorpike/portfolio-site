@@ -172,15 +172,16 @@ export function parseGalleryObjectPosition(position: string | undefined) {
   }
 
   return {
-    x: clampNumber(Number(match[1]), 0, 100),
-    y: clampNumber(Number(match[2]), 0, 100)
+    x: clampNumber(Number(match[1]), -100, 200),
+    y: clampNumber(Number(match[2]), -100, 200)
   };
 }
 
 export function getCoverTextureTransform(
   imageAspect: number,
   frameAspect: number,
-  position: string | undefined
+  position: string | undefined,
+  scale = 1
 ): GalleryTextureTransform {
   const parsedPosition = parseGalleryObjectPosition(position);
   let repeatX = 1;
@@ -200,6 +201,12 @@ export function getCoverTextureTransform(
     repeatY = imageAspect / frameAspect;
     offsetY = (1 - repeatY) * (1 - parsedPosition.y / 100);
   }
+
+  const safeScale = Math.max(1, Number(scale) || 1);
+  repeatX /= safeScale;
+  repeatY /= safeScale;
+  offsetX = (1 - repeatX) * (parsedPosition.x / 100);
+  offsetY = (1 - repeatY) * (1 - parsedPosition.y / 100);
 
   return {
     repeatX,

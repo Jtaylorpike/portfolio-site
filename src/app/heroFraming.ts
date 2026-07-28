@@ -106,7 +106,9 @@ export function getHeroImageInlineStyle(image: GalleryImage): string {
     'max-width: none !important',
     'max-height: none !important',
     'object-fit: cover !important',
-    `object-position: ${getHeroImagePosition(image)} !important`
+    `object-position: ${getHeroImagePosition(image)} !important`,
+    `transform-origin: ${getHeroImagePosition(image)} !important`,
+    `scale: ${Math.max(1, Number(image.heroScale ?? 1))} !important`
   ].join('; ');
 }
 

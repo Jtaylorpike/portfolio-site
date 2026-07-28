@@ -44,10 +44,12 @@ export type GalleryImage = {
 
   thumbnailPosition?: string;
   heroPosition?: string;
+  heroScale?: number;
   heroFrameStyle?: HeroFrameStyle;
   heroFitMode?: HeroFitMode;
 
   galleryPosition?: string;
+  galleryScale?: number;
   galleryFitMode?: GalleryFitMode;
   galleryFrameStyle?: GalleryFrameStyle;
   gallerySize?: number;

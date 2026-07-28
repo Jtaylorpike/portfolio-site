@@ -232,7 +232,7 @@ function getEditorHeroFrameInlineStyle(_image) {
   ].join("; ");
 }
 
-function getEditorHeroImageInlineStyle(_image, position) {
+function getEditorHeroImageInlineStyle(image, position) {
   return [
     "display: block !important",
     "width: 100% !important",
@@ -240,7 +240,8 @@ function getEditorHeroImageInlineStyle(_image, position) {
     "max-width: none !important",
     "max-height: none !important",
     "object-fit: cover !important",
-    `object-position: ${position} !important`
+    `object-position: ${position} !important`,
+    `scale: ${Math.max(1, Number(image.heroScale ?? 1))} !important`
   ].join("; ");
 }
 
@@ -296,6 +297,10 @@ function getCropModeLabel(cropMode) {
     return "Virtual Gallery Crop";
   }
 
+  if (cropMode === "about") {
+    return "About Page Crop";
+  }
+
   return "Crop";
 }
 
@@ -309,7 +314,23 @@ function getCropFieldName(cropMode) {
     return "galleryPosition";
   }
 
+  if (cropMode === "about") {
+    return "aboutPosition";
+  }
+
   return "heroPosition";
+}
+
+function getCropScaleFieldName(cropMode) {
+  if (cropMode === "gallery") return "galleryScale";
+  if (cropMode === "about") return "aboutScale";
+  return "heroScale";
+}
+
+function getAboutCropAspect(placementRole) {
+  if (placementRole === "upper-collage") return 4 / 5;
+  if (placementRole === "background-float") return 3 / 4;
+  return 5 / 4;
 }
 
 // Builds help text for the selected crop editor mode.
@@ -378,55 +399,53 @@ function renderBulkEditorToolbar(state, scopeLabel) {
   }).join("");
 
   return `
-    <section class="bulk-editor-toolbar" data-bulk-editor-toolbar aria-label="Bulk image editor">
-      <div class="bulk-editor-toolbar-header">
-        <div class="bulk-editor-toolbar-copy">
-          <p class="eyebrow">Bulk Editor</p>
-          <strong>${escapeHtml(scopeLabel)}</strong>
-          <span>Select images, choose one or more updates, then apply them in a single save.</span>
+    <details class="bulk-editor-toolbar" data-bulk-editor-toolbar>
+      <summary class="mac-panel-titlebar">
+        <strong>Bulk Edit</strong>
+        <span>${escapeHtml(scopeLabel)} / <output class="bulk-editor-count" data-bulk-selection-count aria-live="polite">0 selected</output></span>
+      </summary>
+
+      <div class="bulk-editor-body">
+        <div class="bulk-editor-selection-actions" aria-label="Bulk selection actions">
+          <button class="button" type="button" data-bulk-select-visible>Select all visible cards</button>
+          <button class="button" type="button" data-bulk-clear-selection>Clear selection</button>
         </div>
-        <output class="bulk-editor-count" data-bulk-selection-count aria-live="polite">0 selected</output>
+
+        <div class="bulk-editor-controls">
+          <label>
+            <span>Visibility</span>
+            <select data-bulk-field="visibility">
+              <option value="">Leave visibility unchanged</option>
+              <option value="show">Show selected on public site</option>
+              <option value="hide">Hide selected from public site</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Category</span>
+            <select data-bulk-field="category">
+              <option value="">Leave category unchanged</option>
+              ${categoryOptionsMarkup}
+            </select>
+          </label>
+
+          <label>
+            <span>Homepage hero</span>
+            <select data-bulk-field="hero">
+              <option value="">Leave hero status unchanged</option>
+              <option value="add">Add eligible selected images</option>
+              <option value="remove">Remove selected from hero</option>
+            </select>
+          </label>
+
+          <button class="button primary" type="button" data-bulk-apply disabled>Apply selected updates</button>
+        </div>
+
+        <p class="bulk-editor-note">
+          Hero additions require visible landscape images.
+        </p>
       </div>
-
-      <div class="bulk-editor-selection-actions" aria-label="Bulk selection actions">
-        <button class="button" type="button" data-bulk-select-visible>Select all visible cards</button>
-        <button class="button" type="button" data-bulk-clear-selection>Clear selection</button>
-      </div>
-
-      <div class="bulk-editor-controls">
-        <label>
-          <span>Visibility</span>
-          <select data-bulk-field="visibility">
-            <option value="">Leave visibility unchanged</option>
-            <option value="show">Show selected on public site</option>
-            <option value="hide">Hide selected from public site</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Category</span>
-          <select data-bulk-field="category">
-            <option value="">Leave category unchanged</option>
-            ${categoryOptionsMarkup}
-          </select>
-        </label>
-
-        <label>
-          <span>Homepage hero</span>
-          <select data-bulk-field="hero">
-            <option value="">Leave hero status unchanged</option>
-            <option value="add">Add eligible selected images</option>
-            <option value="remove">Remove selected from hero</option>
-          </select>
-        </label>
-
-        <button class="button primary" type="button" data-bulk-apply disabled>Apply selected updates</button>
-      </div>
-
-      <p class="bulk-editor-note">
-        Hidden images stay in the editor and keep their files. Hero additions only apply to visible landscape images.
-      </p>
-    </section>
+    </details>
   `;
 }
 
@@ -436,11 +455,6 @@ function renderImageOverviewCard(state, image) {
 
   return `
     <article class="image-overview-card" data-image-card-overview data-image-id="${escapeHtml(image.id)}" data-public-status="${isImagePublic(image) ? "public" : "hidden"}">
-      <label class="bulk-image-select-control">
-        <input type="checkbox" data-bulk-image-select value="${escapeHtml(image.id)}" />
-        <span>Select image</span>
-      </label>
-
       <a class="image-overview-card-link" href="#/image/${encodeURIComponent(image.id)}">
         <div class="image-overview-thumb">
           <img
@@ -457,6 +471,11 @@ function renderImageOverviewCard(state, image) {
           ${renderImageStatusBadges(state, image)}
         </div>
       </a>
+
+      <label class="bulk-image-select-control">
+        <input type="checkbox" data-bulk-image-select value="${escapeHtml(image.id)}" />
+        <span>Select</span>
+      </label>
     </article>
   `;
 }
@@ -467,11 +486,6 @@ function renderImageOrderCard(state, image) {
 
   return `
     <article class="image-overview-card image-order-card" data-category-order-card data-image-id="${escapeHtml(image.id)}" data-public-status="${isImagePublic(image) ? "public" : "hidden"}">
-      <label class="bulk-image-select-control" data-no-card-drag>
-        <input type="checkbox" data-bulk-image-select value="${escapeHtml(image.id)}" />
-        <span>Select image</span>
-      </label>
-
       <a class="image-overview-thumb" href="#/image/${encodeURIComponent(image.id)}" draggable="false">
         <img
           src="${escapeHtml(image.thumbSrc ?? image.src)}"
@@ -488,10 +502,20 @@ function renderImageOrderCard(state, image) {
         ${renderImageStatusBadges(state, image)}
       </div>
 
-      <div class="image-overview-actions">
-        <button class="button" type="button" data-move-category-image="top">Top</button>
-        <button class="button" type="button" data-move-category-image="up">Up</button>
-        <button class="button" type="button" data-move-category-image="down">Down</button>
+      <div class="image-record-footer">
+        <label class="bulk-image-select-control" data-no-card-drag>
+          <input type="checkbox" data-bulk-image-select value="${escapeHtml(image.id)}" />
+          <span>Select</span>
+        </label>
+
+        <details class="image-card-command-menu" data-no-card-drag>
+          <summary>Arrange</summary>
+          <div class="image-overview-actions">
+            <button class="button" type="button" data-move-category-image="top">Move to Top</button>
+            <button class="button" type="button" data-move-category-image="up">Move Up</button>
+            <button class="button" type="button" data-move-category-image="down">Move Down</button>
+          </div>
+        </details>
       </div>
     </article>
   `;
@@ -526,12 +550,15 @@ function renderHeroOrderCard(state, image, slide) {
         </select>
       </label>
 
-      <div class="image-overview-actions">
-        <button class="button" type="button" data-move-hero-image="top">Top</button>
-        <button class="button" type="button" data-move-hero-image="up">Up</button>
-        <button class="button" type="button" data-move-hero-image="down">Down</button>
-        <button class="button danger" type="button" data-remove-hero-image>Remove from Hero</button>
-      </div>
+      <details class="image-card-command-menu" data-no-card-drag>
+        <summary>Slide Commands</summary>
+        <div class="image-overview-actions">
+          <button class="button" type="button" data-move-hero-image="top">Move to Top</button>
+          <button class="button" type="button" data-move-hero-image="up">Move Up</button>
+          <button class="button" type="button" data-move-hero-image="down">Move Down</button>
+          <button class="button danger" type="button" data-remove-hero-image>Remove from Hero</button>
+        </div>
+      </details>
     </article>
   `;
 }
@@ -669,6 +696,17 @@ export function updateFramingControl(slider) {
       previewImage.style.objectPosition = position;
     }
   }
+
+  if (fieldName === "aboutPosition") {
+    const aboutCard = controls.closest("[data-about-photo-card]");
+    const imageCard = controls.closest("[data-image-card]");
+    const previewImage = aboutCard?.querySelector(".about-editor-thumb img")
+      ?? imageCard?.querySelector(".image-about-crop-preview img");
+
+    if (previewImage) {
+      previewImage.style.objectPosition = position;
+    }
+  }
 }
 
 // Updates the gallery size text output when its slider moves.
@@ -780,12 +818,19 @@ function renderImageOverview(state, elements) {
   elements.imagesPageDescription.textContent = "Browse every image in the portfolio. The all-images hierarchy follows the category order, then each category’s image order.";
 
   elements.editorList.innerHTML = `
-    ${renderCategoryLinks(state)}
     ${renderBulkEditorToolbar(state, `${state.images.length} total image records`)}
 
-    <div class="image-overview-grid">
-      ${state.images.map((image) => renderImageOverviewCard(state, image)).join("")}
-    </div>
+    <section class="mac-image-library-panel" aria-label="Image library">
+      <div class="mac-panel-titlebar">
+        <strong>Image Library</strong>
+        <span>${state.images.length} records</span>
+      </div>
+      <div class="mac-panel-body">
+        <div class="image-overview-grid">
+          ${state.images.map((image) => renderImageOverviewCard(state, image)).join("")}
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -802,7 +847,6 @@ function renderCategoryImageOverview(state, elements, categoryId) {
 
   if (!category) {
     elements.editorList.innerHTML = `
-      ${renderCategoryLinks(state)}
       <div class="panel">
         <p>Category not found.</p>
         <a class="button" href="#/images">Back to Images</a>
@@ -812,17 +856,22 @@ function renderCategoryImageOverview(state, elements, categoryId) {
   }
 
   elements.editorList.innerHTML = `
-    ${renderCategoryLinks(state, categoryId)}
     ${renderBulkEditorToolbar(state, `${categoryImages.length} image records in ${category.label}`)}
 
-    <div class="category-page-actions category-order-actions">
-      <p class="category-order-help">Short-click an image preview to open the image editor. Press and hold on the preview, title area, or any non-control part of a card to pick it up and reorder it. Buttons, selects, and checkboxes stay clickable. The All images view remains read-only for ordering.</p>
-      <button class="button primary" type="button" data-save-category-order>Save Category Order</button>
-    </div>
-
-    <div class="image-overview-grid" data-category-order-grid data-category-id="${escapeHtml(categoryId)}" aria-label="Reorder images in ${escapeHtml(category.label)}">
-      ${categoryImages.map((image) => renderImageOrderCard(state, image)).join("")}
-    </div>
+    <section class="mac-image-library-panel" aria-label="Reorder images in ${escapeHtml(category.label)}">
+      <div class="mac-panel-titlebar">
+        <strong>${escapeHtml(category.label)} Order</strong>
+        <span>${categoryImages.length} records</span>
+      </div>
+      <div class="mac-panel-body">
+        <div class="category-page-actions category-order-actions">
+          <button class="button primary" type="button" data-save-category-order>Save Category Order</button>
+        </div>
+        <div class="image-overview-grid" data-category-order-grid data-category-id="${escapeHtml(categoryId)}">
+          ${categoryImages.map((image) => renderImageOrderCard(state, image)).join("")}
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -835,17 +884,54 @@ function renderHeroImageOverview(state, elements) {
   elements.imagesPageDescription.textContent = "This page controls the order of landscape images in the home page hero slideshow. Portrait and square images are excluded because the public hero is locked to a 16:9 frame.";
 
   elements.editorList.innerHTML = `
-    ${renderCategoryLinks(state, null, "hero")}
-
-    <div class="category-page-actions category-order-actions">
-      <p class="category-order-help">Press and hold a slide preview, title area, or another non-control part of a card to drag it into position. Buttons and the target-category menu remain directly interactive.</p>
-      <button class="button primary" type="button" data-save-hero-order>Save Hero Order</button>
-    </div>
-
-    <div class="image-overview-grid" data-hero-order-grid aria-label="Reorder hero slideshow images">
-      ${heroImages.map((item) => renderHeroOrderCard(state, item.image, item.slide)).join("")}
-    </div>
+    <section class="mac-image-library-panel" aria-label="Reorder hero slideshow images">
+      <div class="mac-panel-titlebar">
+        <strong>Hero Slide Order</strong>
+        <span>${heroImages.length} slides</span>
+      </div>
+      <div class="mac-panel-body">
+        <div class="category-page-actions category-order-actions">
+          <button class="button primary" type="button" data-save-hero-order>Save Hero Order</button>
+        </div>
+        <div class="image-overview-grid" data-hero-order-grid>
+          ${heroImages.map((item) => renderHeroOrderCard(state, item.image, item.slide)).join("")}
+        </div>
+      </div>
+    </section>
   `;
+}
+
+function renderContextPalette(state, elements, route) {
+  if (!elements.editorContextPalette || !elements.editorContextPaletteContent) {
+    return;
+  }
+
+  const imageRoutes = new Set(["images", "image", "crop", "categoryImages", "heroImages"]);
+  const isImageWorkspace = imageRoutes.has(route.name);
+  elements.editorContextPalette.hidden = !isImageWorkspace;
+
+  if (!isImageWorkspace) {
+    elements.editorContextPaletteContent.innerHTML = "";
+    return;
+  }
+
+  const selectedImage = route.imageId
+    ? state.images.find((image) => image.id === route.imageId)
+    : null;
+  const activeCategoryId = route.name === "categoryImages"
+    ? route.categoryId
+    : selectedImage?.category ?? null;
+  const activeMetaCategory = route.name === "heroImages" ? "hero" : null;
+
+  if (elements.editorContextTitle) {
+    elements.editorContextTitle.textContent = "Images";
+  }
+
+  elements.editorContextPaletteContent.innerHTML = renderCategoryLinks(
+    state,
+    activeCategoryId,
+    activeMetaCategory
+  );
 }
 
 function isImageAlreadyInAboutPhotos(state, imageId) {
@@ -853,11 +939,18 @@ function isImageAlreadyInAboutPhotos(state, imageId) {
 }
 
 function renderAddToAboutPanel(state, image) {
-  const alreadyAdded = isImageAlreadyInAboutPhotos(state, image.id);
+  const aboutPhoto = (state.aboutPhotos ?? []).find((photo) => (
+    photo.sourceType === "portfolio-reference" && photo.sourceImageId === image.id
+  ));
+  const alreadyAdded = Boolean(aboutPhoto);
   const aboutCount = (state.aboutPhotos ?? []).length;
+  const placementRole = getAboutPlacementRole(aboutPhoto);
+  const canCrop = alreadyAdded && placementRole !== "unused";
 
   return `
-    <div class="wide image-to-about-panel" data-image-to-about-panel>
+    <details class="wide image-to-about-panel inspector-disclosure" data-image-to-about-panel>
+      <summary>About Page</summary>
+      <div class="image-to-about-panel-body">
       <div>
         <p class="eyebrow">About page</p>
         <strong>${alreadyAdded ? "Already added to About photos" : "Add this image to the About page archive"}</strong>
@@ -872,7 +965,22 @@ function renderAddToAboutPanel(state, image) {
         <a class="button" href="#/about">Open About</a>
         <small>${escapeHtml(String(aboutCount))} About records</small>
       </div>
-    </div>
+      ${alreadyAdded ? `
+        <div class="image-about-crop-workspace wide" data-about-image-crop-workspace>
+          <div class="image-about-crop-preview is-${escapeHtml(placementRole)}">
+            <img src="${escapeHtml(aboutPhoto.thumbSrc ?? aboutPhoto.src)}" alt="" style="object-position:${escapeHtml(aboutPhoto.aboutPosition ?? "50% 50%")}" />
+          </div>
+          <div>
+            <p class="eyebrow">Current placement</p>
+            <strong>${escapeHtml(ABOUT_PLACEMENT_OPTIONS.find((option) => option.value === placementRole)?.label ?? placementRole)}</strong>
+            ${canCrop
+              ? `<button class="button primary" type="button" data-open-crop-modal="about" data-crop-image-id="${escapeHtml(image.id)}">Open About Crop Window</button>`
+              : `<p class="editor-inline-note">Move this photo into an active About placement before adjusting its crop.</p>`}
+          </div>
+        </div>
+      ` : ""}
+      </div>
+    </details>
   `;
 }
 
@@ -892,7 +1000,14 @@ function renderImageEditCard(state, image) {
 
   return `
     <article class="image-card" data-image-card data-image-id="${escapeHtml(image.id)}">
-      <div class="preview">
+      <div class="mac-panel-titlebar">
+        <strong>Image Record</strong>
+        <span>${escapeHtml(image.id)}</span>
+      </div>
+
+      <section class="image-record-preview-pane" aria-label="Image preview">
+        <div class="mac-subpanel-title">Preview</div>
+        <div class="preview">
         <img
           src="${escapeHtml(image.thumbSrc ?? image.src)}"
           alt="${escapeHtml(image.alt)}"
@@ -905,10 +1020,14 @@ function renderImageEditCard(state, image) {
           <span>${escapeHtml(String(image.imageWidth ?? "—"))} × ${escapeHtml(String(image.imageHeight ?? "—"))}</span>
           <span>${escapeHtml(aspectRatio.toFixed(3))}</span>
         </div>
-      </div>
+      </section>
 
-      <div class="fields">
-        <input type="hidden" data-field="id" value="${escapeHtml(image.id)}" />
+      <section class="image-record-inspector" aria-label="Image record inspector">
+        <div class="mac-subpanel-title">Record Inspector</div>
+        <div class="fields">
+          <input type="hidden" data-field="id" value="${escapeHtml(image.id)}" />
+          <input type="hidden" data-field="heroScale" value="${escapeHtml(String(image.heroScale ?? 1))}" />
+          <input type="hidden" data-field="galleryScale" value="${escapeHtml(String(image.galleryScale ?? 1))}" />
 
         ${renderImageIdentityPanel(image)}
 
@@ -949,82 +1068,50 @@ function renderImageEditCard(state, image) {
           <input data-field="alt" value="${escapeHtml(image.alt)}" />
         </label>
 
-        <label>
-          <span>Optimized source</span>
-          <input data-field="src" value="${escapeHtml(image.src)}" />
-        </label>
+        <details class="inspector-disclosure wide">
+          <summary>File &amp; Rendition Data</summary>
+          <div class="inspector-fields-grid">
+            <label>
+              <span>Optimized source</span>
+              <input data-field="src" value="${escapeHtml(image.src)}" />
+            </label>
 
-        <label>
-          <span>Thumbnail source</span>
-          <input data-field="thumbSrc" value="${escapeHtml(image.thumbSrc ?? "")}" />
-        </label>
+            <label>
+              <span>Thumbnail source</span>
+              <input data-field="thumbSrc" value="${escapeHtml(image.thumbSrc ?? "")}" />
+            </label>
 
-        <label>
-          <span>Texture source</span>
-          <input data-field="textureSrc" value="${escapeHtml(image.textureSrc ?? "")}" />
-        </label>
+            <label>
+              <span>Texture source</span>
+              <input data-field="textureSrc" value="${escapeHtml(image.textureSrc ?? "")}" />
+            </label>
 
-        <label>
-          <span>Full source</span>
-          <input data-field="fullSrc" value="${escapeHtml(image.fullSrc ?? "")}" />
-        </label>
+            <label>
+              <span>Full source</span>
+              <input data-field="fullSrc" value="${escapeHtml(image.fullSrc ?? "")}" />
+            </label>
 
-        <label>
-          <span>Image width</span>
-          <input data-field="imageWidth" value="${escapeHtml(String(image.imageWidth ?? ""))}" readonly />
-        </label>
+            <label>
+              <span>Image width</span>
+              <input data-field="imageWidth" value="${escapeHtml(String(image.imageWidth ?? ""))}" readonly />
+            </label>
 
-        <label>
-          <span>Image height</span>
-          <input data-field="imageHeight" value="${escapeHtml(String(image.imageHeight ?? ""))}" readonly />
-        </label>
+            <label>
+              <span>Image height</span>
+              <input data-field="imageHeight" value="${escapeHtml(String(image.imageHeight ?? ""))}" readonly />
+            </label>
 
-        <label>
-          <span>Aspect ratio</span>
-          <input data-field="imageAspectRatio" value="${escapeHtml(String(image.imageAspectRatio ?? aspectRatio.toFixed(6)))}" readonly />
-        </label>
+            <label>
+              <span>Aspect ratio</span>
+              <input data-field="imageAspectRatio" value="${escapeHtml(String(image.imageAspectRatio ?? aspectRatio.toFixed(6)))}" readonly />
+            </label>
 
-        <label>
-          <span>Detected orientation</span>
-          <input data-field="imageOrientation" value="${escapeHtml(orientation)}" readonly />
-        </label>
-
-        <div class="wide hero-display-summary">
-          <p class="eyebrow">Home hero display</p>
-          <strong>Locked 16:9 landscape crop</strong>
-          <span>Hero slide size and aspect ratio are fixed. Use Edit Hero Crop to adjust composition. Portrait and square images cannot be added to the hero.</span>
-        </div>
-
-        <label>
-          <span>Gallery frame style</span>
-          <select data-field="galleryFrameStyle">
-            <option value="auto" ${galleryFrameStyle === "auto" ? "selected" : ""}>Auto</option>
-            <option value="landscape" ${galleryFrameStyle === "landscape" ? "selected" : ""}>Landscape</option>
-            <option value="portrait" ${galleryFrameStyle === "portrait" ? "selected" : ""}>Portrait</option>
-            <option value="square" ${galleryFrameStyle === "square" ? "selected" : ""}>Square</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Gallery fit mode</span>
-          <select data-field="galleryFitMode">
-            <option value="cover" ${galleryFitMode === "cover" ? "selected" : ""}>Cover / Crop to Frame</option>
-            <option value="contain" ${galleryFitMode === "contain" ? "selected" : ""}>Fit Entire Image</option>
-          </select>
-        </label>
-
-        ${renderGallerySizeControl(image)}
-
-        <div class="wide gallery-display-summary">
-          <p class="eyebrow">Virtual gallery display</p>
-          <strong>${galleryFitMode === "contain" ? "Fit Entire Image" : "Cover / Crop to Frame"}</strong>
-          <span>
-            ${galleryFitMode === "contain"
-              ? "The full photo will be shown and the frame will resize inside the wall block."
-              : "The photo fills the chosen frame style and can be cropped with the gallery crop page."
-            }
-          </span>
-        </div>
+            <label>
+              <span>Detected orientation</span>
+              <input data-field="imageOrientation" value="${escapeHtml(orientation)}" readonly />
+            </label>
+          </div>
+        </details>
 
         <label class="wide">
           <span>Note</span>
@@ -1033,35 +1120,86 @@ function renderImageEditCard(state, image) {
 
         ${renderAddToAboutPanel(state, image)}
 
-        <div class="hero-controls ${isHeroEligible ? "" : "is-disabled"}">
-          <label class="checkbox">
-            <input
-              type="checkbox"
-              data-field="isHeroSlide"
-              ${isHeroSlide && isHeroEligible ? "checked" : ""}
-              ${isHeroEligible ? "" : "disabled"}
-            />
-            <span>Use in home hero slideshow</span>
-          </label>
+        <details class="inspector-disclosure wide">
+          <summary>Homepage Hero</summary>
+          <div class="inspector-fields-grid">
+            <div class="wide hero-display-summary">
+              <p class="eyebrow">Home hero display</p>
+              <strong>Locked 16:9 landscape crop</strong>
+              <span>Hero slide size and aspect ratio are fixed. Portrait and square images cannot be added to the hero.</span>
+            </div>
 
-          <label>
-            <span>Hero target category</span>
-            <select data-field="heroTargetCategory" ${isHeroEligible ? "" : "disabled"}>${categoryOptions(state.categories, heroTargetCategory)}</select>
-          </label>
+            <div class="hero-controls ${isHeroEligible ? "" : "is-disabled"}">
+              <label class="checkbox">
+                <input
+                  type="checkbox"
+                  data-field="isHeroSlide"
+                  ${isHeroSlide && isHeroEligible ? "checked" : ""}
+                  ${isHeroEligible ? "" : "disabled"}
+                />
+                <span>Use in home hero slideshow</span>
+              </label>
 
-          ${isHeroEligible ? "" : `<p class="editor-inline-note">Hero slides must be public landscape images. This image is ${isImagePublic(image) ? escapeHtml(orientation) : "hidden from the public site"} and cannot be added to the homepage carousel.</p>`}
-        </div>
+              <label>
+                <span>Hero target category</span>
+                <select data-field="heroTargetCategory" ${isHeroEligible ? "" : "disabled"}>${categoryOptions(state.categories, heroTargetCategory)}</select>
+              </label>
 
-        <div class="crop-shortcuts wide">
-          <a class="button" href="#/crop/${encodeURIComponent(image.id)}/hero">Edit Hero Crop</a>
-          <a class="button" href="#/crop/${encodeURIComponent(image.id)}/gallery">Edit Virtual Gallery Crop</a>
-        </div>
+              ${isHeroEligible ? "" : `<p class="editor-inline-note">Hero slides must be public landscape images. This image is ${isImagePublic(image) ? escapeHtml(orientation) : "hidden from the public site"} and cannot be added to the homepage carousel.</p>`}
+            </div>
+
+            <div class="crop-shortcuts wide">
+              <button class="button" type="button" data-open-crop-modal="hero" data-crop-image-id="${escapeHtml(image.id)}">Edit Hero Crop</button>
+            </div>
+          </div>
+        </details>
+
+        <details class="inspector-disclosure wide">
+          <summary>Virtual Gallery</summary>
+          <div class="inspector-fields-grid">
+            <label>
+              <span>Gallery frame style</span>
+              <select data-field="galleryFrameStyle">
+                <option value="auto" ${galleryFrameStyle === "auto" ? "selected" : ""}>Auto</option>
+                <option value="landscape" ${galleryFrameStyle === "landscape" ? "selected" : ""}>Landscape</option>
+                <option value="portrait" ${galleryFrameStyle === "portrait" ? "selected" : ""}>Portrait</option>
+                <option value="square" ${galleryFrameStyle === "square" ? "selected" : ""}>Square</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Gallery fit mode</span>
+              <select data-field="galleryFitMode">
+                <option value="cover" ${galleryFitMode === "cover" ? "selected" : ""}>Cover / Crop to Frame</option>
+                <option value="contain" ${galleryFitMode === "contain" ? "selected" : ""}>Fit Entire Image</option>
+              </select>
+            </label>
+
+            ${renderGallerySizeControl(image)}
+
+            <div class="wide gallery-display-summary">
+              <p class="eyebrow">Virtual gallery display</p>
+              <strong>${galleryFitMode === "contain" ? "Fit Entire Image" : "Cover / Crop to Frame"}</strong>
+              <span>
+                ${galleryFitMode === "contain"
+                  ? "The full photo will be shown and the frame will resize inside the wall block."
+                  : "The photo fills the chosen frame style and can be cropped with the gallery crop page."
+                }
+              </span>
+            </div>
+
+            <div class="crop-shortcuts wide">
+              <button class="button" type="button" data-open-crop-modal="gallery" data-crop-image-id="${escapeHtml(image.id)}">Edit Virtual Gallery Crop</button>
+            </div>
+          </div>
+        </details>
 
         <div class="image-card-actions">
           <button class="button primary" type="button" data-save-image-card>Save JSON</button>
           <button class="button danger" type="button" data-remove-image-card>Remove Record</button>
         </div>
-      </div>
+        </div>
+      </section>
     </article>
   `;
 }
@@ -1086,21 +1224,17 @@ function renderImageDetail(state, elements, imageId) {
     return;
   }
 
-  elements.editorList.innerHTML = `
-    <div class="image-detail-header">
-      <a class="button" href="#/images">Back to Images</a>
-      <a class="button" href="#/images/category/${encodeURIComponent(image.category)}">Back to ${escapeHtml(getCategoryLabel(state, image.category))}</a>
-      <a class="button" href="#/images/hero">Hero Slideshow</a>
-    </div>
-
-    ${renderImageEditCard(state, image)}
-  `;
+  elements.editorList.innerHTML = renderImageEditCard(state, image);
 }
 
 // Builds the dedicated hero or gallery crop editor page.
 function renderCropPage(state, elements, imageId, cropMode) {
   const image = state.images.find((item) => item.id === imageId);
+  const aboutPhoto = cropMode === "about"
+    ? (state.aboutPhotos ?? []).find((photo) => photo.sourceImageId === imageId)
+    : null;
   const fieldName = getCropFieldName(cropMode);
+  const scaleFieldName = getCropScaleFieldName(cropMode);
   const cropLabel = getCropModeLabel(cropMode);
 
   elements.imagesPageEyebrow.textContent = cropLabel;
@@ -1119,20 +1253,30 @@ function renderCropPage(state, elements, imageId, cropMode) {
     return;
   }
 
-  const imageSource = cropMode === "hero"
-    ? image.src
-    : image.textureSrc ?? image.src;
+  const imageSource = cropMode === "about"
+    ? aboutPhoto?.src ?? image.src
+    : cropMode === "hero"
+      ? image.src
+      : image.textureSrc ?? image.src;
 
-  const currentPosition = image[fieldName] ?? "50% 50%";
+  const currentPosition = cropMode === "about"
+    ? aboutPhoto?.aboutPosition ?? "50% 50%"
+    : image[fieldName] ?? "50% 50%";
+  const currentScale = Math.max(1, Number(cropMode === "about" ? aboutPhoto?.aboutScale : image[scaleFieldName]) || 1);
   const isHeroCrop = cropMode === "hero";
   const isGalleryCrop = cropMode === "gallery";
+  const isAboutCrop = cropMode === "about";
   const galleryFitMode = getGalleryFitMode(image);
   const galleryFrameStyle = getGalleryFrameStyle(image);
   const heroFrameStyle = getHeroFrameStyle(image);
   const heroFitMode = getHeroFitMode(image);
   const resolvedHeroFrameStyle = getResolvedHeroFrameStyle(image);
-  const cropPreviewAspect = isGalleryCrop ? getGalleryPreviewAspect(image) : 16 / 9;
-  const showCropSliders = isHeroCrop ? shouldShowHeroCropSliders(image) : galleryFitMode === "cover";
+  const cropPreviewAspect = isGalleryCrop
+    ? getGalleryPreviewAspect(image)
+    : isAboutCrop
+      ? getAboutCropAspect(aboutPhoto?.placementRole)
+      : 16 / 9;
+  const showCropSliders = isAboutCrop || (isHeroCrop ? shouldShowHeroCropSliders(image) : galleryFitMode === "cover");
   const previewModeClass = isHeroCrop
     ? `crop-preview-hero-${heroFitMode}`
     : `crop-preview-gallery-${galleryFitMode}`;
@@ -1146,9 +1290,10 @@ function renderCropPage(state, elements, imageId, cropMode) {
       data-crop-editor
       data-crop-image-id="${escapeHtml(image.id)}"
       data-crop-mode="${escapeHtml(cropMode)}"
+      data-crop-scale-field="${escapeHtml(scaleFieldName)}"
     >
       <div class="image-detail-header">
-        <a class="button" href="#/image/${encodeURIComponent(image.id)}">Back to Image</a>
+        <a class="button" href="${isAboutCrop ? "#/about/photos" : `#/image/${encodeURIComponent(image.id)}`}">${isAboutCrop ? "Back to About Photos" : "Back to Image"}</a>
         <button class="button primary" type="button" data-save-crop-page>Save Crop</button>
       </div>
 
@@ -1182,7 +1327,7 @@ function renderCropPage(state, elements, imageId, cropMode) {
               data-crop-preview-image
               src="${escapeHtml(imageSource)}"
               alt="${escapeHtml(image.alt)}"
-              style="object-position: ${escapeHtml(galleryFitMode === "contain" ? "50% 50%" : currentPosition)};"
+              style="object-position: ${escapeHtml(isGalleryCrop && galleryFitMode === "contain" ? "50% 50%" : currentPosition)}; scale:${escapeHtml(String(currentScale))};"
             />
           `}
         </div>
@@ -1240,7 +1385,16 @@ function renderCropPage(state, elements, imageId, cropMode) {
           ` : ""}
 
           ${showCropSliders
-            ? renderCropPositionControls(fieldName, cropLabel, currentPosition)
+            ? `
+              ${renderCropPositionControls(fieldName, cropLabel, currentPosition)}
+              <label class="crop-zoom-control">
+                <span>Zoom</span>
+                <input type="range" min="1" max="4" step="0.01" value="${escapeHtml(String(currentScale))}" data-crop-zoom />
+                <strong data-crop-zoom-output>${escapeHtml(String(Math.round(currentScale * 100)))}%</strong>
+                <input data-crop-setting="${escapeHtml(scaleFieldName)}" value="${escapeHtml(String(currentScale))}" type="hidden" />
+              </label>
+              <p class="crop-drag-note">Drag the photograph inside the frame to position it.</p>
+            `
             : `
               <input data-crop-field="${fieldName}" value="${escapeHtml(currentPosition)}" type="hidden" />
               <div class="crop-contain-note">
@@ -1906,10 +2060,12 @@ function getGalleryCurationStats(state, records) {
 
 function renderGalleryStatCard(label, value, note = "") {
   return `
-    <div class="gallery-curation-stat-card">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(String(value))}</strong>
-      ${note ? `<p>${escapeHtml(note)}</p>` : ""}
+    <div class="gallery-curation-ledger-cell">
+      <dt>${escapeHtml(label)}</dt>
+      <dd>
+        <strong>${escapeHtml(String(value))}</strong>
+        ${note ? `<small>${escapeHtml(note)}</small>` : ""}
+      </dd>
     </div>
   `;
 }
@@ -1919,8 +2075,9 @@ function renderGalleryWallTypePills(stats) {
     const count = stats.wallTypeCounts.get(wallType.value) ?? 0;
 
     return `
-      <span class="gallery-curation-type-pill" data-wall-type-pill="${escapeHtml(wallType.value)}">
-        ${escapeHtml(wallType.label)} <strong>${escapeHtml(String(count))}</strong>
+      <span class="gallery-curation-type-entry" data-wall-type-pill="${escapeHtml(wallType.value)}">
+        <span>${escapeHtml(wallType.label)}</span>
+        <strong>${escapeHtml(String(count))}</strong>
       </span>
     `;
   }).join("");
@@ -1981,9 +2138,9 @@ function renderGalleryMapControls() {
         <button class="button gallery-map-icon-button" type="button" data-gallery-map-rotate="-45" aria-label="Rotate selected wall left 45 degrees" title="Rotate left 45°" disabled>↺</button>
         <button class="button gallery-map-icon-button" type="button" data-gallery-map-rotate="45" aria-label="Rotate selected wall right 45 degrees" title="Rotate right 45°" disabled>↻</button>
         <button class="button gallery-map-icon-button" type="button" data-gallery-map-flip aria-label="Flip selected wall facing direction" title="Flip facing direction" disabled>⇄</button>
-        <button class="button" type="button" data-gallery-map-unplace disabled>Remove from map</button>
-        <button class="button" type="button" data-undo-gallery-curation disabled aria-keyshortcuts="Control+Z Meta+Z">Undo</button>
-        <button class="button primary" type="button" data-save-gallery-curation>Save Gallery Curation</button>
+        <button class="button" type="button" data-gallery-map-unplace aria-label="Remove selected wall from map" title="Remove selected wall from map" disabled>Unplace</button>
+        <button class="button" type="button" data-undo-gallery-curation aria-label="Undo last gallery action" title="Undo last gallery action" disabled aria-keyshortcuts="Control+Z Meta+Z">Undo</button>
+        <button class="button primary" type="button" data-save-gallery-curation aria-label="Save gallery curation" title="Save gallery curation">Save</button>
       </div>
     </div>
   `;
@@ -2016,8 +2173,11 @@ function renderGalleryPlacementSidebar(records, state) {
 
   return `
     <aside class="gallery-placement-sidebar" aria-label="Wall entities">
+      <div class="mac-panel-titlebar gallery-placement-sidebar-titlebar">
+        <strong>Wall Entities</strong>
+        <span>${escapeHtml(String(records.length))} records</span>
+      </div>
       <div class="gallery-placement-sidebar-heading">
-        <p class="eyebrow">Wall entities</p>
         <h5>Drag wall cards</h5>
         <p>Drag a wall card onto the map to place it. Drag a placed footprint off the map to mark it as not on map without deleting the card.</p>
       </div>
@@ -2093,8 +2253,8 @@ function renderGalleryPlacementMap(state, records) {
       </div>
       <div class="gallery-placement-map-layout">
         <div class="gallery-placement-map-main">
-          ${renderGalleryMapControls()}
           <div class="gallery-placement-map-room" data-gallery-placement-map>
+            ${renderGalleryMapControls()}
             ${markers}
             <span class="gallery-placement-drop-preview" data-gallery-placement-drop-preview hidden aria-hidden="true"></span>
           </div>
@@ -2188,16 +2348,21 @@ function renderGalleryLayoutBuilder(state) {
           <button class="button primary" type="button" data-save-gallery-room>Save Architecture</button>
         </div>
       </div>
-      <div class="gallery-layout-map-controls">
-        <button class="button" type="button" data-gallery-architecture-zoom="-1">−</button>
-        <span>Zoom / pan</span>
-        <button class="button" type="button" data-gallery-architecture-zoom="1">+</button>
-        <button class="button" type="button" data-gallery-architecture-pan-x="-80">←</button>
-        <button class="button" type="button" data-gallery-architecture-pan-y="-80">↑</button>
-        <button class="button" type="button" data-gallery-architecture-pan-y="80">↓</button>
-        <button class="button" type="button" data-gallery-architecture-pan-x="80">→</button>
-      </div>
       <div class="gallery-layout-preview" data-gallery-architecture-map aria-label="Modular layout preview">
+        <div class="gallery-layout-map-controls">
+          <div class="gallery-map-zoom-controls" aria-label="Map zoom">
+            <span>Zoom</span>
+            <button class="button" type="button" data-gallery-architecture-zoom="-1" aria-label="Zoom out" title="Zoom out">−</button>
+            <button class="button" type="button" data-gallery-architecture-zoom="1" aria-label="Zoom in" title="Zoom in">+</button>
+          </div>
+          <div class="gallery-map-pan-controls" aria-label="Map pan">
+            <span>Pan</span>
+            <button class="button is-up" type="button" data-gallery-architecture-pan-y="-80" aria-label="Pan up" title="Pan up">↑</button>
+            <button class="button is-left" type="button" data-gallery-architecture-pan-x="-80" aria-label="Pan left" title="Pan left">←</button>
+            <button class="button is-right" type="button" data-gallery-architecture-pan-x="80" aria-label="Pan right" title="Pan right">→</button>
+            <button class="button is-down" type="button" data-gallery-architecture-pan-y="80" aria-label="Pan down" title="Pan down">↓</button>
+          </div>
+        </div>
         <div class="gallery-layout-preview-world" data-gallery-architecture-world>
           ${modules.map((module) => `<button type="button" class="gallery-layout-preview-module is-${module.kind}" data-gallery-architecture-module data-module-id="${escapeHtml(module.id)}" data-module-kind="${module.kind}" data-center-x="${escapeHtml(String(module.center?.[0] ?? 0))}" data-center-z="${escapeHtml(String(module.center?.[1] ?? 0))}" data-module-width="${escapeHtml(String(module.width))}" data-module-depth="${escapeHtml(String(module.depth))}" style="${moduleStyle(module)}">${escapeHtml(module.label || module.id)}</button>`).join("")}
         </div>
@@ -2219,33 +2384,38 @@ function renderGalleryCurationSummary(state, records) {
     : "Visible wall assignments are filled.";
 
   return `
+    ${renderGalleryLayoutBuilder(state)}
+
     <section class="gallery-curation-summary" aria-label="Gallery curation summary">
+      <div class="gallery-curation-summary-titlebar mac-panel-titlebar">
+        <strong>Gallery Curation</strong>
+        <span>${escapeHtml(String(stats.total))} wall records</span>
+      </div>
+
       <div class="gallery-curation-summary-heading">
-        <div>
+        <div class="gallery-curation-summary-copy">
           <p class="eyebrow">Archive Room Editor</p>
-          <h3>Gallery wall control surface</h3>
-          <p>
-            Manage wall placement on the floor map, then tune artwork, wall type, visibility, and plaque behavior on each wall card. This page edits curation data only; it does not change the public site design shell.
-          </p>
+          <h3>Wall Control</h3>
+          <p>Placement, artwork, visibility, and plaques.</p>
         </div>
         <div class="gallery-curation-summary-actions">
-          <button class="button primary" type="button" data-save-gallery-curation>Save All Gallery Curation</button>
-          <span>${escapeHtml(statusNote)}</span>
+          <span class="gallery-curation-save-state">${escapeHtml(statusNote)}</span>
+          <button class="button primary" type="button" data-save-gallery-curation>Save Gallery Curation</button>
         </div>
       </div>
 
-      <div class="gallery-curation-stat-grid">
+      <dl class="gallery-curation-stat-grid" aria-label="Gallery record status">
         ${renderGalleryStatCard("Wall cards", stats.total, "Total editable wall records")}
         ${renderGalleryStatCard("On map", stats.placed, `${stats.unplaced} off-map`)}
         ${renderGalleryStatCard("Artwork", `${stats.assigned}/${stats.total}`, activeUnassigned ? `${activeUnassigned} visible gap${activeUnassigned === 1 ? "" : "s"}` : "Assignments ready")}
         ${renderGalleryStatCard("Visible", stats.active, `${stats.hidden} hidden`)}
-      </div>
+      </dl>
 
       <div class="gallery-curation-type-strip" aria-label="Wall block type counts">
+        <strong class="gallery-curation-type-label">Wall types</strong>
         ${renderGalleryWallTypePills(stats)}
       </div>
 
-      ${renderGalleryLayoutBuilder(state)}
       ${renderGalleryPlacementMap(state, records)}
     </section>
   `;
@@ -2268,9 +2438,12 @@ function renderGalleryCurationFilters(state) {
 
   return `
     <section class="gallery-curation-filters" aria-label="Gallery wall filters">
+      <div class="mac-panel-titlebar gallery-finder-titlebar">
+        <strong>Wall Finder</strong>
+        <span>Non-destructive filter</span>
+      </div>
       <div class="gallery-filter-heading">
         <div>
-          <p class="eyebrow">Wall Finder</p>
           <h4>Filter wall cards</h4>
         </div>
         <p>Use these controls to narrow the wall list without changing saved data.</p>
@@ -2739,10 +2912,10 @@ function renderGalleryCurationPage(state, elements) {
 
     ${renderGalleryCurationFilters(state)}
 
-    <div class="gallery-curation-list-header">
-      <p class="gallery-curation-filter-result" data-gallery-curation-filter-result>
+    <div class="gallery-curation-list-header mac-panel-titlebar">
+      <strong class="gallery-curation-filter-result" data-gallery-curation-filter-result>
         Showing ${escapeHtml(String(records.length))} wall cards in ${escapeHtml(rooms.find((room) => room.id === activeRoomId)?.label ?? activeRoomId)}.
-      </p>
+      </strong>
       <button class="button primary" type="button" data-add-gallery-wall-card>Add Wall Card</button>
     </div>
 
@@ -2904,14 +3077,22 @@ function renderAboutPhotoCard(photo, index) {
 
   return `
     <article class="about-editor-card" data-about-photo-card data-about-photo-id="${escapeHtml(photo.id)}">
-      <div class="about-editor-thumb">
-        <img src="${escapeHtml(photo.thumbSrc ?? photo.src)}" alt="${escapeHtml(photo.alt ?? photo.title)}" loading="lazy" draggable="false" />
+      <button class="about-editor-thumb" type="button" data-open-crop-modal="about" data-crop-image-id="${escapeHtml(photo.sourceImageId ?? "")}" data-crop-about-photo-id="${escapeHtml(photo.id)}" aria-label="Adjust crop for ${escapeHtml(photo.title ?? photo.id)}" ${getAboutPlacementRole(photo) === "unused" ? "disabled" : ""}>
+        <img src="${escapeHtml(photo.thumbSrc ?? photo.src)}" alt="${escapeHtml(photo.alt ?? photo.title)}" loading="lazy" draggable="false" style="object-position:${escapeHtml(photo.aboutPosition ?? "50% 50%")}" />
         <span>${escapeHtml(String(index + 1).padStart(2, "0"))}</span>
-      </div>
+      </button>
 
       <div class="about-editor-fields">
         <input type="hidden" data-field="sourceType" value="${escapeHtml(photo.sourceType ?? "about")}" />
         <input type="hidden" data-field="sourceImageId" value="${escapeHtml(photo.sourceImageId ?? "")}" />
+        <input type="hidden" data-field="aboutPosition" value="${escapeHtml(photo.aboutPosition ?? "50% 50%")}" />
+        <input type="hidden" data-field="aboutScale" value="${escapeHtml(String(photo.aboutScale ?? 1))}" />
+        <input type="hidden" data-field="backgroundX" value="${escapeHtml(String(photo.backgroundX ?? ""))}" />
+        <input type="hidden" data-field="backgroundY" value="${escapeHtml(String(photo.backgroundY ?? ""))}" />
+        <input type="hidden" data-field="backgroundWidth" value="${escapeHtml(String(photo.backgroundWidth ?? ""))}" />
+        <input type="hidden" data-field="collageX" value="${escapeHtml(String(photo.collageX ?? ""))}" />
+        <input type="hidden" data-field="collageY" value="${escapeHtml(String(photo.collageY ?? ""))}" />
+        <input type="hidden" data-field="collageWidth" value="${escapeHtml(String(photo.collageWidth ?? ""))}" />
 
         <label>
           <span>ID</span>
@@ -2989,6 +3170,10 @@ function renderAboutPhotoCard(photo, index) {
           <span>Note</span>
           <textarea data-field="note">${escapeHtml(photo.note ?? "")}</textarea>
         </label>
+
+        ${getAboutPlacementRole(photo) === "unused"
+          ? `<p class="editor-inline-note wide">Crop is unavailable while this photo is unused. Choose an active placement first.</p>`
+          : ""}
 
         <div class="about-editor-actions wide">
           <button class="button" type="button" data-move-about-photo="top">Top</button>
@@ -3090,8 +3275,8 @@ function renderAboutPhotoSection({ title, eyebrow, description, placementRole, e
   const emptyMessage = `No ${title.toLowerCase()} records yet.`;
 
   return `
-    <section class="about-editor-section panel" data-about-placement-section="${escapeHtml(placementRole)}">
-      <div class="about-editor-section-header">
+    <details class="about-editor-section panel" data-about-placement-section="${escapeHtml(placementRole)}" open>
+      <summary class="about-editor-section-header">
         <div>
           <p class="eyebrow">${escapeHtml(eyebrow)}</p>
           <h3>${escapeHtml(title)}</h3>
@@ -3102,14 +3287,283 @@ function renderAboutPhotoSection({ title, eyebrow, description, placementRole, e
           <span><strong>${escapeHtml(String(entries.length))}</strong> total</span>
           <span><strong>${escapeHtml(String(activeCount))}</strong> active</span>
         </div>
-      </div>
+      </summary>
 
       <div class="about-editor-section-list" data-about-photo-section-list>
         ${entries.length
           ? entries.map((entry) => renderAboutPhotoCard(entry.photo, entry.index)).join("")
           : `<div class="about-editor-empty-state">${escapeHtml(emptyMessage)}</div>`}
       </div>
+    </details>
+  `;
+}
+
+function renderAboutPortfolioLibrary(state) {
+  const images = state.images ?? [];
+  const categoryOptionsMarkup = [
+    `<option value="all">All categories</option>`,
+    ...(state.categories ?? []).map((category) => (
+      `<option value="${escapeHtml(category.id)}">${escapeHtml(category.label)}</option>`
+    ))
+  ].join("");
+
+  return `
+    <details class="about-portfolio-library panel">
+      <summary>
+        <span>
+          <strong>Add from Portfolio Library</strong>
+          <small>Choose from all ${escapeHtml(String(images.length))} uploaded images</small>
+        </span>
+      </summary>
+      <div class="about-portfolio-library-tools">
+        <label>
+          <span>Find an image</span>
+          <input type="search" data-about-library-search placeholder="Search title, ID, year, or location" />
+        </label>
+        <label>
+          <span>Category</span>
+          <select data-about-library-category>${categoryOptionsMarkup}</select>
+        </label>
+        <label>
+          <span>Add to</span>
+          <select data-about-library-placement>
+            <option value="unused">Unused / staged</option>
+            <option value="upper-collage">Upper collage</option>
+            <option value="lower-collage">Lower collage</option>
+            <option value="background-float">Background float</option>
+          </select>
+        </label>
+        <output data-about-library-result>${escapeHtml(String(images.length))} images shown</output>
+      </div>
+      <div class="about-portfolio-library-grid">
+        ${images.map((image) => {
+          const alreadyAdded = isImageAlreadyInAboutPhotos(state, image.id);
+          const searchText = [image.title, image.id, image.year, image.location, image.category]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return `
+            <article
+              class="about-portfolio-library-card"
+              data-about-library-card
+              data-about-library-category="${escapeHtml(image.category ?? "")}"
+              data-about-library-search-text="${escapeHtml(searchText)}"
+            >
+              <img src="${escapeHtml(image.thumbSrc ?? image.src)}" alt="" loading="lazy" />
+              <div>
+                <strong>${escapeHtml(image.title ?? image.id)}</strong>
+                <small>${escapeHtml([image.category, image.year].filter(Boolean).join(" / "))}</small>
+              </div>
+              <button
+                class="button"
+                type="button"
+                data-about-library-add="${escapeHtml(image.id)}"
+                ${alreadyAdded ? "disabled" : ""}
+              >${alreadyAdded ? "Added" : "Add"}</button>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    </details>
+  `;
+}
+
+const ABOUT_BACKGROUND_PREVIEW_POSITIONS = [
+  { x: -14, y: 1 },
+  { x: 72, y: 0 },
+  { x: -16, y: 24 },
+  { x: 72, y: 32 },
+  { x: 38, y: 50 },
+  { x: 72, y: 67 },
+  { x: -15, y: 81 },
+  { x: 72, y: 84 }
+];
+
+const ABOUT_UPPER_PREVIEW_LAYOUT = [
+  { x: 10, y: 3, width: 88 },
+  { x: 29, y: 31, width: 54 }
+];
+
+const ABOUT_LOWER_PREVIEW_LAYOUT = [
+  { x: 18, y: 14, width: 42, aspect: 270 / 470 },
+  { x: 42, y: 23, width: 36, aspect: 230 / 340 },
+  { x: 5, y: 55, width: 35, aspect: 220 / 300 },
+  { x: 55, y: 58, width: 38, aspect: 250 / 290 },
+  { x: 60, y: 7, width: 28, aspect: 180 / 250 },
+  { x: 14, y: 4, width: 24, aspect: 160 / 180 }
+];
+
+function getAboutPreviewImageSource(photo) {
+  return photo.fullSrc ?? photo.src ?? photo.thumbSrc ?? "";
+}
+
+function getAboutPreviewSourceAspect(photo) {
+  const numericAspect = Number(photo.imageAspectRatio);
+  if (Number.isFinite(numericAspect) && numericAspect > 0) return numericAspect;
+  if (photo.imageOrientation === "landscape") return 3 / 2;
+  if (photo.imageOrientation === "square") return 1;
+  return 2 / 3;
+}
+
+function renderAboutForegroundEditorPhoto(entry, index, group) {
+  const fallback = group === "upper"
+    ? ABOUT_UPPER_PREVIEW_LAYOUT[index]
+    : ABOUT_LOWER_PREVIEW_LAYOUT[index];
+  const aspect = group === "upper" && index === 0
+    ? getAboutPreviewSourceAspect(entry.photo)
+    : fallback.aspect ?? 390 / 470;
+  const x = Number.isFinite(Number(entry.photo.collageX)) ? Number(entry.photo.collageX) : fallback.x;
+  const y = Number.isFinite(Number(entry.photo.collageY)) ? Number(entry.photo.collageY) : fallback.y;
+  const width = Number.isFinite(Number(entry.photo.collageWidth)) ? Number(entry.photo.collageWidth) : fallback.width;
+
+  return `
+    <button
+      class="about-collage-foreground about-collage-${group}-${index + 1}"
+      type="button"
+      data-about-collage-photo="${escapeHtml(entry.photo.id)}"
+      data-about-collage-title="${escapeHtml(entry.photo.title ?? entry.photo.id)}"
+      data-about-collage-kind="foreground"
+      data-about-collage-aspect="${aspect}"
+      style="left:${x}%;right:auto;top:${y}%;bottom:auto;width:${width}%;height:auto;aspect-ratio:${aspect};"
+      aria-label="Move ${escapeHtml(entry.photo.title ?? entry.photo.id)}"
+    >
+      <img src="${escapeHtml(getAboutPreviewImageSource(entry.photo))}" alt="" draggable="false" />
+      <span>${escapeHtml(String(index + 1).padStart(2, "0"))}</span>
+      <i class="about-collage-resize-handle is-nw" data-about-collage-resize="nw" aria-hidden="true"></i>
+      <i class="about-collage-resize-handle is-ne" data-about-collage-resize="ne" aria-hidden="true"></i>
+      <i class="about-collage-resize-handle is-sw" data-about-collage-resize="sw" aria-hidden="true"></i>
+      <i class="about-collage-resize-handle is-se" data-about-collage-resize="se" aria-hidden="true"></i>
+    </button>
+  `;
+}
+
+function renderAboutBackgroundPreview(state, backgroundEntries) {
+  const copy = getAboutCopy(state);
+  const activeBackgroundEntries = backgroundEntries
+    .filter((entry) => entry.photo.isActive !== false)
+    .slice(0, 8);
+  const upperPhotos = getAboutSectionEntries(state.aboutPhotos ?? [], "upper-collage")
+    .filter((entry) => entry.photo.isActive !== false)
+    .slice(0, 2);
+  const lowerPhotos = getAboutSectionEntries(state.aboutPhotos ?? [], "lower-collage")
+    .filter((entry) => entry.photo.isActive !== false)
+    .slice(0, 6);
+
+  return `
+    <section class="about-collage-launcher panel">
+      <div>
+        <p class="eyebrow">Visual Layout</p>
+        <h2>About collage composition</h2>
+        <p>Open a fullscreen desktop mockup to arrange the foreground collages and background photographs.</p>
+      </div>
+      <button class="button primary" type="button" data-open-about-collage>Open Visual Editor</button>
     </section>
+
+    <div class="about-collage-modal" data-about-collage-modal hidden>
+    <section class="about-collage-workspace panel" data-about-collage-workspace role="dialog" aria-modal="true" aria-label="About background collage editor">
+      <div class="mac-panel-titlebar">
+        <strong>Visual About Collage</strong>
+        <span class="about-collage-window-controls">
+          <span>Desktop preview / 1440px composition</span>
+          <button class="about-collage-undo" type="button" data-undo-about-collage disabled title="Undo last move or resize">Undo</button>
+          <button class="about-collage-layer-toggle" type="button" data-toggle-about-collage-landmarks aria-pressed="false" title="Hide page copy and foreground collage">Background Only</button>
+          <button type="button" data-accept-about-collage aria-label="Apply and save collage arrangement" title="Apply arrangement">✓</button>
+          <button type="button" data-cancel-about-collage aria-label="Exit without applying collage arrangement" title="Exit without applying">×</button>
+        </span>
+      </div>
+      <div class="about-collage-workspace-heading">
+        <div>
+          <p class="eyebrow">About Page Composition</p>
+          <h2>Arrange the About page collages</h2>
+          <p>
+            Select, move, and resize the foreground collages or translucent background photographs directly on the scaled desktop page.
+          </p>
+        </div>
+        <div class="about-collage-preview-status" data-about-collage-preview-status>
+          <strong>No image selected</strong>
+          <span>Choose ✓ to apply this arrangement or × to exit without applying.</span>
+        </div>
+      </div>
+
+      <div class="about-collage-viewport">
+        <div class="about-collage-page" data-about-collage-page>
+          ${activeBackgroundEntries.map((entry, index) => {
+            const fallbackPosition = ABOUT_BACKGROUND_PREVIEW_POSITIONS[index] ?? { x: 40, y: 40 };
+            const position = {
+              x: Number.isFinite(Number(entry.photo.backgroundX)) ? Number(entry.photo.backgroundX) : fallbackPosition.x,
+              y: Number.isFinite(Number(entry.photo.backgroundY)) ? Number(entry.photo.backgroundY) : fallbackPosition.y
+            };
+            const width = Number.isFinite(Number(entry.photo.backgroundWidth))
+              ? Math.max(12, Math.min(90, Number(entry.photo.backgroundWidth)))
+              : 42;
+            return `
+              <button
+                class="about-collage-background-photo about-collage-background-photo-${index + 1}"
+                type="button"
+                data-about-collage-photo="${escapeHtml(entry.photo.id)}"
+                data-about-collage-title="${escapeHtml(entry.photo.title ?? entry.photo.id)}"
+                data-about-collage-kind="background"
+                data-about-collage-aspect="0.75"
+                style="left:${position.x}%;top:${position.y}%;width:${width}%;"
+                aria-label="Move ${escapeHtml(entry.photo.title ?? entry.photo.id)}"
+              >
+                <img src="${escapeHtml(getAboutPreviewImageSource(entry.photo))}" alt="" draggable="false" />
+                <span>${escapeHtml(String(index + 1).padStart(2, "0"))}</span>
+                <i class="about-collage-resize-handle is-nw" data-about-collage-resize="nw" aria-hidden="true"></i>
+                <i class="about-collage-resize-handle is-ne" data-about-collage-resize="ne" aria-hidden="true"></i>
+                <i class="about-collage-resize-handle is-sw" data-about-collage-resize="sw" aria-hidden="true"></i>
+                <i class="about-collage-resize-handle is-se" data-about-collage-resize="se" aria-hidden="true"></i>
+              </button>
+            `;
+          }).join("")}
+
+          <div class="about-collage-site-header">
+            <strong>TAYLOR PIKE</strong>
+            <span>PHOTOGRAPHER + CREATIVE</span>
+            <nav>HOME&nbsp;&nbsp;&nbsp; PORTFOLIO&nbsp;&nbsp;&nbsp; GALLERY&nbsp;&nbsp;&nbsp; ABOUT</nav>
+          </div>
+
+          <section class="about-collage-page-section about-collage-page-hero">
+            <div class="about-collage-copy-card">
+              <small>${escapeHtml(copy.hero.eyebrow)}</small>
+              <h3>${escapeHtml(copy.hero.headline)}</h3>
+              <p>${escapeHtml(copy.hero.intro)}</p>
+            </div>
+            <div class="about-collage-upper-stack">
+              ${upperPhotos.map((entry, index) => renderAboutForegroundEditorPhoto(entry, index, "upper")).join("")}
+            </div>
+          </section>
+
+          <section class="about-collage-page-section about-collage-page-writing">
+            <div class="about-collage-wide-copy">
+              <small>${escapeHtml(copy.about.eyebrow)}</small>
+              <h3>${escapeHtml(copy.about.heading)}</h3>
+              <p>${escapeHtml(copy.about.paragraphs.join(" "))}</p>
+            </div>
+          </section>
+
+          <section class="about-collage-page-section about-collage-page-project">
+            <div class="about-collage-lower-stack">
+              ${lowerPhotos.map((entry, index) => renderAboutForegroundEditorPhoto(entry, index, "lower")).join("")}
+            </div>
+            <div class="about-collage-copy-card">
+              <small>${escapeHtml(copy.project.eyebrow)}</small>
+              <h3>${escapeHtml(copy.project.heading)}</h3>
+              <p>${escapeHtml(copy.project.paragraphs.join(" "))}</p>
+            </div>
+          </section>
+
+          <section class="about-collage-page-section about-collage-page-contact">
+            <div class="about-collage-wide-copy">
+              <small>${escapeHtml(copy.contact.eyebrow)}</small>
+              <h3>${escapeHtml(copy.contact.headline)}</h3>
+              <p>${escapeHtml(copy.contact.body)}</p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+    </div>
   `;
 }
 
@@ -3295,13 +3749,14 @@ function renderAboutPage(state, elements) {
   const unusedEntries = getAboutSectionEntries(aboutPhotos, "unused");
 
   elements.aboutPhotoList.innerHTML = `
+    ${renderAboutPortfolioLibrary(state)}
+
     <section class="about-editor-summary panel">
-      <p class="eyebrow">About Photos</p>
-      <h2>Separate About image archive</h2>
-      <p class="panel-description">
-        About page imagery is managed separately from the portfolio archive. New imports write into <code>public/images/about/</code>, not <code>public/images/portfolio/</code>.
-      </p>
-      <div class="category-manager-summary">
+      <div class="mac-panel-titlebar">
+        <strong>About Archive Status</strong>
+        <span>${escapeHtml(String(aboutPhotos.length))} records</span>
+      </div>
+      <div class="about-editor-summary-ledger">
         <span><strong>${escapeHtml(String(aboutPhotos.length))}</strong> total</span>
         <span><strong>${escapeHtml(String(activeCount))}</strong> active</span>
         <span><strong>${escapeHtml(String(nativeCount))}</strong> about-native</span>
@@ -3311,10 +3766,9 @@ function renderAboutPage(state, elements) {
         <span><strong>${escapeHtml(String(backgroundEntries.length))}</strong> background floats</span>
         <span><strong>${escapeHtml(String(unusedEntries.length))}</strong> unused</span>
       </div>
-      <p class="panel-description">
-        About image controls are separated by page role so the upper collage, lower collage, and transparent background float layer can be curated independently.
-      </p>
     </section>
+
+    ${renderAboutBackgroundPreview(state, backgroundEntries)}
 
     <div class="about-editor-list" data-about-photo-list>
       ${renderAboutPhotoSection({
@@ -3425,10 +3879,43 @@ function renderSiteSettings(state, elements) {
   `;
 }
 
+function updateEditorWindowTitle(state, elements, route) {
+  const category = route.name === "categoryImages"
+    ? state.categories.find((item) => item.id === route.categoryId)
+    : null;
+  const image = route.name === "image" || route.name === "crop"
+    ? state.images.find((item) => item.id === route.imageId)
+    : null;
+  const routeTitles = {
+    images: "Image Library",
+    heroImages: "Hero Slideshow",
+    import: "Image Import",
+    gallery: "Virtual Gallery",
+    about: "About Copy",
+    aboutPhotos: "About Photos",
+    categories: "Categories",
+    settings: "Site Settings",
+    backups: "Backups"
+  };
+  const contextTitle = category?.label
+    ?? image?.title
+    ?? routeTitles[route.name]
+    ?? "Portfolio";
+  const modeSuffix = route.name === "crop" ? " Crop" : "";
+  const windowTitle = `${contextTitle}${modeSuffix} — Portfolio Editor`;
+
+  if (elements.editorWindowTitle) {
+    elements.editorWindowTitle.textContent = windowTitle;
+  }
+  document.title = `${windowTitle} — Taylor Pike`;
+}
+
 // Chooses which editor page to render for the current route.
 export function renderAll(state, elements, route) {
+  updateEditorWindowTitle(state, elements, route);
   renderCategories(state, elements);
   updateImportCategoryOptions(state, elements);
+  renderContextPalette(state, elements, route);
 
   if (route.name === "settings") {
     renderSiteSettings(state, elements);

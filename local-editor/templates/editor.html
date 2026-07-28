@@ -13,44 +13,96 @@
       document.documentElement.dataset.editorTheme = theme;
     })();
   </script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=75" />
-  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=75"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=124" />
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=110"></script>
 </head>
 
 <body>
-  <main class="page">
-    <!-- Header: identifies the tool and exposes global reload/save actions. -->
-    <header class="header">
-      <div>
-        <p class="eyebrow">Local Editor</p>
-        <h1>Portfolio control room</h1>
-        <p class="intro">
-          Manage portfolio images, hero slides, virtual gallery framing, imports, categories, and restore points from one local dashboard.
-        </p>
+  <div class="mac-menu-bar" data-mac-menu-bar aria-label="Application menu">
+    <span class="mac-menu-mark" aria-hidden="true">TP</span>
+    <div class="mac-menu-items">
+      <div class="mac-menu-group">
+        <button class="mac-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="macFileMenu">File</button>
+        <div class="mac-menu-dropdown" id="macFileMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-menu-click-target="#saveButton">
+            <span>Save Changes</span><kbd>Ctrl+S</kbd>
+          </button>
+          <button type="button" role="menuitem" data-menu-click-target="#reloadButton">Reload Data</button>
+          <span class="mac-menu-separator" role="separator"></span>
+          <a href="#/settings" role="menuitem" data-editor-route-link="settings">Site Settings</a>
+          <a href="#/backups" role="menuitem" data-editor-route-link="backups">Backups</a>
+        </div>
       </div>
 
-      <div class="actions header-actions">
-        <span class="dirty-indicator" id="dirtyIndicator" data-dirty-state="saved" aria-live="polite">Saved</span>
-        <button class="button" type="button" id="themeToggleButton" aria-pressed="false">Dark Mode</button>
-        <button class="button" type="button" id="reloadButton">Reload Data</button>
-        <button class="button primary" type="button" id="saveButton">Save Changes</button>
+      <div class="mac-menu-group">
+        <button class="mac-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="macEditMenu">Edit</button>
+        <div class="mac-menu-dropdown" id="macEditMenu" role="menu" hidden>
+          <a href="#/images" role="menuitem" data-editor-route-link="images">Images</a>
+          <a href="#/import" role="menuitem" data-editor-route-link="import">Import</a>
+          <a href="#/gallery" role="menuitem" data-editor-route-link="gallery">Gallery</a>
+          <span class="mac-menu-separator" role="separator"></span>
+          <a href="#/about" role="menuitem" data-editor-route-link="about">About Copy</a>
+          <a href="#/about/photos" role="menuitem" data-editor-route-link="about-photos">About Photos</a>
+          <a href="#/categories" role="menuitem" data-editor-route-link="categories">Categories</a>
+        </div>
+      </div>
+
+      <div class="mac-menu-group">
+        <button class="mac-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="macViewMenu">View</button>
+        <div class="mac-menu-dropdown" id="macViewMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-menu-click-target="#themeToggleButton">Toggle Light / Dark</button>
+        </div>
+      </div>
+    </div>
+    <span class="mac-menu-context">Local / Offline</span>
+  </div>
+
+  <main class="page">
+    <section class="editor-application-window" aria-label="Portfolio Editor window">
+    <!-- Header: identifies the tool and exposes global reload/save actions. -->
+    <header class="header">
+      <div class="mac-window-titlebar">
+        <span class="mac-window-left-controls">
+          <span class="mac-window-box" aria-hidden="true"></span>
+          <nav class="mac-history-toolbar" aria-label="View history">
+            <button class="button" type="button" id="historyBackButton" aria-label="Go back" title="Back" disabled>
+              <span aria-hidden="true">◀</span>
+            </button>
+            <button class="button" type="button" id="historyForwardButton" aria-label="Go forward" title="Forward" disabled>
+              <span aria-hidden="true">▶</span>
+            </button>
+          </nav>
+        </span>
+        <strong id="editorWindowTitle">Portfolio Editor</strong>
+        <span class="mac-window-document-state">
+          <span
+            class="dirty-indicator"
+            id="dirtyIndicator"
+            data-dirty-state="saved"
+            aria-live="polite"
+            aria-describedby="statusText"
+            tabindex="0"
+          >Saved</span>
+          <span class="status mac-document-tooltip" id="statusText" data-status-state="neutral" role="tooltip">Loading data...</span>
+        </span>
+      </div>
+
+      <div class="header-content">
+        <div class="actions header-actions">
+          <button class="button" type="button" id="themeToggleButton" aria-pressed="false">Dark Mode</button>
+          <button class="button" type="button" id="reloadButton">Reload Data</button>
+          <button class="button primary" type="button" id="saveButton">Save Changes</button>
+        </div>
       </div>
     </header>
 
-    <!-- Navigation: hash links switch between editor pages without reloading Flask. -->
-    <nav class="editor-nav" aria-label="Editor navigation">
-      <a href="#/images" data-editor-route-link="images">Images</a>
-      <a href="#/import" data-editor-route-link="import">Import</a>
-      <a href="#/gallery" data-editor-route-link="gallery">Gallery</a>
-      <a href="#/about" data-editor-route-link="about">About</a>
-      <a href="#/about/photos" data-editor-route-link="about-photos">About Photos</a>
-      <a href="#/categories" data-editor-route-link="categories">Categories</a>
-      <a href="#/settings" data-editor-route-link="settings">Site Settings</a>
-      <a href="#/backups" data-editor-route-link="backups">Backups</a>
-    </nav>
+    <div class="editor-workspace-shell">
+      <aside class="editor-context-palette" id="editorContextPalette" aria-label="Workspace sections" hidden>
+        <span class="editor-context-title" id="editorContextTitle">Sections</span>
+        <div id="editorContextPaletteContent"></div>
+      </aside>
 
-    <p class="status" id="statusText" data-status-state="neutral">Loading data...</p>
-
+      <div class="editor-workspace-content">
     <!-- Images page: populated dynamically by render.js based on the active route. -->
     <section class="editor-page-section" data-editor-page="images">
       <div class="section-heading">
@@ -66,16 +118,22 @@
 
     <!-- Import page: collects files and default metadata before the review step. -->
     <section class="editor-page-section" data-editor-page="import">
-      <section class="panel" aria-label="Image import">
+      <section class="panel import-workspace-panel" aria-label="Image import">
+        <div class="mac-panel-titlebar">
+          <strong>Image Import</strong>
+          <span>New Portfolio Records</span>
+        </div>
         <p class="eyebrow">Import Images</p>
         <h2>Add images to the portfolio</h2>
 
-        <div class="panel-grid">
-          <label class="panel-wide">
-            <span>Image files</span>
-            <input id="importFiles" type="file" accept="image/*" multiple />
-          </label>
+        <label class="import-source-field">
+          <span>Image files</span>
+          <input id="importFiles" type="file" accept="image/*" multiple />
+        </label>
 
+        <details class="inspector-disclosure import-defaults-disclosure">
+          <summary>Import Defaults</summary>
+          <div class="panel-grid inspector-fields-grid">
           <label>
             <span>Default category</span>
             <select id="importCategory"></select>
@@ -105,7 +163,8 @@
             <span>Default note</span>
             <textarea id="importNote" placeholder="This will pre-fill each imported image note. You can edit each image before saving."></textarea>
           </label>
-        </div>
+          </div>
+        </details>
 
         <div class="actions" style="margin-top: 14px;">
           <button class="button primary" type="button" id="prepareImportButton">Prepare Import Review</button>
@@ -114,6 +173,7 @@
         <p class="import-summary" id="importSummary"></p>
 
         <div class="import-review" id="importReview">
+          <div class="mac-subpanel-title">Import Review</div>
           <p class="eyebrow">Import Review</p>
           <h2>Edit each image before saving</h2>
 
@@ -140,15 +200,13 @@
 
     <!-- Gallery page: assigns portfolio images to fixed 3D gallery wall positions. -->
     <section class="editor-page-section" data-editor-page="gallery">
-      <div class="section-heading">
-        <p class="eyebrow">Virtual Gallery</p>
-        <h2>Gallery curation controls</h2>
-        <p>
-          Choose which image appears on each gallery wall slot, assign descriptive wall types, and set plaque behavior without editing the Three.js blueprint by hand.
-        </p>
+      <div class="mac-page-window gallery-workspace-window">
+        <div class="mac-panel-titlebar">
+          <strong>Virtual Gallery</strong>
+          <span>Curation + Room Layout</span>
+        </div>
+        <section class="editor-list" id="galleryCurationList"></section>
       </div>
-
-      <section class="editor-list" id="galleryCurationList"></section>
     </section>
 
 
@@ -182,9 +240,14 @@
         </div>
       </div>
 
-      <section class="panel" aria-label="About photo import">
-        <p class="eyebrow">About Import</p>
-        <h2>Add About page images</h2>
+      <details class="panel about-import-workspace" aria-label="About photo import">
+        <summary>
+          <span>
+            <strong>Import New About Files</strong>
+            <small>Upload files that are not already in the portfolio library</small>
+          </span>
+        </summary>
+        <div class="about-import-workspace-body">
 
         <div class="panel-grid">
           <label class="panel-wide">
@@ -223,7 +286,7 @@
           </label>
         </div>
 
-        <div class="actions" style="margin-top: 14px;">
+        <div class="actions about-import-prepare-actions">
           <button class="button primary" type="button" id="prepareAboutImportButton">Prepare About Import Review</button>
         </div>
 
@@ -251,7 +314,8 @@
 
           <div class="import-review-list" id="aboutImportReviewList"></div>
         </div>
-      </section>
+        </div>
+      </details>
 
       <section class="editor-list" id="aboutPhotoList"></section>
     </section>
@@ -285,16 +349,19 @@
     </section>
 
     <!-- Backups page: lists timestamped JSON backups and lets the user restore one safely. -->
-    <section class="editor-page-section" data-editor-page="backups">
-      <div class="section-heading">
-        <p class="eyebrow">Backups</p>
-        <h2>Restore portfolio JSON backups</h2>
-        <p>
-          Backups are created before editor saves. Restoring a backup replaces the current category, image, and hero slide JSON files, but the current state is backed up first so the restore can be reversed.
-        </p>
-      </div>
+        <section class="editor-page-section" data-editor-page="backups">
+          <div class="section-heading">
+            <p class="eyebrow">Backups</p>
+            <h2>Restore portfolio JSON backups</h2>
+            <p>
+              Backups are created before editor saves. Restoring a backup replaces the current category, image, and hero slide JSON files, but the current state is backed up first so the restore can be reversed.
+            </p>
+          </div>
 
-      <section class="editor-list" id="backupList"></section>
+          <section class="editor-list" id="backupList"></section>
+        </section>
+      </div>
+    </div>
     </section>
   </main>
 
@@ -314,6 +381,36 @@
         <img data-import-lightbox-image alt="" />
       </figure>
       <p class="import-lightbox-note">This preview uses the temporary browser file and does not save or modify the import record.</p>
+    </section>
+  </div>
+
+  <div class="crop-modal" data-crop-modal hidden>
+    <button class="crop-modal-backdrop" type="button" data-crop-modal-cancel aria-label="Cancel crop editing"></button>
+    <section class="crop-modal-window" role="dialog" aria-modal="true" aria-labelledby="cropModalTitle">
+      <div class="mac-panel-titlebar">
+        <strong id="cropModalTitle" data-crop-modal-title>Crop Image</strong>
+        <span data-crop-modal-mode></span>
+      </div>
+      <div class="crop-modal-body">
+        <div class="crop-modal-stage">
+          <div class="crop-modal-frame" data-crop-modal-frame>
+            <img data-crop-modal-image alt="" draggable="false" />
+            <span class="crop-modal-grid" aria-hidden="true"></span>
+          </div>
+        </div>
+        <div class="crop-modal-toolbar">
+          <button class="button" type="button" data-crop-modal-zoom="-1" aria-label="Zoom out">−</button>
+          <strong data-crop-modal-zoom-label>100%</strong>
+          <button class="button" type="button" data-crop-modal-zoom="1" aria-label="Zoom in">+</button>
+          <span data-crop-modal-resolution></span>
+        </div>
+        <p class="crop-modal-instruction">Drag to reposition. Use the mouse wheel, trackpad, or −/+ buttons to resize.</p>
+      </div>
+      <footer class="crop-modal-actions">
+        <button class="button" type="button" data-crop-modal-cancel>Cancel</button>
+        <button class="button" type="button" data-crop-modal-reset>Reset</button>
+        <button class="button primary" type="button" data-crop-modal-apply>Apply Crop</button>
+      </footer>
     </section>
   </div>
 

@@ -1467,7 +1467,8 @@ export class GalleryScene {
     const transform = getCoverTextureTransform(
       imageAspect,
       frameAspect,
-      artwork.galleryPosition
+      artwork.galleryPosition,
+      artwork.galleryScale
     );
 
     texture.repeat.set(transform.repeatX, transform.repeatY);
