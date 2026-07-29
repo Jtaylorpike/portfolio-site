@@ -106,14 +106,38 @@ export function resolveGalleryFrameDimensions(input) {
   const maxWidth = input.maxWidth * size;
   const maxHeight = input.maxHeight * size;
 
-  if (input.fitMode === "contain") {
-    return fitAspectInsideMax(input.imageAspect, maxWidth, maxHeight);
+  const dimensions = input.fitMode === "contain"
+    ? fitAspectInsideMax(input.imageAspect, maxWidth, maxHeight)
+    : fitAspectInsideMax(
+      getGalleryCoverFrameAspect(shape, wallArtworkAspect),
+      maxWidth,
+      maxHeight
+    );
+
+  if (
+    !Number.isFinite(input.wallWidth)
+    || !Number.isFinite(input.wallHeight)
+    || !Number.isFinite(input.artworkCenterY)
+  ) {
+    return dimensions;
   }
 
+  const frameBorder = Math.max(0, Number(input.frameBorder) || 0);
+  const wallMargin = Math.max(0.08, Number(input.wallMargin) || 0.24);
+  const safeHalfHeight = Math.max(
+    0.1,
+    Math.min(
+      Number(input.artworkCenterY) - wallMargin,
+      Number(input.wallHeight) - Number(input.artworkCenterY) - wallMargin
+    )
+  );
+  const physicalMaxWidth = Math.max(0.2, Number(input.wallWidth) - wallMargin * 2 - frameBorder);
+  const physicalMaxHeight = Math.max(0.2, safeHalfHeight * 2 - frameBorder);
+
   return fitAspectInsideMax(
-    getGalleryCoverFrameAspect(shape, wallArtworkAspect),
-    maxWidth,
-    maxHeight
+    dimensions.width / dimensions.height,
+    Math.min(dimensions.width, physicalMaxWidth),
+    Math.min(dimensions.height, physicalMaxHeight)
   );
 }
 

@@ -48,7 +48,7 @@ export const defaultAboutCopy: AboutCopy = {
   },
   about: {
     eyebrow: 'About Me',
-    heading: 'Personal background',
+    heading: 'Photography, climbing, and time spent outside.',
     paragraphs: [
       'Placeholder copy. Use this block for the short version of who you are, where you are from, and what shaped your creative point of view.',
       'Placeholder copy. Use this second paragraph for photography, climbing, community, technical work, and the personal thread between them.'
@@ -56,7 +56,7 @@ export const defaultAboutCopy: AboutCopy = {
   },
   project: {
     eyebrow: 'Photography / Project',
-    heading: 'Creative practice, technical crossover, and the archive system.',
+    heading: 'Building an archive on my own terms.',
     paragraphs: [
       'Placeholder copy. Use this block for how you think about photography, climbing, landscape, portrait work, commercial work, visual storytelling, and building this site as an evolving archive.',
       'Placeholder copy. Use this block for the bridge between photography, editing, web development, support work, and the interactive gallery concept.'

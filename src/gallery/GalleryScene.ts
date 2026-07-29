@@ -1862,7 +1862,12 @@ export class GalleryScene {
       frameStyle: artwork.galleryFrameStyle,
       requestedSize: artwork.gallerySize,
       maxWidth: artwork.maxWidth,
-      maxHeight: artwork.maxHeight
+      maxHeight: artwork.maxHeight,
+      wallWidth: artwork.wallWidth,
+      wallHeight: artwork.wallHeight,
+      artworkCenterY: artwork.position[1],
+      frameBorder: this.artworkFrameBorder,
+      wallMargin: 0.24
     });
   }
 

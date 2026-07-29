@@ -84,7 +84,6 @@ img {
    The VCR/pixel face is intentionally scoped to small accent numerals below,
    not brand names, navigation, buttons, or long-form copy. */
 .pixel-number,
-.modern-entry-brand span:last-child,
 .modern-brand-field,
 .modern-nav a,
 .modern-nav button,
@@ -236,16 +235,6 @@ button:focus-visible {
   letter-spacing: 0.42em;
 }
 
-.modern-entry-brand span:last-child {
-  color: var(--muted-strong);
-  font-size: var(--interface-size-min);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: var(--interface-track);
-  white-space: nowrap;
-  transform: translateY(1px);
-}
-
 .modern-entry-card h1 {
   max-width: 720px;
   margin: 0;
@@ -274,6 +263,23 @@ button:focus-visible {
 .modern-site {
   min-height: 100vh;
   background: transparent;
+}
+
+.modern-site-footer {
+  width: min(var(--max-width), calc(100% - 32px));
+  margin: clamp(34px, 6vw, 84px) auto 0;
+  padding: 18px 0 24px;
+  border-top: 1px solid var(--line-faint);
+  color: var(--muted);
+  font-family: var(--font-interface);
+  font-size: 10px;
+  letter-spacing: var(--interface-track-wide);
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.modern-site-footer p {
+  margin: 0;
 }
 
 .modern-header {
@@ -310,7 +316,18 @@ button:focus-visible {
   text-transform: uppercase;
 }
 
+.modern-brand-symbol {
+  display: block;
+  flex: 0 0 auto;
+  width: clamp(21px, 1.9vw, 27px);
+  height: auto;
+  margin-right: clamp(0.28em, 0.9vw, 0.42em);
+}
+
 .modern-brand-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
   color: var(--text);
   font-size: clamp(15px, 1.4vw, 21px);
   font-weight: 700;
@@ -4280,13 +4297,33 @@ button:focus-visible {
    Background floats render as a page-wide atmosphere layer, not as children clipped by the centered content column. */
 .modern-site[data-page='about'] {
   position: relative;
-  overflow-x: clip;
+  display: flex;
+  flex-direction: column;
+  overflow: clip;
 }
 
 .modern-site[data-page='about'] .modern-about-page {
   position: relative;
   z-index: 2;
   overflow: visible;
+}
+
+.modern-site[data-page='about'] .modern-site-footer {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  margin-top: auto;
+  padding:
+    22px
+    max(16px, calc((100% - var(--max-width)) / 2))
+    26px;
+  box-sizing: border-box;
+  background: #070908;
+}
+
+.modern-site[data-page='about'] .modern-site-footer p {
+  width: min(var(--max-width), 100%);
+  margin-inline: auto;
 }
 
 .modern-site[data-page='about'] .about-floating-photos {
@@ -4296,7 +4333,7 @@ button:focus-visible {
   height: 100%;
   z-index: 1;
   pointer-events: none;
-  overflow: visible;
+  overflow: hidden;
   transform: none;
 }
 

@@ -1705,7 +1705,12 @@ function resolveGalleryPreviewFrameDimensions(meta, image) {
     frameStyle: image.galleryFrameStyle ?? "auto",
     requestedSize: image.gallerySize,
     maxWidth: meta.artworkWidth,
-    maxHeight: meta.artworkHeight
+    maxHeight: meta.artworkHeight,
+    wallWidth: meta.wallWidth,
+    wallHeight: meta.wallHeight,
+    artworkCenterY: getGalleryPreviewArtworkPositionY(meta),
+    frameBorder: GALLERY_PREVIEW_FRAME_BORDER,
+    wallMargin: 0.24
   });
 }
 

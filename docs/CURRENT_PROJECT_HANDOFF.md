@@ -84,6 +84,7 @@ Cloud migration is anticipated but is not current implementation scope. New edit
 - Keep endpoint request and response contracts independent from Flask-specific behavior.
 - Keep file persistence and backup logic behind backend functions rather than browser code.
 - Do not begin authentication, Cloudflare storage, deployment, or infrastructure work until the migration phase is explicitly started.
+- Keep the current GitHub Pages hash routes for now. Converting Home, Portfolio, About, and category views into separately crawlable canonical routes and sitemap entries is intentionally deferred to the Cloudflare migration period.
 - When that phase begins, durable JSON revisions, uploaded assets, authentication, CSRF protection, authorization, and audit history must replace assumptions about a trusted local filesystem.
 
 ### Editor E3 - responsive editing

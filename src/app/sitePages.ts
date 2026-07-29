@@ -112,8 +112,11 @@ function renderTopNav(activePage: PageName): string {
 
     <header class="modern-header">
       <a class="modern-brand" href="#/home" aria-label="Taylor Pike home">
-        <span class="modern-brand-name">Taylor Pike</span>
-        <span class="modern-brand-field">Photographer + Creative</span>
+        <span class="modern-brand-name">
+          <span>Taylor</span>
+          <img class="modern-brand-symbol" src="/images/brand/taylor-pike-symbol-reversed.svg" alt="" aria-hidden="true" />
+          <span>Pike</span>
+        </span>
       </a>
 
       <nav class="modern-nav" aria-label="Main navigation">
@@ -123,6 +126,14 @@ function renderTopNav(activePage: PageName): string {
         <a class="${activePage === 'about' ? 'is-active' : ''}" href="#/about"${aboutCurrent}>About</a>
       </nav>
     </header>
+  `;
+}
+
+function renderSiteFooter(): string {
+  return `
+    <footer class="modern-site-footer">
+      <p>&copy; ${new Date().getFullYear()} Taylor Pike. All rights reserved.</p>
+    </footer>
   `;
 }
 
@@ -262,7 +273,7 @@ function renderHomeHeroSlideshow(): string {
       data-hero-index="0"
       aria-label="Featured portfolio image"
     >
-      <h1 class="sr-only">Taylor Pike Productions photography portfolio</h1>
+      <h1 class="sr-only">Taylor Pike photography portfolio</h1>
       <div class="home-hero-grid-mark home-hero-grid-mark-top-left" aria-hidden="true"></div>
       <div class="home-hero-grid-mark home-hero-grid-mark-top-right" aria-hidden="true"></div>
       <div class="home-hero-grid-mark home-hero-grid-mark-bottom-right" aria-hidden="true"></div>
@@ -426,7 +437,6 @@ export function renderEntryPage(): string {
       <div class="modern-entry-card">
         <a class="modern-entry-brand" href="#/home" aria-label="Taylor Pike home">
           <span>Taylor Pike</span>
-          <span>Photographer + Creative</span>
         </a>
 
         <div>
@@ -492,6 +502,7 @@ export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = '
           ${renderPortfolioGrid(initialCategory)}
         </div>
       </main>
+      ${renderSiteFooter()}
     </div>
   `;
 }
@@ -767,6 +778,7 @@ export function renderAboutPage(): string {
           </div>
         </section>
       </main>
+      ${renderSiteFooter()}
     </div>
   `;
 }

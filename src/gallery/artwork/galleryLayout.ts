@@ -60,6 +60,7 @@ export type GalleryArtwork = {
   plaqueEnabled: boolean;
   plaqueSide: Exclude<PlaqueSide, 'none'>;
   wallWidth: number;
+  wallHeight: number;
 
   image: string;
   previewImage?: string;
@@ -294,6 +295,7 @@ export const galleryArtworks: GalleryArtwork[] = wallBlocks.flatMap((wall, wallI
       plaqueEnabled: isWallPlaqueEnabled(wall),
       plaqueSide: inferPlaqueSide(wall),
       wallWidth: getWallPreset(wall).width,
+      wallHeight: getWallPreset(wall).height,
 
       image: image.textureSrc ?? image.src,
       previewImage: image.thumbSrc ?? image.src,

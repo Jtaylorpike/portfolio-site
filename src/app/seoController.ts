@@ -96,7 +96,7 @@ function getRouteSeo(routeState: SeoRouteState): SiteSeoRoute {
 
   return {
     ...baseRoute,
-    title: `${categoryLabel} Portfolio | Taylor Pike Productions`,
+    title: `${categoryLabel} Portfolio | Taylor Pike`,
     description: `${categoryLabel} photography and image work from the Taylor Pike portfolio archive.`
   };
 }

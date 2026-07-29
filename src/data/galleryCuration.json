@@ -2,7 +2,7 @@
   {
     "wallId": "wall-entry-hero-personal",
     "roomId": "room-main",
-    "artworkId": "a-soft-landing",
+    "artworkId": "raining-choss",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 1,
@@ -16,7 +16,7 @@
   {
     "wallId": "wall-left-climbing-01",
     "roomId": "room-main",
-    "artworkId": "raining-choss",
+    "artworkId": "open-pastures",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 2,
@@ -52,7 +52,7 @@
     "plaqueEnabled": true,
     "plaqueSide": "auto",
     "positionX": -12.0,
-    "positionZ": -7.0,
+    "positionZ": -6.0,
     "rotationYDegrees": 90.0
   },
   {
@@ -100,7 +100,7 @@
   {
     "wallId": "wall-rear-climbing-workbook-01",
     "roomId": "room-main",
-    "artworkId": "light-on-the-leaves",
+    "artworkId": "love-rocket",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 8,
@@ -170,7 +170,7 @@
   {
     "wallId": "wall-right-landscape-01",
     "roomId": "room-main",
-    "artworkId": "linville-cove-sunrise",
+    "artworkId": "portrait-of-a-dog",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 13,
@@ -184,7 +184,7 @@
   {
     "wallId": "wall-right-landscape-02",
     "roomId": "room-main",
-    "artworkId": "an-emerald-pool",
+    "artworkId": "kyle-in-the-forest",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 14,

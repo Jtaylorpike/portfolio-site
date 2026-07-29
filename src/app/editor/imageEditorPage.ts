@@ -133,8 +133,11 @@ export function renderImageEditorPage() {
     <div class="modern-site image-editor-page" data-page="editor">
       <header class="modern-header">
         <a class="modern-brand" href="#/home" aria-label="Taylor Pike home">
-          <span class="modern-brand-name">Taylor Pike</span>
-          <span class="modern-brand-field">Photographer + Creative</span>
+          <span class="modern-brand-name">
+            <span>Taylor</span>
+            <img class="modern-brand-symbol" src="/images/brand/taylor-pike-symbol-reversed.svg" alt="" aria-hidden="true" />
+            <span>Pike</span>
+          </span>
         </a>
 
         <nav class="modern-nav" aria-label="Editor navigation">

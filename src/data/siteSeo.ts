@@ -31,14 +31,14 @@ export type SiteSeoConfig = {
 
 const fallbackSeo: SiteSeoConfig = {
   schemaVersion: 1,
-  siteName: 'Taylor Pike Productions',
+  siteName: 'Taylor Pike',
   authorName: 'Taylor Pike',
   siteUrl: 'https://taylorpike.com/',
   locale: 'en_US',
   themeColor: '#060807',
   defaultImage: '/images/portfolio/display/climbing-01.webp',
   contactEmail: 'jtaylorpike@gmail.com',
-  sameAs: ['https://github.com/Jtaylorpike'],
+  sameAs: [],
   keywords: [
     'photography',
     'climbing photography',
@@ -48,27 +48,27 @@ const fallbackSeo: SiteSeoConfig = {
   ],
   routes: {
     entry: {
-      title: 'Taylor Pike Productions | Photography Portfolio',
+      title: 'Taylor Pike | Photography Portfolio',
       description: 'Photography portfolio by Taylor Pike featuring climbing, landscape, personal, and commercial image work, plus an interactive virtual gallery.',
       canonicalPath: '/'
     },
     home: {
-      title: 'Taylor Pike Productions | Photography Portfolio',
+      title: 'Taylor Pike | Photography Portfolio',
       description: 'Photography portfolio by Taylor Pike featuring climbing, landscape, personal, and commercial image work, plus an interactive virtual gallery.',
       canonicalPath: '/'
     },
     portfolio: {
-      title: 'Portfolio | Taylor Pike Productions',
+      title: 'Portfolio | Taylor Pike',
       description: 'A visual index of Taylor Pike photography, including climbing, landscape, personal, commercial, and experimental image work.',
       canonicalPath: '/'
     },
     about: {
-      title: 'About / Contact | Taylor Pike Productions',
-      description: 'About and contact page for Taylor Pike Productions, a photography portfolio and evolving interactive image archive.',
+      title: 'About / Contact | Taylor Pike',
+      description: 'About and contact page for Taylor Pike, a photography portfolio and evolving interactive image archive.',
       canonicalPath: '/'
     },
     gallery: {
-      title: 'Virtual Gallery | Taylor Pike Productions',
+      title: 'Virtual Gallery | Taylor Pike',
       description: 'An interactive 3D gallery space for selected Taylor Pike photography and image archive work.',
       canonicalPath: '/'
     }

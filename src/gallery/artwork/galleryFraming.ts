@@ -32,6 +32,11 @@ export type GalleryFramingInput = {
   requestedSize?: number;
   maxWidth: number;
   maxHeight: number;
+  wallWidth?: number;
+  wallHeight?: number;
+  artworkCenterY?: number;
+  frameBorder?: number;
+  wallMargin?: number;
 };
 
 export const GALLERY_PORTRAIT_FRAME_ASPECT = 2 / 3;
@@ -150,14 +155,41 @@ export function resolveGalleryFrameDimensions(input: GalleryFramingInput): Galle
   const maxWidth = input.maxWidth * size;
   const maxHeight = input.maxHeight * size;
 
-  if (input.fitMode === 'contain') {
-    return fitAspectInsideMax(input.imageAspect, maxWidth, maxHeight);
+  const dimensions = input.fitMode === 'contain'
+    ? fitAspectInsideMax(input.imageAspect, maxWidth, maxHeight)
+    : fitAspectInsideMax(
+      getGalleryCoverFrameAspect(shape, wallArtworkAspect),
+      maxWidth,
+      maxHeight
+    );
+
+  if (
+    !Number.isFinite(input.wallWidth)
+    || !Number.isFinite(input.wallHeight)
+    || !Number.isFinite(input.artworkCenterY)
+  ) {
+    return dimensions;
   }
 
+  const frameBorder = Math.max(0, Number(input.frameBorder) || 0);
+  const wallMargin = Math.max(0.08, Number(input.wallMargin) || 0.24);
+  const wallWidth = Number(input.wallWidth);
+  const wallHeight = Number(input.wallHeight);
+  const artworkCenterY = Number(input.artworkCenterY);
+  const safeHalfHeight = Math.max(
+    0.1,
+    Math.min(
+      artworkCenterY - wallMargin,
+      wallHeight - artworkCenterY - wallMargin
+    )
+  );
+  const physicalMaxWidth = Math.max(0.2, wallWidth - wallMargin * 2 - frameBorder);
+  const physicalMaxHeight = Math.max(0.2, safeHalfHeight * 2 - frameBorder);
+
   return fitAspectInsideMax(
-    getGalleryCoverFrameAspect(shape, wallArtworkAspect),
-    maxWidth,
-    maxHeight
+    dimensions.width / dimensions.height,
+    Math.min(dimensions.width, physicalMaxWidth),
+    Math.min(dimensions.height, physicalMaxHeight)
   );
 }
 

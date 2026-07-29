@@ -7,7 +7,7 @@
   },
   "about": {
     "eyebrow": "About Me",
-    "heading": "Personal background",
+    "heading": "Photography, climbing, and my journey as an artist.",
     "paragraphs": [
       "I’m Taylor Pike, a photographer and multidisciplinary creative working across climbing, landscape, portraiture, and personal projects. My work is grounded in time spent outside and an interest in how people move through and relate to their environments.",
       "I started making photographs in 2012, borrowing a family iPhone to document the places around me. That curiosity grew into a serious practice, and in 2020 I earned my BS in Commercial Photography from Appalachian State University, where I also studied computer science. I’ve spent more than a decade climbing—an experience that continues to shape how I understand movement, landscape, risk, and community. Photography and climbing now overlap throughout my work."
@@ -15,7 +15,7 @@
   },
   "project": {
     "eyebrow": "Photography / Project",
-    "heading": "Creative practice, technical crossover, and the archive system.",
+    "heading": "My creative approach and building an archive on my own terms.",
     "paragraphs": [
       "I make photographs through observation rather than strict control. Even when an image is planned, I leave room for the moment and the environment to shape it. I’m drawn to natural light, vivid color, and the small details that give a place its character.",
       "This site began as a home for my photography and continues to serve as its primary archive. It is also designed to grow beyond a conventional portfolio, making room for experiments in web design, digital environments, and other creative work.\n\nI built the custom editor behind the site as a way to organize and shape that archive on my own terms. Like the work it contains, the system will continue to change as new projects, ideas, and forms are added."
