@@ -23,117 +23,6 @@ function ensureRectAreaLightsInitialized() {
   rectAreaLightsInitialized = true;
 }
 
-function getPanelSpotTarget(panel: { id: string; position: [number, number] }) {
-  const [x, z] = panel.position;
-
-  if (panel.id === 'light-entry-panel') {
-    return new THREE.Vector3(x, 1.42, z - 1.08);
-  }
-
-  if (panel.id.includes('left-wing')) {
-    return new THREE.Vector3(x - 1.06, 1.36, z);
-  }
-
-  if (panel.id.includes('right-wing')) {
-    return new THREE.Vector3(x + 1.06, 1.36, z);
-  }
-
-  if (panel.id === 'light-rear-panel') {
-    return new THREE.Vector3(x, 1.38, z + 1.08);
-  }
-
-  return new THREE.Vector3(x, 1.34, z);
-}
-
-function shouldPanelCastShadow(panel: { id: string }) {
-  return panel.id === 'light-entry-panel';
-}
-
-function configureSoftPanelShadow(light: THREE.SpotLight, panel: { id: string; distance: number }) {
-  if (!shouldPanelCastShadow(panel)) {
-    return;
-  }
-
-  light.castShadow = true;
-  light.shadow.mapSize.width = 384;
-  light.shadow.mapSize.height = 384;
-  light.shadow.bias = -0.00018;
-  light.shadow.normalBias = 0.026;
-  light.shadow.radius = 2.6;
-  light.shadow.camera.near = 0.35;
-  light.shadow.camera.far = panel.distance + 6.2;
-  light.shadow.camera.fov = 62;
-}
-
-function addPanelSpotlight(
-  scene: THREE.Scene,
-  panel: { id: string; position: [number, number]; intensity: number; distance: number }
-) {
-  const light = new THREE.SpotLight(
-    0xffe4cb,
-    panel.intensity * 5.85,
-    panel.distance + 5.2,
-    Math.PI / 4.15,
-    0.82,
-    1.46
-  );
-  const target = new THREE.Object3D();
-
-  light.position.set(
-    panel.position[0],
-    galleryRoom.height - 0.16,
-    panel.position[1]
-  );
-  light.target = target;
-  target.position.copy(getPanelSpotTarget(panel));
-  configureSoftPanelShadow(light, panel);
-
-  light.userData = {
-    galleryLighting: 'ceiling-artwork-spot',
-    lightPanelId: panel.id,
-    phase8U: 'readable-ceiling-warmed-fixture-spot',
-    minimumGalleryQuality: 'low',
-    adaptiveGalleryShadow: shouldPanelCastShadow(panel)
-  };
-  target.userData = {
-    galleryLighting: 'ceiling-artwork-spot-target',
-    lightPanelId: panel.id,
-    phase8U: 'readable-ceiling-warmed-fixture-spot-target',
-    minimumGalleryQuality: 'low'
-  };
-
-  scene.add(target);
-  scene.add(light);
-}
-
-function addPanelAreaWash(
-  scene: THREE.Scene,
-  panel: { id: string; position: [number, number]; width: number; depth: number; rotationY: number; intensity: number }
-) {
-  const light = new THREE.RectAreaLight(
-    0xffd9b8,
-    1.18 + panel.intensity * 2.9,
-    panel.width * 1.34,
-    panel.depth * 1.34
-  );
-
-  light.position.set(
-    panel.position[0],
-    galleryRoom.height - 0.13,
-    panel.position[1]
-  );
-  light.rotation.y = panel.rotationY;
-  light.lookAt(panel.position[0], 0.74, panel.position[1]);
-  light.userData = {
-    galleryLighting: 'ceiling-area-wash',
-    lightPanelId: panel.id,
-    phase8U: 'readable-ceiling-fixture-surface-wash',
-    minimumGalleryQuality: 'balanced'
-  };
-
-  scene.add(light);
-}
-
 function getArtworkAccentIntensity(artwork: typeof galleryArtworks[number]) {
   if (artwork.wallType === 'feature-wall') {
     return 1.22;
@@ -257,16 +146,17 @@ export function addGalleryLighting(scene: THREE.Scene) {
   lowWarmRoomFill.position.set(0, 1.05, 0.8);
   scene.add(lowWarmRoomFill);
 
-  const ceilingAtmosphereLift = new THREE.PointLight(0xcaa984, 0.62, 17.5, 2.28);
-  ceilingAtmosphereLift.position.set(0, galleryRoom.height - 0.36, 0);
-  scene.add(ceilingAtmosphereLift);
-
   // Phase 8AI keeps the Phase 8AG ceiling rake point lights removed.
   // They added runtime cost without enough visible ceiling improvement.
 
+  // Medium keeps the original restrained eight-piece accent-light budget.
   galleryArtworks.slice(0, 8).forEach((artwork, index) => {
-    addArtworkWallWash(scene, artwork);
     addArtworkAccentSpotlight(scene, artwork, index);
+  });
+
+  // High quality adds one broad wall wash for every displayed artwork.
+  galleryArtworks.forEach((artwork) => {
+    addArtworkWallWash(scene, artwork);
   });
 }
 
@@ -285,8 +175,5 @@ export function applyGalleryLightingQuality(scene: THREE.Scene, tier: GalleryQua
       object.visible = galleryQualityRank[tier] >= galleryQualityRank[minimumQuality];
     }
 
-    if (object.userData.adaptiveGalleryShadow && object instanceof THREE.SpotLight) {
-      object.castShadow = tier === 'high';
-    }
   });
 }

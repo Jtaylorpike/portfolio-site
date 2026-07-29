@@ -1,6 +1,7 @@
 # Dependency and build output
 node_modules/
 dist/
+dist-gallery-fixture/
 
 # Python cache files
 __pycache__/
@@ -11,6 +12,7 @@ local-editor/backups/
 
 # Local browser/debug files
 .drive-browser-profile/
+debug.log
 
 # Temporary project packs created for ChatGPT review
 portfolio-*-pack/

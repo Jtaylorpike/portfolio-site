@@ -35,12 +35,19 @@ export class MovementController {
   private touchMovementX = 0;
   private touchMovementZ = 0;
   private running = false;
+  private direction = new THREE.Vector3();
+  private currentPosition = new THREE.Vector3();
+  private nextPosition = new THREE.Vector3();
+  private xOnlyPosition = new THREE.Vector3();
+  private zOnlyPosition = new THREE.Vector3();
+  private yawOnly = new THREE.Euler(0, 0, 0, 'YXZ');
 
   // Interior wall-block collision only.
   // Exterior room-shell distance is controlled by movementBounds in
   // galleryBlueprint.ts so perimeter-wall tuning does not make the editable
   // gallery wall blocks feel too tight or too loose.
   private wallCollisionRadius = 0.52;
+  private shellCollisionRadius = 0.48;
   private speed = 3.35;
   private touchSpeedMultiplier = 0.94;
 
@@ -143,10 +150,10 @@ export class MovementController {
       return;
     }
 
-    const currentPosition = camera.position.clone();
+    const currentPosition = this.currentPosition.copy(camera.position);
     const movementSpeed = (this.hasTouchMovement() ? this.speed * this.touchSpeedMultiplier : this.speed)
       * (this.running ? 1.85 : 1);
-    const nextPosition = currentPosition.clone().addScaledVector(direction, movementSpeed * delta);
+    const nextPosition = this.nextPosition.copy(currentPosition).addScaledVector(direction, movementSpeed * delta);
     nextPosition.y = galleryStart.position[1];
 
     if (this.isInsideMovementZone(nextPosition) && !this.isCollidingWithWall(nextPosition)) {
@@ -155,7 +162,7 @@ export class MovementController {
     }
 
     // Try sliding on the X axis if the full movement hits a wall.
-    const xOnlyPosition = currentPosition.clone();
+    const xOnlyPosition = this.xOnlyPosition.copy(currentPosition);
     xOnlyPosition.x = nextPosition.x;
     xOnlyPosition.y = galleryStart.position[1];
 
@@ -165,7 +172,7 @@ export class MovementController {
     }
 
     // Try sliding on the Z axis if X movement is blocked.
-    const zOnlyPosition = currentPosition.clone();
+    const zOnlyPosition = this.zOnlyPosition.copy(currentPosition);
     zOnlyPosition.z = nextPosition.z;
     zOnlyPosition.y = galleryStart.position[1];
 
@@ -175,7 +182,7 @@ export class MovementController {
   }
 
   private getMovementDirection(yaw: number) {
-    const direction = new THREE.Vector3();
+    const direction = this.direction.set(0, 0, 0);
 
     direction.x += this.touchMovementX;
     direction.z += this.touchMovementZ;
@@ -206,8 +213,8 @@ export class MovementController {
 
     // Movement follows camera yaw only.
     // Pitch is ignored so looking up/down does not affect walking direction.
-    const yawOnly = new THREE.Euler(0, yaw, 0, 'YXZ');
-    direction.applyEuler(yawOnly);
+    this.yawOnly.set(0, yaw, 0, 'YXZ');
+    direction.applyEuler(this.yawOnly);
 
     return direction;
   }
@@ -236,11 +243,30 @@ export class MovementController {
   }
 
   private isInsideMovementZone(position: THREE.Vector3) {
-    return galleryMovementZones.some((zone) =>
-      position.x >= zone.minX &&
-      position.x <= zone.maxX &&
-      position.z >= zone.minZ &&
-      position.z <= zone.maxZ
+    const diagonalInset = this.shellCollisionRadius / Math.SQRT2;
+    const samples = [
+      [0, 0],
+      [this.shellCollisionRadius, 0],
+      [-this.shellCollisionRadius, 0],
+      [0, this.shellCollisionRadius],
+      [0, -this.shellCollisionRadius],
+      [diagonalInset, diagonalInset],
+      [diagonalInset, -diagonalInset],
+      [-diagonalInset, diagonalInset],
+      [-diagonalInset, -diagonalInset]
+    ];
+
+    // Treat the connected room/hallway footprints as one union. Requiring a
+    // camera-radius ring to remain inside that union prevents clipping through
+    // exterior shell edges while still permitting movement through openings
+    // where two modules meet.
+    return samples.every(([offsetX, offsetZ]) =>
+      galleryMovementZones.some((zone) =>
+        position.x + offsetX >= zone.minX &&
+        position.x + offsetX <= zone.maxX &&
+        position.z + offsetZ >= zone.minZ &&
+        position.z + offsetZ <= zone.maxZ
+      )
     );
   }
 

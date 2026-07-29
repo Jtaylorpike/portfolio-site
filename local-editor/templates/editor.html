@@ -1,8 +1,9 @@
 <!doctype html>
 <html lang="en">
-<head>
+  <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="editor-api-base" content="{{ editor_api_base|default('', true) }}">
   <title>Taylor Pike Portfolio Editor</title>
   <script>
     (() => {
@@ -13,8 +14,8 @@
       document.documentElement.dataset.editorTheme = theme;
     })();
   </script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=124" />
-  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=110"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}?v=130" />
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=118"></script>
 </head>
 
 <body>

@@ -2277,6 +2277,10 @@ function renderGalleryLayoutBuilder(state) {
   const grid = room.grid ?? { minX: -16, maxX: 68, minZ: -86, maxZ: 16 };
   const spanX = Math.max(1, Number(grid.maxX) - Number(grid.minX));
   const spanZ = Math.max(1, Number(grid.maxZ) - Number(grid.minZ));
+  const spawnPosition = Array.isArray(room.start?.position) ? room.start.position : [0, 1.65, 0];
+  const spawnLeft = ((Number(spawnPosition[0]) - Number(grid.minX)) / spanX) * 100;
+  const spawnTop = ((Number(spawnPosition[2]) - Number(grid.minZ)) / spanZ) * 100;
+  const spawnYaw = Number(room.start?.yaw ?? 0);
   const moduleStyle = (module) => {
     const center = Array.isArray(module.center) ? module.center : [0, 0];
     const left = ((Number(center[0]) - Number(module.width) / 2 - Number(grid.minX)) / spanX) * 100;
@@ -2286,14 +2290,18 @@ function renderGalleryLayoutBuilder(state) {
   const cards = modules.map((module) => {
     const center = Array.isArray(module.center) ? module.center : [0, 0];
     const isHallway = module.kind === "hallway";
+    const isDefaultRoom = !isHallway && module.id === (room.defaultRoomId || rooms[0]?.id || "room-main");
     return `
       <article class="gallery-layout-module-card" data-gallery-layout-module data-module-kind="${module.kind}" data-module-id="${escapeHtml(module.id)}">
         <header>
           <div>
-            <span>${isHallway ? "Hallway" : "Room"}</span>
+            <span>${isHallway ? "Hallway" : isDefaultRoom ? "Default room · Spawn" : "Room"}</span>
             <strong>${escapeHtml(module.label || module.id)}</strong>
           </div>
-          <button class="button danger" type="button" data-remove-gallery-module>Remove</button>
+          <div>
+            ${isHallway ? `<button class="button secondary" type="button" data-rotate-gallery-hallway>Rotate 90 deg</button>` : ""}
+            <button class="button danger" type="button" data-remove-gallery-module${isDefaultRoom ? ` disabled title="The default spawn room cannot be deleted."` : ""}>Remove</button>
+          </div>
         </header>
         <div class="gallery-layout-module-fields">
           <label class="field">Label
@@ -2362,9 +2370,14 @@ function renderGalleryLayoutBuilder(state) {
             <button class="button is-right" type="button" data-gallery-architecture-pan-x="80" aria-label="Pan right" title="Pan right">→</button>
             <button class="button is-down" type="button" data-gallery-architecture-pan-y="80" aria-label="Pan down" title="Pan down">↓</button>
           </div>
+          <button class="button gallery-spawn-toggle" type="button" data-gallery-architecture-toggle-spawn aria-pressed="true" title="Hide spawn marker">S</button>
         </div>
         <div class="gallery-layout-preview-world" data-gallery-architecture-world>
           ${modules.map((module) => `<button type="button" class="gallery-layout-preview-module is-${module.kind}" data-gallery-architecture-module data-module-id="${escapeHtml(module.id)}" data-module-kind="${module.kind}" data-center-x="${escapeHtml(String(module.center?.[0] ?? 0))}" data-center-z="${escapeHtml(String(module.center?.[1] ?? 0))}" data-module-width="${escapeHtml(String(module.width))}" data-module-depth="${escapeHtml(String(module.depth))}" style="${moduleStyle(module)}">${escapeHtml(module.label || module.id)}</button>`).join("")}
+          <div class="gallery-layout-spawn-marker" data-gallery-architecture-spawn data-spawn-x="${escapeHtml(String(spawnPosition[0]))}" data-spawn-z="${escapeHtml(String(spawnPosition[2]))}" style="left:${spawnLeft}%;top:${spawnTop}%;--spawn-yaw:${spawnYaw}rad" aria-label="Gallery spawn point">
+            <span aria-hidden="true"></span>
+            <strong>Spawn</strong>
+          </div>
         </div>
       </div>
       <div class="gallery-layout-module-list">
@@ -3093,6 +3106,9 @@ function renderAboutPhotoCard(photo, index) {
         <input type="hidden" data-field="collageX" value="${escapeHtml(String(photo.collageX ?? ""))}" />
         <input type="hidden" data-field="collageY" value="${escapeHtml(String(photo.collageY ?? ""))}" />
         <input type="hidden" data-field="collageWidth" value="${escapeHtml(String(photo.collageWidth ?? ""))}" />
+        <input type="hidden" data-field="collageLayer" value="${escapeHtml(String(photo.collageLayer ?? ""))}" />
+        <input type="hidden" data-field="collageRotation" value="${escapeHtml(String(photo.collageRotation ?? ""))}" />
+        <input type="hidden" data-field="collageOpacity" value="${escapeHtml(String(photo.collageOpacity ?? ""))}" />
 
         <label>
           <span>ID</span>
@@ -3369,14 +3385,14 @@ function renderAboutPortfolioLibrary(state) {
 }
 
 const ABOUT_BACKGROUND_PREVIEW_POSITIONS = [
-  { x: -14, y: 1 },
-  { x: 72, y: 0 },
-  { x: -16, y: 24 },
-  { x: 72, y: 32 },
-  { x: 38, y: 50 },
-  { x: 72, y: 67 },
-  { x: -15, y: 81 },
-  { x: 72, y: 84 }
+  { x: -15, y: 0, width: 56 },
+  { x: 62, y: -1, width: 54 },
+  { x: -18, y: 25, width: 52 },
+  { x: 62, y: 33, width: 56 },
+  { x: 39, y: 40.2, width: 34 },
+  { x: 63, y: 44.7, width: 54 },
+  { x: -17, y: 59.5, width: 55 },
+  { x: 64, y: 60.7, width: 52 }
 ];
 
 const ABOUT_UPPER_PREVIEW_LAYOUT = [
@@ -3392,6 +3408,13 @@ const ABOUT_LOWER_PREVIEW_LAYOUT = [
   { x: 60, y: 7, width: 28, aspect: 180 / 250 },
   { x: 14, y: 4, width: 24, aspect: 160 / 180 }
 ];
+
+const ABOUT_UPPER_PREVIEW_ROTATIONS = [0.4, -0.8];
+const ABOUT_LOWER_PREVIEW_ROTATIONS = [-0.6, 1.4, -2, 2, -3, 3];
+const ABOUT_BACKGROUND_PREVIEW_ROTATIONS = [-4, 2, 4, -1, -2, 3, 1, -5];
+const ABOUT_LOWER_PREVIEW_OPACITIES = [1, 0.9, 0.78, 0.62, 0.28, 0.28];
+const ABOUT_UPPER_PREVIEW_LAYERS = [2, 3];
+const ABOUT_LOWER_PREVIEW_LAYERS = [4, 3, 2, 1, 1, 1];
 
 function getAboutPreviewImageSource(photo) {
   return photo.fullSrc ?? photo.src ?? photo.thumbSrc ?? "";
@@ -3415,6 +3438,20 @@ function renderAboutForegroundEditorPhoto(entry, index, group) {
   const x = Number.isFinite(Number(entry.photo.collageX)) ? Number(entry.photo.collageX) : fallback.x;
   const y = Number.isFinite(Number(entry.photo.collageY)) ? Number(entry.photo.collageY) : fallback.y;
   const width = Number.isFinite(Number(entry.photo.collageWidth)) ? Number(entry.photo.collageWidth) : fallback.width;
+  const fallbackLayer = group === "upper"
+    ? ABOUT_UPPER_PREVIEW_LAYERS[index] ?? index + 1
+    : ABOUT_LOWER_PREVIEW_LAYERS[index] ?? index + 1;
+  const layer = Number.isFinite(Number(entry.photo.collageLayer)) ? Number(entry.photo.collageLayer) : fallbackLayer;
+  const fallbackRotation = group === "upper"
+    ? ABOUT_UPPER_PREVIEW_ROTATIONS[index]
+    : ABOUT_LOWER_PREVIEW_ROTATIONS[index];
+  const rotation = Number.isFinite(Number(entry.photo.collageRotation))
+    ? Number(entry.photo.collageRotation)
+    : fallbackRotation ?? 0;
+  const fallbackOpacity = group === "lower" ? ABOUT_LOWER_PREVIEW_OPACITIES[index] ?? 1 : 1;
+  const opacity = Number.isFinite(Number(entry.photo.collageOpacity))
+    ? Number(entry.photo.collageOpacity)
+    : fallbackOpacity;
 
   return `
     <button
@@ -3424,7 +3461,13 @@ function renderAboutForegroundEditorPhoto(entry, index, group) {
       data-about-collage-title="${escapeHtml(entry.photo.title ?? entry.photo.id)}"
       data-about-collage-kind="foreground"
       data-about-collage-aspect="${aspect}"
-      style="left:${x}%;right:auto;top:${y}%;bottom:auto;width:${width}%;height:auto;aspect-ratio:${aspect};"
+      data-default-x="${fallback.x}"
+      data-default-y="${fallback.y}"
+      data-default-width="${fallback.width}"
+      data-default-layer="${fallbackLayer}"
+      data-default-rotation="${fallbackRotation ?? 0}"
+      data-default-opacity="${fallbackOpacity}"
+      style="left:${x}%;right:auto;top:${y}%;bottom:auto;width:${width}%;height:auto;aspect-ratio:${aspect};--collage-layer:${layer};--collage-rotation:${rotation}deg;--collage-opacity:${opacity};"
       aria-label="Move ${escapeHtml(entry.photo.title ?? entry.photo.id)}"
     >
       <img src="${escapeHtml(getAboutPreviewImageSource(entry.photo))}" alt="" draggable="false" />
@@ -3482,6 +3525,19 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
         <div class="about-collage-preview-status" data-about-collage-preview-status>
           <strong>No image selected</strong>
           <span>Choose ✓ to apply this arrangement or × to exit without applying.</span>
+          <output data-about-collage-values>Position — / Size — / Rotation — / Opacity — / Layer —</output>
+          <div class="about-collage-selection-actions">
+            <button type="button" data-about-collage-layer="-1" disabled>Send Backward</button>
+            <button type="button" data-about-collage-layer="1" disabled>Bring Forward</button>
+            <button type="button" data-about-collage-rotate="-1" disabled>Rotate Left</button>
+            <button type="button" data-about-collage-rotate="1" disabled>Rotate Right</button>
+            <label class="about-collage-opacity-field">
+              <span>Opacity</span>
+              <input type="number" min="0" max="100" step="1" data-about-collage-opacity disabled />
+              <span>%</span>
+            </label>
+            <button type="button" data-reset-about-collage-photo disabled>Reset Selected</button>
+          </div>
         </div>
       </div>
 
@@ -3495,7 +3551,15 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
             };
             const width = Number.isFinite(Number(entry.photo.backgroundWidth))
               ? Math.max(12, Math.min(90, Number(entry.photo.backgroundWidth)))
-              : 42;
+              : fallbackPosition.width;
+            const layer = Number.isFinite(Number(entry.photo.collageLayer)) ? Number(entry.photo.collageLayer) : index + 1;
+            const rotation = Number.isFinite(Number(entry.photo.collageRotation))
+              ? Number(entry.photo.collageRotation)
+              : ABOUT_BACKGROUND_PREVIEW_ROTATIONS[index] ?? 0;
+            const fallbackOpacity = index === 4 ? 0.14 : 0.16;
+            const opacity = Number.isFinite(Number(entry.photo.collageOpacity))
+              ? Number(entry.photo.collageOpacity)
+              : fallbackOpacity;
             return `
               <button
                 class="about-collage-background-photo about-collage-background-photo-${index + 1}"
@@ -3504,7 +3568,14 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
                 data-about-collage-title="${escapeHtml(entry.photo.title ?? entry.photo.id)}"
                 data-about-collage-kind="background"
                 data-about-collage-aspect="0.75"
-                style="left:${position.x}%;top:${position.y}%;width:${width}%;"
+                data-default-x="${fallbackPosition.x}"
+                data-default-y="${fallbackPosition.y}"
+                data-default-width="${fallbackPosition.width}"
+                data-default-layer="${index + 1}"
+                data-default-rotation="${ABOUT_BACKGROUND_PREVIEW_ROTATIONS[index] ?? 0}"
+                data-default-opacity="${fallbackOpacity}"
+                style="left:${position.x}%;top:${position.y}%;width:${width}%;--collage-layer:${layer};--collage-rotation:${rotation}deg;--collage-opacity:${opacity};"
+                tabindex="-1"
                 aria-label="Move ${escapeHtml(entry.photo.title ?? entry.photo.id)}"
               >
                 <img src="${escapeHtml(getAboutPreviewImageSource(entry.photo))}" alt="" draggable="false" />

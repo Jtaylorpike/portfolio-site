@@ -9,8 +9,10 @@ result, creates a timestamped backup, and then writes clean JSON back to disk.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -96,6 +98,7 @@ DEFAULT_GALLERY_ROOM = {
     "schemaVersion": 2,
     "id": "main-gallery-room",
     "label": "Main gallery room",
+    "defaultRoomId": "room-main",
     "shape": "l-shaped",
     "grid": {
         "cellMeters": GALLERY_GRID_CELL_METERS,
@@ -225,10 +228,57 @@ def normalize_gallery_room(raw_room: Any) -> dict[str, Any]:
             modules.append(module)
         return modules
 
+    normalized_rooms = normalize_modules(layout.get("rooms"), "room")
+    normalized_hallways = normalize_modules(layout.get("hallways"), "hallway")
+    normalized_modules = [*normalized_rooms, *normalized_hallways]
+    if normalized_modules:
+        layout_min_x = min(module["center"][0] - module["width"] / 2 for module in normalized_modules)
+        layout_max_x = max(module["center"][0] + module["width"] / 2 for module in normalized_modules)
+        layout_min_z = min(module["center"][1] - module["depth"] / 2 for module in normalized_modules)
+        layout_max_z = max(module["center"][1] + module["depth"] / 2 for module in normalized_modules)
+        movement_min_x = min(movement_min_x, layout_min_x)
+        movement_max_x = max(movement_max_x, layout_max_x)
+        movement_min_z = min(movement_min_z, layout_min_z)
+        movement_max_z = max(movement_max_z, layout_max_z)
+        grid_min_x = min(grid_min_x, layout_min_x - 2.0)
+        grid_max_x = max(grid_max_x, layout_max_x + 2.0)
+        grid_min_z = min(grid_min_z, layout_min_z - 2.0)
+        grid_max_z = max(grid_max_z, layout_max_z + 2.0)
+    requested_default_room_id = slugify(
+        clean_string(raw_room.get("defaultRoomId"))
+        or DEFAULT_GALLERY_ROOM["defaultRoomId"]
+    )
+    default_room = next(
+        (room for room in normalized_rooms if room["id"] == requested_default_room_id),
+        normalized_rooms[0] if normalized_rooms else None,
+    )
+    default_room_id = (
+        default_room["id"]
+        if default_room
+        else DEFAULT_GALLERY_ROOM["defaultRoomId"]
+    )
+    normalized_start = [
+        clean_number(start_position[0], DEFAULT_GALLERY_ROOM["start"]["position"][0]),
+        clean_number(start_position[1], DEFAULT_GALLERY_ROOM["start"]["position"][1], 0.2, 3.2),
+        clean_number(start_position[2], DEFAULT_GALLERY_ROOM["start"]["position"][2]),
+    ]
+    start_is_inside_default_room = bool(
+        default_room
+        and default_room["center"][0] - default_room["width"] / 2 <= normalized_start[0] <= default_room["center"][0] + default_room["width"] / 2
+        and default_room["center"][1] - default_room["depth"] / 2 <= normalized_start[2] <= default_room["center"][1] + default_room["depth"] / 2
+    )
+    if default_room and not start_is_inside_default_room:
+        normalized_start[0] = default_room["center"][0]
+        normalized_start[2] = (
+            default_room["center"][1]
+            + max(0.0, default_room["depth"] / 2 - 2.6)
+        )
+
     return {
         "schemaVersion": int(clean_number(raw_room.get("schemaVersion"), DEFAULT_GALLERY_ROOM["schemaVersion"], 1)),
         "id": slugify(clean_string(raw_room.get("id")) or DEFAULT_GALLERY_ROOM["id"]),
         "label": clean_string(raw_room.get("label")) or DEFAULT_GALLERY_ROOM["label"],
+        "defaultRoomId": default_room_id,
         "shape": shape,
         "grid": {
             "cellMeters": clean_number(grid.get("cellMeters"), DEFAULT_GALLERY_ROOM["grid"]["cellMeters"], 0.25, 2.0),
@@ -254,16 +304,12 @@ def normalize_gallery_room(raw_room: Any) -> dict[str, Any]:
             "maxZ": movement_max_z,
         },
         "start": {
-            "position": [
-                clean_number(start_position[0], DEFAULT_GALLERY_ROOM["start"]["position"][0]),
-                clean_number(start_position[1], DEFAULT_GALLERY_ROOM["start"]["position"][1], 0.2, 3.2),
-                clean_number(start_position[2], DEFAULT_GALLERY_ROOM["start"]["position"][2]),
-            ],
+            "position": normalized_start,
             "yaw": clean_number(start.get("yaw"), DEFAULT_GALLERY_ROOM["start"]["yaw"]),
         },
         "layout": {
-            "rooms": normalize_modules(layout.get("rooms"), "room"),
-            "hallways": normalize_modules(layout.get("hallways"), "hallway"),
+            "rooms": normalized_rooms,
+            "hallways": normalized_hallways,
         },
         "futureModelNotes": [
             clean_string(note)
@@ -281,6 +327,21 @@ def get_current_gallery_room() -> dict[str, Any]:
 
 def save_gallery_room(raw_room: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     """Normalize and save the modular gallery room layout with a backup."""
+
+    requested_default_room_id = (
+        slugify(clean_string(raw_room.get("defaultRoomId")))
+        if isinstance(raw_room, dict)
+        else ""
+    )
+    raw_layout = raw_room.get("layout", {}) if isinstance(raw_room, dict) else {}
+    raw_rooms = raw_layout.get("rooms", []) if isinstance(raw_layout, dict) else []
+    submitted_room_ids = {
+        slugify(clean_string(room.get("id")))
+        for room in raw_rooms
+        if isinstance(room, dict) and clean_string(room.get("id"))
+    }
+    if requested_default_room_id and requested_default_room_id not in submitted_room_ids:
+        raise DataValidationError("The default gallery room cannot be deleted.")
 
     gallery_room = normalize_gallery_room(raw_room)
 
@@ -452,10 +513,29 @@ def read_json(path: Path) -> Any:
 
 # Writes JSON with stable indentation so Git diffs remain readable.
 def write_json(path: Path, data: Any) -> None:
-    path.write_text(
-        json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    serialized = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    temporary_path: Path | None = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="\n",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary_file:
+            temporary_file.write(serialized)
+            temporary_file.flush()
+            os.fsync(temporary_file.fileno())
+            temporary_path = Path(temporary_file.name)
+
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
 
 
 # Creates a safe folder/file name from a human-readable save reason.
@@ -572,7 +652,16 @@ def summarize_backup_folder(backup_path: Path) -> dict[str, Any]:
         "reason": clean_string(manifest.get("reason")) or "backup",
         "createdAtUtc": created_at_utc,
         "files": files,
-        "canRestore": all(file_name in files for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json", "aboutPhotos.json"]),
+        "canRestore": all(file_name in files for file_name in [
+            "categories.json",
+            "galleryImages.json",
+            "heroSlides.json",
+            "galleryCuration.json",
+            "galleryRoom.json",
+            "aboutPhotos.json",
+            "aboutCopy.json",
+            "siteSeo.json",
+        ]),
     }
 
 
@@ -1754,6 +1843,15 @@ def normalize_about_photo(raw_photo: Any) -> dict[str, Any]:
 
     if raw_photo.get("collageWidth") not in (None, ""):
         normalized["collageWidth"] = max(12.0, min(100.0, clean_number(raw_photo.get("collageWidth"), 42.0)))
+
+    if raw_photo.get("collageLayer") not in (None, ""):
+        normalized["collageLayer"] = max(1, min(99, int(clean_number(raw_photo.get("collageLayer"), 1))))
+
+    if raw_photo.get("collageRotation") not in (None, ""):
+        normalized["collageRotation"] = max(-45.0, min(45.0, clean_number(raw_photo.get("collageRotation"), 0.0)))
+
+    if raw_photo.get("collageOpacity") not in (None, ""):
+        normalized["collageOpacity"] = max(0.0, min(1.0, clean_number(raw_photo.get("collageOpacity"), 1.0)))
 
     if raw_photo.get("isActive") is False:
         normalized["isActive"] = False

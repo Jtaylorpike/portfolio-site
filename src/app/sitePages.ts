@@ -560,11 +560,19 @@ function renderAboutFigure(photo: AboutPhoto, index: number, className: string, 
   const hasCustomLayout = Number.isFinite(photo.collageX)
     && Number.isFinite(photo.collageY)
     && Number.isFinite(photo.collageWidth);
+  const rotationStyle = Number.isFinite(photo.collageRotation)
+    ? `--about-photo-rotate:${photo.collageRotation}deg;`
+    : '';
+  const opacityStyle = Number.isFinite(photo.collageOpacity)
+    ? `opacity:${photo.collageOpacity};`
+    : '';
   const layoutStyle = hasCustomLayout
-    ? ` style="left:${photo.collageX}%;right:auto;top:${photo.collageY}%;bottom:auto;width:${photo.collageWidth}%;height:auto;aspect-ratio:${frameAspect};"`
+    ? ` style="left:${photo.collageX}%;right:auto;top:${photo.collageY}%;bottom:auto;width:${photo.collageWidth}%;height:auto;aspect-ratio:${frameAspect};${Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : ''}${rotationStyle}${opacityStyle}"`
     : className.includes('about-photo-frame-1')
-      ? ` style="height:auto;aspect-ratio:${frameAspect};"`
-      : '';
+      ? ` style="height:auto;aspect-ratio:${frameAspect};${Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : ''}${rotationStyle}${opacityStyle}"`
+      : Number.isFinite(photo.collageLayer) || rotationStyle || opacityStyle
+        ? ` style="${Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : ''}${rotationStyle}${opacityStyle}"`
+        : '';
   const resolvedClassName = `${className}${hasCustomLayout ? ' has-custom-collage-layout' : ''}`;
 
   return `
@@ -679,15 +687,20 @@ function renderAboutFloatingPhotos(): string {
         // shallow parallax shift so the photos feel embedded in the page.
         const ySpeed = 0.004 + index * 0.0012;
         const xSpeed = index % 2 === 0 ? 0.0012 + index * 0.00035 : -0.0012 - index * 0.00035;
+        const customPositionStyle = Number.isFinite(photo.backgroundX) && Number.isFinite(photo.backgroundY)
+          ? `left:${photo.backgroundX}%;right:auto;top:${photo.backgroundY}%;bottom:auto;${Number.isFinite(photo.backgroundWidth) ? `width:${photo.backgroundWidth}%;` : ''}`
+          : '';
+        const layerStyle = Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : '';
+        const rotationStyle = Number.isFinite(photo.collageRotation) ? `--float-rotation:${photo.collageRotation}deg;` : '';
+        const opacityStyle = Number.isFinite(photo.collageOpacity) ? `opacity:${photo.collageOpacity};` : '';
+        const hasCustomPosition = Number.isFinite(photo.backgroundX) && Number.isFinite(photo.backgroundY);
         return `
           <div
-            class="about-floating-photo about-floating-photo-${index + 1}"
+            class="about-floating-photo about-floating-photo-${index + 1}${hasCustomPosition ? ' has-custom-background-layout' : ''}"
             data-about-float
             data-about-float-speed="${ySpeed.toFixed(3)}"
             data-about-float-x-speed="${xSpeed.toFixed(3)}"
-            ${Number.isFinite(photo.backgroundX) && Number.isFinite(photo.backgroundY)
-              ? `style="left:${photo.backgroundX}%;right:auto;top:${photo.backgroundY}%;bottom:auto;${Number.isFinite(photo.backgroundWidth) ? `width:${photo.backgroundWidth}%;` : ''}"`
-              : ''}
+            ${customPositionStyle || layerStyle || rotationStyle || opacityStyle ? `style="${customPositionStyle}${layerStyle}${rotationStyle}${opacityStyle}"` : ''}
           >
             <img src="${escapeHtml(getAboutPhotoImageSource(photo))}" alt="" loading="lazy" decoding="async" />
           </div>

@@ -1,8 +1,258 @@
 # Taylor Pike Photography Portfolio - Current Project Guide
 
-Last updated: 2026-07-23 16:25 EDT (UTC-04:00)
+Last updated: 2026-07-29 EDT (UTC-04:00)
 
 This is the authoritative operational and handoff document for the repository. Historical documents, phase records, pack notes, manifests, earlier policies, and superseded handoffs are preserved verbatim in `PROJECT_HISTORY_ARCHIVE.md`. The staged portfolio alt-text dataset remains at `alt-text/portfolio-image-alt-text-20260515.json` because repository tooling consumes that path directly.
+
+## Active completion roadmap - editor, then 3D gallery
+
+User direction on 2026-07-28 establishes the following order:
+
+1. Finish and harden the local portfolio editor.
+2. Complete editor validation, responsive behavior, accessibility, and technical cleanup.
+3. Commit the accepted editor checkpoint.
+4. Finish polishing the 3D gallery environment without disturbing the accepted Phase 8AM lighting baseline.
+
+### Editor E1 - About visual collage completion (active)
+
+The fullscreen Macintosh-style About collage editor currently supports:
+
+- A scaled desktop About-page composition with real copy and assigned imagery.
+- Foreground editing for both upper-collage photos and all six lower-collage photos.
+- A separate Background Only mode; background photos cannot be selected outside that mode.
+- Persistent selection, click-off deselection, and double-click selection cycling through overlaps.
+- Drag positioning and four-corner, aspect-locked wireframe resizing.
+- Orientation-aware upper base imagery: portrait, landscape, or square follows the assigned source.
+- Undo for movement, resize, layer, and rotation changes.
+- Bring Forward / Send Backward layer controls.
+- One-degree left/right rotation with a bounded range.
+- A numeric 0-100 opacity field with Undo and live-page persistence.
+- Reset Selected restores the current slot's default position, size, layer, rotation, and opacity.
+- The selected-photo inspector reports placement group, position, size, rotation, opacity, and layer.
+- Checkmark save and X/Escape discard behavior.
+- Data-backed live rendering for custom position, size, layer, rotation, crop position, and crop scale.
+
+Remaining E1 work:
+
+- E1 implementation is complete pending user visual acceptance.
+
+E1 parity validation on 2026-07-29:
+
+- Measured the live About page and editor mockup at the same 1440x900 desktop viewport.
+- Matched the editor upper coordinate-root aspect to the live upper collage.
+- Matched the editor lower coordinate-root aspect to the live lower collage.
+- Matched the editor background canvas aspect to the measured live About-page height.
+- Replaced simplified background defaults with the live eight-slot position, width, opacity, and rotation contract.
+- Matched the editor's default upper/lower layers to the live stacking contract.
+- Verified normalized upper/lower position, width, rendered aspect, opacity, and layer values align between the editor and live page; remaining sub-percent differences come from the intentional rotation bounds and shallow public-page motion.
+- Confirmed crop-frame aspects use the same upper, lower, background, and orientation-aware base-image ratios as the visual editor and public containers.
+
+E1 acceptance criteria:
+
+- Saving and reopening reproduces the accepted editor composition.
+- The live About page follows the preview within normal rounding and responsive scaling.
+- Background layers remain unselectable unless Background Only is active.
+- Undo reverses every supported visual action without changing JSON until the checkmark is used.
+- X and Escape discard the entire open editing session.
+
+### Editor E2 - save and recovery hardening
+
+- Track dirty state precisely enough to identify the affected editor area.
+- Warn before closing a visual editor with unapplied changes.
+- Avoid saving unrelated sections when a local visual-editor action is accepted.
+- Preserve recoverable in-memory state after a failed save.
+- Report exactly what the checkmark or Save Changes action persisted.
+- Reconfirm backup creation and restoration for image, About, gallery, SEO, and architecture data.
+
+Implementation started:
+
+- Dirty state now names each affected editor workspace instead of reporting only a generic unsaved state.
+- Closing the visual About composition with unapplied layout changes now requires explicit discard confirmation.
+- The visual About checkmark uses a dedicated About-photo endpoint and no longer rewrites unrelated image, category, hero, or copy JSON.
+- About crop saves use the same focused About-photo endpoint instead of invoking a full editor save.
+- A failed About composition save leaves the accepted in-memory arrangement dirty and recoverable for another save attempt.
+- Save operations use a shared in-flight lock to prevent overlapping writes; the global Save control remains disabled until the active request finishes.
+- Failed primary saves explicitly identify the affected workspace and confirm that its in-memory changes remain available.
+- JSON writes now use a flushed temporary sibling file followed by an atomic replacement, reducing the chance of a partially written source file.
+- New backup restore points are considered complete only when they contain image, hero, category, gallery curation, gallery architecture, About photos, About copy, and SEO data.
+
+### Future cloud transition constraints
+
+Cloud migration is anticipated but is not current implementation scope. New editor work should preserve a clean browser/API/storage boundary so the local Flask backend can be replaced without redesigning the editor UI.
+
+- The browser API client accepts an optional `EDITOR_API_BASE`; local same-origin behavior remains the default.
+- Keep endpoint request and response contracts independent from Flask-specific behavior.
+- Keep file persistence and backup logic behind backend functions rather than browser code.
+- Do not begin authentication, Cloudflare storage, deployment, or infrastructure work until the migration phase is explicitly started.
+- When that phase begins, durable JSON revisions, uploaded assets, authentication, CSRF protection, authorization, and audit history must replace assumptions about a trusted local filesystem.
+
+### Editor E3 - responsive editing
+
+- Add tablet and mobile public-page previews.
+- Add a separate mobile About collage composition when desktop coordinates do not translate cleanly.
+- Improve narrow-screen editor navigation and fullscreen workspace controls.
+- Verify crop frames and image placement at all supported preview sizes.
+
+### Editor E4 - copy and global content coverage
+
+- Keep About copy user-authored and data-backed.
+- Add editor coverage for homepage introduction and calls to action.
+- Add entry-screen, gallery experimental/loading notice, portfolio label, navigation, and footer copy where still source-authored.
+- Do not generate or replace final user copy without explicit direction.
+
+### Editor E5 - final QA, accessibility, and cleanup
+
+- Add automated coverage for JSON load/save, imports, hero/About assignments, crops, collage layout, gallery walls, and backups.
+- Add keyboard movement/resizing, focus trapping, change announcements, and reduced-motion verification.
+- Audit empty, error, disabled, confirmation, tooltip, and keyboard-focus states.
+- Consolidate historical editor CSS passes and remove superseded rules only after visual regression checks.
+- Run production build, editor route smoke tests, desktop/mobile public smoke tests, and `git diff --check`.
+
+### 3D gallery polish - follows editor completion
+
+After E1-E5 are accepted, resume gallery environment work in this order:
+
+1. Audit the current modular rooms and hallways in Low, Medium, and High.
+2. Refine material scale, seams, trim junctions, track-fixture alignment, and architectural transitions.
+3. Improve empty-room composition and wayfinding without adding game-like props.
+4. Tune artwork presentation and plaque readability while preserving accepted curation.
+5. Validate collision, traversal, loading, Auto quality, diagnostics, touch controls, and close/reopen behavior.
+6. Complete the gallery's final feature phase with the deferred Living Environment pass described below. It begins only after the current visual, interaction, and lifecycle checks are accepted.
+7. Run the required post-environment performance validation across Low, Medium, High, and Auto before the gallery is considered complete.
+
+Gallery polish audit started:
+
+- Confirmed Low, Medium, and High share the same architectural geometry; their differences remain renderer resolution, texture loading, optional lighting, and High-only shadows.
+- Corrected modular perimeter trim placement so base trim sits on each room wall's visible interior face instead of being centered and mostly buried inside the wall geometry.
+- Preserved the accepted Phase 8AM lighting implementation without intensity, color, fixture, or shadow-policy changes.
+- Reviewed the supplied `three-best-practices` package and Utsubo's 100-tip performance guide against the current implementation.
+- Removed recurring movement-loop `Vector3`/`Euler` allocations and reused a stable artwork-focus raycast target list instead of rebuilding it every frame.
+- Merged each artwork frame's four base rails, four inner highlights, and three lacquer catchlights into three static meshes. This preserves the existing frame profile while removing eight draw calls per displayed artwork (120 calls for the current 15-wall collection).
+- Removed the unused frame shadow-edge material allocation that was not attached to scene geometry or reached by scene disposal.
+- Normalized procedural surface UV density from real gallery dimensions. Floors, ceilings, modular perimeter walls, display walls, and their base trim now retain a consistent material scale instead of stretching one texture span across every object size.
+- Added quality-aware anisotropic filtering for cached procedural environment textures: Low uses 1×, Medium requests up to 4×, and High requests up to 8× within the GPU's supported maximum. This improves floor and ceiling clarity at grazing angles without changing artwork textures or lighting.
+- Removed coplanar overlap between modular floor planes and aligned their UV coordinates in world space. Connected rooms and hallways now meet at exact boundaries without z-fighting or restarting the procedural floor pattern at every module.
+- Extended world-aligned UV projection to modular ceilings, split perimeter-wall segments, and rotated display walls. Texture coordinates now follow the gallery's shared world axes across module junctions instead of resetting per mesh.
+- Shortened base-trim segments only at true perimeter endpoints so perpendicular pieces terminate at shared corner centerlines instead of extending through one another. Opening and hallway-cut edges retain their full authored spans, and suppressed sub-minimum trim geometry is disposed immediately.
+- Rebased instanced track-light fixtures on displayed artwork records rather than generic wall blocks. Blank architectural walls no longer receive fixtures, track lengths follow frame width, and both heads aim at the actual artwork center while preserving the accepted lighting setup.
+- Audited quality-tier artwork lighting and removed an unintended eight-artwork cap from the High-quality wall-wash pass. Medium retains its restrained first-eight accent spotlights, while High now adds one broad wall wash for every displayed artwork. Runtime diagnostics report lit/displayed artwork coverage and the active artwork-light count; the current 15-piece gallery should report `15/15 artworks lit (23 lights)` on High.
+- Began the empty-room composition and wayfinding pass by converting the two existing blank entry guide walls into restrained, surface-applied collection markers. The central approach now directs visitors toward the Climbing left wing and Landscape right wing without adding freestanding props, changing collision geometry, or altering gallery lighting.
+- Confirmed resolved portrait, landscape, and square dimensions already drive frame rails, mat geometry, image planes, and plaque clearance checks.
+- Audited plaque readability and corrected a mismatch that stretched the canvas label across a differently proportioned physical plaque. Plaques now use a matched texture/mesh aspect, a modestly larger label surface, clearer title hierarchy, and up to 8x anisotropic filtering where supported. Existing plaque content, side preferences, and below-frame fallback placement remain intact.
+- Rebuilt plaques as one shared body material plus one textured label plane instead of six independently materialed box faces. With all 15 current plaques enabled, this removes approximately 60 draw calls and reduces plaque material instances from 90 to 16 without changing visible plaque dimensions or placement.
+- Added explicit WebGL context-loss handling. A lost graphics context pauses movement, focus raycasts, rendering, performance sampling, and diagnostics while the existing gallery loading surface reports the interruption. On browser context restoration, the active quality, optional lighting, resolution, and High shadow state are reapplied before the loading surface clears and diagnostics resume. Closing the gallery invalidates any pending recovery UI callback.
+
+Pre–Living Environment production smoke results on 2026-07-29:
+
+- A 1440x900 headless production render successfully opened the gallery and promoted from Low to High without runtime or console errors.
+- High diagnostics confirmed `15/15 artworks lit (23 lights)`.
+- The same High snapshot reported 148 draw calls, 6,596 triangles, 148 geometries, and 30 textures. Geometry complexity is modest, but draw calls remain above the documented near-100 target; compatible static architectural consolidation is therefore the next measured optimization candidate.
+- Consolidated the active static display-wall faces into one material batch and their base trim into a second batch. Collision and editor placement continue to use the individual data records, the merged meshes retain their source wall-ID lists, and the combined wall mesh remains in the artwork-focus occlusion targets.
+- A follow-up 1440x900 High production snapshot reported 120 draw calls, 6,596 triangles, 120 geometries, 29 textures, and `15/15 artworks lit (23 lights)`: 28 fewer calls/geometries with unchanged triangle and lighting counts.
+- Batched the 15 active outer artwork-frame bodies into one instanced mesh while retaining per-artwork transform anchors for responsive dimensions, rails, mats, images, and plaque placement. High subsequently measured 108 draw calls, 6,620 triangles, 108 geometries, 30 textures, and `15/15 artworks lit (23 lights)` with no captured runtime or console errors.
+- Batched the 15 artwork mats into one instanced plane while retaining per-artwork mat anchors and responsive dimension updates. The next High production snapshot measured 96 draw calls, 6,624 triangles, 96 geometries, 30 textures, and `15/15 artworks lit (23 lights)` with no captured runtime or console errors. This satisfies the current under-100 draw-call goal; stop consolidating unless later profiling identifies a regression.
+- Removed the obsolete center-ceiling `ceilingAtmosphereLift` point light after visual review exposed its isolated warm hotspot in the middle of the room. Directional room fill, track fixtures, Medium artwork accents, and High all-artwork wall washes remain unchanged.
+- Removed the unused legacy panel spotlight, panel target, panel shadow, and rectangular panel-wash builders plus their unreachable adaptive-shadow branch. The active lighting file now contains only the room baseline and artwork-lighting systems that the current gallery actually creates.
+- Stabilized desktop pointer-lock camera movement after review found fast mouse input felt like sudden acceleration. Desktop sensitivity was reduced from `0.002` to `0.0012` radians per reported pixel, and each mouse event is capped at 64 pixels per axis to reject large browser/device spikes. Touch sensitivity and touch delta handling remain unchanged.
+- Follow-up review found visible stepping while rotating in place on Low. All 15 artwork records already had complete dimensions, ruling out focus-loaded frame reflow. Desktop mouse events now update a target yaw/pitch and the render loop approaches that target with frame-rate-independent exponential response (`24 s^-1`), smoothing irregular pointer-event timing without adding continued inertial drift. Touch look remains direct.
+- Increased desktop vertical mouse response by 3% after the smoothed motion felt slightly sluggish on the pitch axis. Horizontal response, smoothing strength, delta cap, and touch controls remain unchanged.
+- Post-input production regression at 960x600 confirmed Low at 96 calls with `0/15 artworks lit (0 lights)`, Medium at 96 calls with `8/15 artworks lit (8 lights)`, and Auto remaining locked to Low for all six one-second samples in the constrained headless environment. Close cleanup returned the canvas count to zero with no captured runtime or console errors. The previously recorded High baseline remains 96 calls with `15/15 artworks lit (23 lights)`.
+- A 390x844 touch production render opened with one canvas, exposed the touch control surface, produced no runtime or console errors, and removed the canvas while restoring the hidden overlay state on close.
+- Headless smoke testing does not replace a visual walkthrough or physical collision/traversal check on representative hardware.
+- The active production layout currently contains one room and no hallways. A separate fixture at `tests/fixtures/gallery-room-multi-module.json` now covers three connected rooms and two hallways without changing production data.
+- `npm run validate:gallery-layout` validates both production and fixture layouts for module dimensions, unique IDs, movement-bound containment, valid start placement, hallway connection count, and full graph reachability from the starting room.
+- The fixture currently validates the shared data/topology contract. A future browser-render fixture pass should supplement it before shipping a real multi-room production layout.
+- Added a fixture-only Vite build that substitutes the three-room/two-hallway JSON without modifying production data. A static 1440x900 browser smoke pass confirmed the runtime rendered `3 rooms + 2 halls`, created one canvas, closed back to zero canvases, and produced no captured runtime or console errors.
+
+### Final gallery phase - Living Environment
+
+The previously deferred “time-aware window environment” is now defined more broadly as the final Living Environment pass. Its purpose is to make the gallery feel inhabited by a changing world without filling it with props, game-like effects, or movement that competes with the photographs.
+
+Planned scope:
+
+- Use the visitor's local browser time to select restrained dawn, day, dusk, and night environment states. This remains local-only: no location, weather service, account, telemetry, or network lookup is required.
+- The shallow pyramidal/hipped glass-roof prototype was reviewed and rejected. Rooms retain their original flat ceilings, and this direction should not be revisited unless explicitly requested.
+- A future exterior treatment, if any, should preserve the accepted room silhouette and flat-ceiling architecture.
+- Let the room respond subtly through ambient color, exterior spill, and measured changes in architectural shadow while keeping dedicated artwork illumination stable enough to preserve photographic color and readability.
+- Use very slow exterior light or sky movement to keep the environment from feeling frozen. Do not add interior dust particles, fog, people, decorative clutter, or constant animation.
+- Provide a manual time preview/override for development and visual testing so every state can be reviewed without changing the computer clock.
+- Respect reduced-motion preferences and pause nonessential environment animation when the page is hidden.
+- Scale the effect by quality tier: Low receives a static time-appropriate state, Medium receives restrained transitions, and High may include the full exterior-light treatment only if diagnostics remain healthy.
+- Preserve a deterministic fallback state when local time cannot be read or when automatic quality reduces the effect.
+
+Foundation implemented:
+
+- A local-only dawn/day/dusk/night resolver now derives the environment state from the visitor's browser clock, with deterministic hour bands and a noon fallback.
+- Diagnostics now includes a persistent Local time/Dawn/Day/Dusk/Night preview selector and reports whether the resolved state is automatic or manually overridden.
+- The resolver was introduced independently before the first visual environment treatment so its state could be validated without conflating it with geometry or lighting changes.
+
+Reviewed visual prototype:
+
+- The shallow four-plane glass-roof experiment was removed after review. Every room and hallway again uses the accepted flat ceiling.
+- The architecture map's floating toolkit can hide or show its directional spawn marker without changing saved architecture data.
+
+Acceptance boundaries:
+
+- Artwork remains the visual priority in every time state.
+- Night must remain navigable and must not obscure plaques, controls, exits, or collision boundaries.
+- The feature must not cause Auto quality oscillation or introduce an ongoing network dependency.
+- Existing accepted gallery lighting is the reference baseline; the Living Environment pass supplements architectural ambience rather than replacing the artwork-lighting system.
+- Avoid real-time refraction, dynamic cubemaps, and mirror-like roof reflections. Low should use a static sky-colored treatment; Medium may add restrained time-state color; High may add directional exterior light or extremely slow sky motion only if the diagnostics baseline holds.
+- This is the last feature phase. It starts after the current room walkthrough and Low/Medium/High regression checks, and it is followed by the required post-environment performance validation.
+
+### Required post-environment performance validation
+
+The Living Environment pass is not the end of technical validation. After it is visually accepted:
+
+- Recheck Low, Medium, High, and Auto on representative desktop and touch hardware.
+- Confirm the time-aware environment does not reintroduce Auto-quality oscillation.
+- Compare frame cadence, renderer work time, draw calls, triangles, geometry count, texture count, and active light count against the pre-environment baseline.
+- Validate every dawn/day/dusk/night state, including High-quality shadows and all-artwork lighting coverage.
+- Confirm reduced-motion, hidden-tab pausing, context-loss recovery, gallery close/reopen, and texture-cache disposal still behave correctly.
+- Reduce or tier optional environment effects if the new pass materially harms cadence or memory use.
+- Record the accepted diagnostic ranges in this handoff before the final gallery checkpoint commit.
+
+### Deferred optional concept - “64” quality tier
+
+An optional future experiment may add a manually selected `64` tier that restyles the gallery with intentionally Nintendo 64-era texture treatment.
+
+- Replace or transform environment, frame, plaque, fixture, and artwork-display textures with deliberately low-resolution, nearest-filtered, color-limited variants while preserving the existing room geometry and curation.
+- Treat `64` as an artistic presentation mode, not as a claim that it is the lowest-performance fallback.
+- Keep it out of Auto-quality promotion and demotion. Visitors must opt into it explicitly.
+- Preserve readable controls, plaques, navigation, collision, and artwork metadata even when the visual treatment is deliberately coarse.
+- Avoid downloading both normal and `64` texture sets unless the visitor selects the mode.
+- Keep the mode isolated behind the existing texture/material boundary so it does not fork gallery movement, architecture, lighting logic, or editor data.
+- Prototype it only after the Living Environment and required post-environment performance validation are complete, and retain it only if its memory and loading behavior remain acceptable.
+
+Three.js practices audit priorities:
+
+1. Keep now: progressive image loading, cached textures, delta-time movement, capped pixel ratio, High-only static shadows, track-light instancing, bounded focus raycasting, renderer diagnostics, and explicit scene/resource disposal.
+2. Verify during visual polish: `renderer.info.render.calls` stays near the under-100 target on each tier; material scale remains consistent across differently sized walls; floor/ceiling texture filtering is acceptable at grazing angles.
+3. Safe next optimization: consolidate compatible static architectural pieces only if diagnostics show draw-call pressure. Preserve editable wall identity and collision records.
+4. Recovery behavior implemented: retain explicit WebGL context-loss feedback and restoration handling during regression testing.
+5. Deferred unless profiling proves a need: KTX2 artwork delivery, baked lighting, BVH raycasting, WebGPU/TSL migration, antialiasing policy changes, and renderer replacement.
+
+Reference used: `https://www.utsubo.com/blog/threejs-best-practices-100-tips` and the supplied `three-best-practices-1.0.0.tar.gz`.
+
+Deferred UI/UX standardization:
+
+- After gallery work, audit the public site and local editor using the supplied `make-interfaces-feel-better` guidance.
+- Standardize optical alignment, text wrapping, dynamic-number typography, image-edge treatment, explicit transition properties, interaction states, and minimum control hit areas.
+- Preserve the deliberate Macintosh editor language rather than replacing it with generic modern styling.
+
+Protected gallery constraints remain in force:
+
+- Phase 8AM High-quality lighting is canonical.
+- Do not perform a general lighting redesign.
+- Do not add benches, plinths, loose objects, fog, post-processing, or dependencies without approval.
+- Do not reintroduce rejected black ceiling fields, end caps, reveals, recessed wells, or other game-like geometry.
+
+### Current repository checkpoint
+
+- `main` and `origin/main` include commit `b0cc358` (`Update About page copy`).
+- The latest About collage editor implementation is currently local and uncommitted.
+- Active uncommitted implementation touches the local editor data normalizer, CSS, collection/render/controller modules, editor template, public About renderer, and About photo type.
+- Before the next commit: finish E1 controls, validate persistence and live parity, inspect the complete diff, and commit only after explicit user authorization.
 
 ## Current status
 
@@ -10,7 +260,7 @@ Phase 8AN surface hierarchy and Phase 8AO adaptive quality are implemented and a
 
 Phase 9A launch-readiness QA is active locally. Home, Portfolio, and About passed desktop/mobile production rendering, metadata, asset-response, skip-link, image-alt, runtime-error, and overflow checks. The homepage semantic heading and sitemap date were corrected without visible redesign. Final user-authored About copy remains the primary content blocker.
 
-Final launch closure is deferred by user direction while gallery development continues. The next planned gallery sequence is material/fixture refinement, followed by a modular room-and-hallway runtime/editor foundation and later locally time-aware window environments.
+Final launch closure is deferred by user direction while gallery development continues. The remaining gallery sequence ends with the Living Environment feature pass followed by a required performance-validation gate. The optional `64` texture tier remains a separate post-completion experiment.
 
 Auto quality now reassesses sustained performance using both refresh cadence and measured gallery work. Stable 60 Hz rendering can promote, conservative device hints may be overridden by repeated real performance, and Save-Data/slow-network hints remain hard limits. Artwork textures present before scene subscription are now included in GPU-readiness accounting so cached initial textures cannot leave Auto permanently blocked at Low.
 

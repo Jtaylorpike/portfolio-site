@@ -57,6 +57,7 @@ export type GalleryRoomSettings = {
   schemaVersion: number;
   id: string;
   label: string;
+  defaultRoomId: string;
   shape: GalleryRoomShape;
   grid: GalleryRoomGridSettings;
   floor: GalleryRoomFloorSettings;
@@ -72,6 +73,7 @@ const defaultGalleryRoomSettings: GalleryRoomSettings = {
   schemaVersion: 1,
   id: 'main-gallery-room',
   label: 'Main gallery room',
+  defaultRoomId: 'room-main',
   shape: 'rectangle',
   grid: {
     cellMeters: 0.5,
@@ -279,10 +281,18 @@ export function normalizeGalleryRoomSettings(value: unknown): GalleryRoomSetting
     defaultGalleryRoomSettings.movementBounds.maxZ
   );
 
+  const layout = normalizeLayout(record);
+  const rooms = layout.filter((module) => module.kind === 'room');
+  const requestedDefaultRoomId = cleanString(record.defaultRoomId, 'room-main');
+  const defaultRoomId = rooms.some((room) => room.id === requestedDefaultRoomId)
+    ? requestedDefaultRoomId
+    : rooms[0]?.id ?? 'room-main';
+
   return {
     schemaVersion: cleanNumber(record.schemaVersion, defaultGalleryRoomSettings.schemaVersion, 1),
     id: cleanString(record.id, defaultGalleryRoomSettings.id),
     label: cleanString(record.label, defaultGalleryRoomSettings.label),
+    defaultRoomId,
     shape: cleanShape(record.shape),
     grid: {
       cellMeters: cleanNumber(gridRecord.cellMeters, defaultGalleryRoomSettings.grid.cellMeters, 0.25, 2),
@@ -311,7 +321,7 @@ export function normalizeGalleryRoomSettings(value: unknown): GalleryRoomSetting
       position: cleanPosition(startRecord.position, defaultGalleryRoomSettings.start.position),
       yaw: cleanNumber(startRecord.yaw, defaultGalleryRoomSettings.start.yaw)
     },
-    layout: normalizeLayout(record)
+    layout
   };
 }
 

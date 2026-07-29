@@ -27,6 +27,13 @@ import {
   type GalleryQualityMode,
   type GalleryQualityTier
 } from '../gallery/performance/galleryQuality';
+import {
+  getGalleryEnvironmentTimeSnapshot,
+  getGalleryEnvironmentTimeStateLabel,
+  setGalleryEnvironmentTimeMode,
+  subscribeToGalleryEnvironmentTime,
+  type GalleryEnvironmentTimeMode
+} from '../gallery/environment/galleryEnvironmentTime';
 import type { GalleryRuntimeDiagnostics } from '../gallery/GalleryScene';
 
 type GalleryInputMode = 'desktop' | 'touch';
@@ -222,6 +229,8 @@ export function setupGalleryController() {
   const closeGalleryButton = document.querySelector<HTMLButtonElement>('#closeGalleryButton');
   const galleryDiagnosticsToggle = document.querySelector<HTMLButtonElement>('#galleryDiagnosticsToggle');
   const galleryQualitySelect = document.querySelector<HTMLSelectElement>('#galleryQualitySelect');
+  const galleryEnvironmentTimeSelect =
+    document.querySelector<HTMLSelectElement>('#galleryEnvironmentTimeSelect');
 
   const galleryInfoPanel = document.querySelector<HTMLElement>('#galleryInfoPanel');
   const galleryInfoMeta = document.querySelector<HTMLElement>('#galleryInfoMeta');
@@ -233,6 +242,7 @@ export function setupGalleryController() {
     new URLSearchParams(window.location.search).get('galleryDiagnostics') === '1';
   let diagnosticsEnabled = diagnosticsEnabledByDefault;
   let diagnosticsInterval: number | null = null;
+  let contextRecoveryId = 0;
 
   function updateDiagnosticsToggle() {
     if (!galleryDiagnosticsToggle) {
@@ -299,11 +309,18 @@ export function setupGalleryController() {
     setDiagnosticValue('renderer', runtime.renderer);
     setDiagnosticValue(
       'scene',
-      `${runtime.drawCalls} calls · ${runtime.triangles.toLocaleString()} triangles · ${runtime.geometries} geometries · ${runtime.textures} textures`
+      `${runtime.drawCalls} calls · ${runtime.triangles.toLocaleString()} triangles · ${runtime.geometries} geometries · ${runtime.textures} textures · ${runtime.roomCount} rooms + ${runtime.hallwayCount} halls · ${runtime.litArtworkCount}/${runtime.displayedArtworkCount} artworks lit (${runtime.artworkLightCount} lights)`
     );
     setDiagnosticValue(
       'device',
       `${navigator.hardwareConcurrency || '?'} cores · ${navigatorHints.deviceMemory ?? '?'} GB hint · ${connection?.effectiveType ?? 'unknown'}${connection?.saveData ? ' · Save-Data' : ''}`
+    );
+    const environmentTime = getGalleryEnvironmentTimeSnapshot();
+    setDiagnosticValue(
+      'environment',
+      environmentTime.mode === 'auto'
+        ? `${getGalleryEnvironmentTimeStateLabel(environmentTime.state)} · local ${String(environmentTime.localHour).padStart(2, '0')}:00`
+        : `${getGalleryEnvironmentTimeStateLabel(environmentTime.state)} · manual`
     );
   }
 
@@ -343,6 +360,23 @@ export function setupGalleryController() {
     }
 
     stopGalleryDiagnostics();
+  }
+
+  function updateGalleryEnvironmentTimeSelect() {
+    if (galleryEnvironmentTimeSelect) {
+      galleryEnvironmentTimeSelect.value = getGalleryEnvironmentTimeSnapshot().mode;
+    }
+  }
+
+  function handleGalleryEnvironmentTimeChange() {
+    if (!galleryEnvironmentTimeSelect) {
+      return;
+    }
+
+    setGalleryEnvironmentTimeMode(
+      galleryEnvironmentTimeSelect.value as GalleryEnvironmentTimeMode
+    );
+    updateGalleryDiagnostics();
   }
 
   function shouldDismissControlCard() {
@@ -728,6 +762,29 @@ export function setupGalleryController() {
     galleryLoadingPhase.textContent = message;
   }
 
+  function handleGalleryContextState(state: 'lost' | 'restored') {
+    if (state === 'lost') {
+      contextRecoveryId += 1;
+      stopGalleryDiagnostics();
+      galleryLoading?.classList.add('is-active');
+      setGalleryLoadingPhase('Graphics connection interrupted — attempting recovery');
+      return;
+    }
+
+    const recoveryId = contextRecoveryId;
+    setGalleryLoadingPhase('Graphics restored — returning to the room');
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!activeGallery || recoveryId !== contextRecoveryId) return;
+
+        galleryLoading?.classList.remove('is-active');
+        setGalleryLoadingPhase('Preparing image textures');
+        startGalleryDiagnostics();
+      });
+    });
+  }
+
   async function openGallery() {
     if (galleryTextureDisposeTimeout !== null) {
       window.clearTimeout(galleryTextureDisposeTimeout);
@@ -787,6 +844,7 @@ export function setupGalleryController() {
         onExit: closeGallery,
         onArtworkFocus: showArtworkInfo,
         onArtworkClear: clearArtworkInfo,
+        onContextStateChange: handleGalleryContextState,
         inputMode: activeGalleryInputMode
       });
       startGalleryDiagnostics();
@@ -816,6 +874,7 @@ export function setupGalleryController() {
     }
 
     isGalleryOpening = false;
+    contextRecoveryId += 1;
     stopGalleryDiagnostics();
     galleryLoading?.classList.remove('is-active');
     setGalleryLoadingPhase('Preparing image textures');
@@ -909,8 +968,18 @@ export function setupGalleryController() {
     }
   });
 
+  subscribeToGalleryEnvironmentTime(() => {
+    updateGalleryEnvironmentTimeSelect();
+    updateGalleryDiagnostics();
+  });
+
   galleryQualitySelect?.addEventListener('change', handleGalleryQualityChange);
+  galleryEnvironmentTimeSelect?.addEventListener(
+    'change',
+    handleGalleryEnvironmentTimeChange
+  );
   galleryDiagnosticsToggle?.addEventListener('click', toggleGalleryDiagnostics);
   closeGalleryButton?.addEventListener('click', closeGallery);
+  updateGalleryEnvironmentTimeSelect();
   updateDiagnosticsToggle();
 }

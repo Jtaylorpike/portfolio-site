@@ -8,6 +8,7 @@ import {
   loadDataApi,
   renameImageIdApi,
   restoreBackupApi,
+  saveAboutPhotosApi,
   saveDataApi,
   saveGalleryCurationApi,
   saveGalleryRoomApi,
@@ -32,7 +33,7 @@ import {
   renderAboutImportReview,
   updateFramingControl,
   updateGallerySizeControl
-} from "./render.js?v=105";
+} from "./render.js?v=110";
 import { formatObjectPosition, getFallbackCategoryId, slugify, titleFromFilename } from "./utils.js";
 import {
   getImportGalleryDefaultSize,
@@ -108,6 +109,8 @@ let state = {
 let pendingImportItems = [];
 let pendingAboutImportItems = [];
 let hasUnsavedChanges = false;
+const dirtyAreas = new Set();
+let activeSaveLabel = null;
 let lastConfirmedHash = window.location.hash || "#/images";
 let isRestoringHash = false;
 let editorHistoryIndex = 0;
@@ -123,6 +126,7 @@ let gallerySavedSnapshotKey = "[]";
 let galleryRoomSavedSnapshotKey = "{}";
 let galleryFieldEditSnapshot = null;
 const galleryArchitectureView = { zoom: 1, panX: 0, panY: 0 };
+let galleryArchitectureSpawnVisible = true;
 let activeGalleryArchitectureDrag = null;
 let activeCropDrag = null;
 let activeCropModalState = null;
@@ -426,8 +430,34 @@ function selectAboutCollagePhoto(photo) {
   const status = workspace.querySelector("[data-about-collage-preview-status]");
   if (status) {
     status.querySelector("strong").textContent = photo.dataset.aboutCollageTitle || "Background photograph";
-    status.querySelector("span").textContent = "Selected background layer — drag anywhere within the scaled page.";
+    status.querySelector("span").textContent = photo.dataset.aboutCollageKind === "background"
+      ? "Selected background layer — drag anywhere within the scaled page."
+      : "Selected foreground collage photo — drag or resize from any corner.";
   }
+  workspace.querySelectorAll("[data-about-collage-layer], [data-about-collage-rotate], [data-about-collage-opacity], [data-reset-about-collage-photo]").forEach((button) => {
+    button.disabled = false;
+  });
+  updateAboutCollageValueReadout(photo);
+}
+
+function updateAboutCollageValueReadout(photo) {
+  const output = photo?.closest("[data-about-collage-workspace]")?.querySelector("[data-about-collage-values]");
+  if (!output || !photo) return;
+  const x = Number.parseFloat(photo.style.left) || 0;
+  const y = Number.parseFloat(photo.style.top) || 0;
+  const width = Number.parseFloat(photo.style.width) || 0;
+  const rotation = Number.parseFloat(photo.style.getPropertyValue("--collage-rotation")) || 0;
+  const parsedOpacity = Number.parseFloat(photo.style.getPropertyValue("--collage-opacity"));
+  const opacity = Number.isFinite(parsedOpacity) ? parsedOpacity : 1;
+  const layer = Number.parseInt(photo.style.getPropertyValue("--collage-layer"), 10) || 1;
+  const placement = photo.dataset.aboutCollageKind === "background"
+    ? "Background"
+    : photo.parentElement?.classList.contains("about-collage-upper-stack")
+      ? "Upper Collage"
+      : "Lower Collage";
+  output.textContent = `${placement} / Position ${x.toFixed(1)}%, ${y.toFixed(1)}% / Size ${width.toFixed(1)}% / Rotation ${rotation.toFixed(1)}° / Opacity ${Math.round(opacity * 100)}% / Layer ${layer}`;
+  const opacityField = photo.closest("[data-about-collage-workspace]")?.querySelector("[data-about-collage-opacity]");
+  if (opacityField) opacityField.value = String(Math.round(opacity * 100));
 }
 
 function updateAboutCollageUndoButton() {
@@ -445,11 +475,60 @@ function deselectAboutCollagePhotos(page) {
     status.querySelector("strong").textContent = "No image selected";
     status.querySelector("span").textContent = "Select an image to move or resize it.";
   }
+  workspace?.querySelectorAll("[data-about-collage-layer], [data-about-collage-rotate], [data-about-collage-opacity], [data-reset-about-collage-photo]").forEach((button) => {
+    button.disabled = true;
+  });
+  const output = workspace?.querySelector("[data-about-collage-values]");
+  if (output) output.textContent = "Position — / Size — / Rotation — / Opacity — / Layer —";
+  const opacityField = workspace?.querySelector("[data-about-collage-opacity]");
+  if (opacityField) opacityField.value = "";
 }
 
 function undoAboutCollageChange() {
   const previous = aboutCollageUndoStack.pop();
   if (!previous) return;
+  if (previous.kind === "rotation") {
+    const item = document.querySelector(`[data-about-collage-photo="${CSS.escape(previous.photoId)}"]`);
+    if (item) {
+      item.style.setProperty("--collage-rotation", previous.rotation);
+      selectAboutCollagePhoto(item);
+    }
+    updateAboutCollageUndoButton();
+    return;
+  }
+  if (previous.kind === "opacity") {
+    const item = document.querySelector(`[data-about-collage-photo="${CSS.escape(previous.photoId)}"]`);
+    if (item) {
+      item.style.setProperty("--collage-opacity", previous.opacity);
+      selectAboutCollagePhoto(item);
+    }
+    updateAboutCollageUndoButton();
+    return;
+  }
+  if (previous.kind === "reset") {
+    const item = document.querySelector(`[data-about-collage-photo="${CSS.escape(previous.photoId)}"]`);
+    if (item) {
+      item.style.left = previous.left;
+      item.style.top = previous.top;
+      item.style.width = previous.width;
+      item.style.setProperty("--collage-layer", previous.layer);
+      item.style.setProperty("--collage-rotation", previous.rotation);
+      item.style.setProperty("--collage-opacity", previous.opacity);
+      selectAboutCollagePhoto(item);
+    }
+    updateAboutCollageUndoButton();
+    return;
+  }
+  if (previous.photos) {
+    previous.photos.forEach((saved) => {
+      const item = document.querySelector(`[data-about-collage-photo="${CSS.escape(saved.photoId)}"]`);
+      if (item) item.style.setProperty("--collage-layer", saved.layer);
+    });
+    const selected = document.querySelector(`[data-about-collage-photo="${CSS.escape(previous.selectedId)}"]`);
+    if (selected) selectAboutCollagePhoto(selected);
+    updateAboutCollageUndoButton();
+    return;
+  }
   const photo = document.querySelector(`[data-about-collage-photo="${CSS.escape(previous.photoId)}"]`);
   if (photo) {
     photo.style.left = previous.left;
@@ -460,9 +539,101 @@ function undoAboutCollageChange() {
   updateAboutCollageUndoButton();
 }
 
+function changeAboutCollageLayer(direction) {
+  const selected = document.querySelector('[data-about-collage-photo][data-selected="true"]');
+  const root = selected?.parentElement;
+  if (!selected || !root) return;
+  const siblings = Array.from(root.children).filter((item) => item.matches?.("[data-about-collage-photo]"));
+  const ordered = siblings
+    .map((item, index) => ({
+      item,
+      layer: Number.parseInt(item.style.getPropertyValue("--collage-layer"), 10) || index + 1
+    }))
+    .sort((a, b) => a.layer - b.layer);
+  const selectedIndex = ordered.findIndex(({ item }) => item === selected);
+  const targetIndex = selectedIndex + Number(direction);
+  if (selectedIndex < 0 || targetIndex < 0 || targetIndex >= ordered.length) return;
+
+  const target = ordered[targetIndex];
+  const current = ordered[selectedIndex];
+  aboutCollageUndoStack.push({
+    kind: "layer",
+    selectedId: selected.dataset.aboutCollagePhoto,
+    photos: [
+      { photoId: current.item.dataset.aboutCollagePhoto, layer: String(current.layer) },
+      { photoId: target.item.dataset.aboutCollagePhoto, layer: String(target.layer) }
+    ]
+  });
+  current.item.style.setProperty("--collage-layer", String(target.layer));
+  target.item.style.setProperty("--collage-layer", String(current.layer));
+  updateAboutCollageUndoButton();
+  selectAboutCollagePhoto(selected);
+}
+
+function rotateAboutCollagePhoto(direction) {
+  const selected = document.querySelector('[data-about-collage-photo][data-selected="true"]');
+  if (!selected) return;
+  const current = Number.parseFloat(selected.style.getPropertyValue("--collage-rotation")) || 0;
+  const next = Math.max(-45, Math.min(45, current + Number(direction)));
+  if (next === current) return;
+  aboutCollageUndoStack.push({
+    kind: "rotation",
+    photoId: selected.dataset.aboutCollagePhoto,
+    rotation: `${current}deg`
+  });
+  selected.style.setProperty("--collage-rotation", `${next}deg`);
+  updateAboutCollageUndoButton();
+  updateAboutCollageValueReadout(selected);
+}
+
+function changeAboutCollageOpacity(percent) {
+  const selected = document.querySelector('[data-about-collage-photo][data-selected="true"]');
+  if (!selected) return;
+  const parsedCurrent = Number.parseFloat(selected.style.getPropertyValue("--collage-opacity"));
+  const current = Number.isFinite(parsedCurrent) ? parsedCurrent : 1;
+  const next = Math.max(0, Math.min(1, Number(percent) / 100));
+  if (Math.abs(next - current) < 0.001) return;
+  aboutCollageUndoStack.push({
+    kind: "opacity",
+    photoId: selected.dataset.aboutCollagePhoto,
+    opacity: String(current)
+  });
+  selected.style.setProperty("--collage-opacity", String(Number(next.toFixed(2))));
+  updateAboutCollageUndoButton();
+  updateAboutCollageValueReadout(selected);
+}
+
+function resetAboutCollagePhoto() {
+  const selected = document.querySelector('[data-about-collage-photo][data-selected="true"]');
+  if (!selected) return;
+  aboutCollageUndoStack.push({
+    kind: "reset",
+    photoId: selected.dataset.aboutCollagePhoto,
+    left: selected.style.left,
+    top: selected.style.top,
+    width: selected.style.width,
+    layer: selected.style.getPropertyValue("--collage-layer"),
+    rotation: selected.style.getPropertyValue("--collage-rotation"),
+    opacity: selected.style.getPropertyValue("--collage-opacity")
+  });
+  selected.style.left = `${selected.dataset.defaultX}%`;
+  selected.style.top = `${selected.dataset.defaultY}%`;
+  selected.style.width = `${selected.dataset.defaultWidth}%`;
+  selected.style.setProperty("--collage-layer", selected.dataset.defaultLayer);
+  selected.style.setProperty("--collage-rotation", `${selected.dataset.defaultRotation}deg`);
+  selected.style.setProperty("--collage-opacity", selected.dataset.defaultOpacity);
+  updateAboutCollageUndoButton();
+  selectAboutCollagePhoto(selected);
+}
+
 function closeAboutCollageModal({ apply = false } = {}) {
   const modal = document.querySelector("[data-about-collage-modal]");
-  if (!modal) return;
+  if (!modal) return false;
+
+  if (!apply && hasUnappliedAboutCollageChanges(modal)) {
+    const confirmed = confirm("Discard the unapplied changes in the visual About collage editor?");
+    if (!confirmed) return false;
+  }
 
   if (apply) {
     modal.querySelectorAll("[data-about-collage-photo]").forEach((photoElement) => {
@@ -470,6 +641,9 @@ function closeAboutCollageModal({ apply = false } = {}) {
       const layoutX = Number.parseFloat(photoElement.style.left);
       const layoutY = Number.parseFloat(photoElement.style.top);
       const layoutWidth = Number.parseFloat(photoElement.style.width);
+      const layoutLayer = Number.parseInt(photoElement.style.getPropertyValue("--collage-layer"), 10);
+      const layoutRotation = Number.parseFloat(photoElement.style.getPropertyValue("--collage-rotation"));
+      const layoutOpacity = Number.parseFloat(photoElement.style.getPropertyValue("--collage-opacity"));
       const isBackground = photoElement.dataset.aboutCollageKind === "background";
       const aboutPhoto = (state.aboutPhotos ?? []).find((photo) => photo.id === photoId);
       if (aboutPhoto && Number.isFinite(layoutX) && Number.isFinite(layoutY) && Number.isFinite(layoutWidth)) {
@@ -482,17 +656,26 @@ function closeAboutCollageModal({ apply = false } = {}) {
           aboutPhoto.collageY = layoutY;
           aboutPhoto.collageWidth = layoutWidth;
         }
+        if (Number.isFinite(layoutLayer)) aboutPhoto.collageLayer = layoutLayer;
+        if (Number.isFinite(layoutRotation)) aboutPhoto.collageRotation = layoutRotation;
+        if (Number.isFinite(layoutOpacity)) aboutPhoto.collageOpacity = layoutOpacity;
       }
       const card = document.querySelector(`[data-about-photo-card][data-about-photo-id="${CSS.escape(photoId)}"]`);
       const fieldPrefix = isBackground ? "background" : "collage";
       const xField = card?.querySelector(`[data-field="${fieldPrefix}X"]`);
       const yField = card?.querySelector(`[data-field="${fieldPrefix}Y"]`);
       const widthField = card?.querySelector(`[data-field="${fieldPrefix}Width"]`);
+      const layerField = card?.querySelector('[data-field="collageLayer"]');
+      const rotationField = card?.querySelector('[data-field="collageRotation"]');
+      const opacityField = card?.querySelector('[data-field="collageOpacity"]');
       if (xField) xField.value = String(layoutX);
       if (yField) yField.value = String(layoutY);
       if (widthField) widthField.value = String(layoutWidth);
+      if (layerField) layerField.value = String(layoutLayer);
+      if (rotationField) rotationField.value = String(layoutRotation);
+      if (opacityField) opacityField.value = String(layoutOpacity);
     });
-    setDirtyState(true, "Background collage arrangement applied. Click Save Changes to preserve it.");
+    setDirtyState(true, "About collage arrangement applied. Saving About photos only...", "About photos");
   } else if (aboutCollageOpenSnapshot) {
     modal.querySelectorAll("[data-about-collage-photo]").forEach((photoElement) => {
       const saved = aboutCollageOpenSnapshot.get(photoElement.dataset.aboutCollagePhoto);
@@ -500,6 +683,9 @@ function closeAboutCollageModal({ apply = false } = {}) {
       photoElement.style.left = saved.left;
       photoElement.style.top = saved.top;
       photoElement.style.width = saved.width;
+      photoElement.style.setProperty("--collage-layer", saved.layer);
+      photoElement.style.setProperty("--collage-rotation", saved.rotation);
+      photoElement.style.setProperty("--collage-opacity", saved.opacity);
     });
   }
 
@@ -509,6 +695,34 @@ function closeAboutCollageModal({ apply = false } = {}) {
   aboutCollageUndoStack = [];
   activeAboutCollageDrag?.preview?.remove();
   activeAboutCollageDrag = null;
+  return true;
+}
+
+function hasUnappliedAboutCollageChanges(modal) {
+  if (!aboutCollageOpenSnapshot) return false;
+
+  return Array.from(modal.querySelectorAll("[data-about-collage-photo]")).some((photo) => {
+    const saved = aboutCollageOpenSnapshot.get(photo.dataset.aboutCollagePhoto);
+    if (!saved) return true;
+    return photo.style.left !== saved.left
+      || photo.style.top !== saved.top
+      || photo.style.width !== saved.width
+      || photo.style.getPropertyValue("--collage-layer") !== saved.layer
+      || photo.style.getPropertyValue("--collage-rotation") !== saved.rotation
+      || photo.style.getPropertyValue("--collage-opacity") !== saved.opacity;
+  });
+}
+
+async function saveAboutCollageArrangement() {
+  return withSaveLock("About collage arrangement", async () => {
+    const savedData = await saveAboutPhotosApi(state.aboutPhotos);
+    applyLoadedState({ ...state, ...savedData });
+    setDirtyState(false, null, "About photos");
+    setStatus(
+      `Saved the About collage arrangement only (${savedData.aboutPhotoCount} photo records).${getBackupStatusText(savedData)}`,
+      "success"
+    );
+  });
 }
 
 document.addEventListener("click", (event) => {
@@ -519,12 +733,22 @@ document.addEventListener("click", (event) => {
     aboutCollageOpenSnapshot = new Map(
       Array.from(modal.querySelectorAll("[data-about-collage-photo]")).map((photo) => [
         photo.dataset.aboutCollagePhoto,
-        { left: photo.style.left, top: photo.style.top, width: photo.style.width }
+        {
+          left: photo.style.left,
+          top: photo.style.top,
+          width: photo.style.width,
+          layer: photo.style.getPropertyValue("--collage-layer"),
+          rotation: photo.style.getPropertyValue("--collage-rotation"),
+          opacity: photo.style.getPropertyValue("--collage-opacity")
+        }
       ])
     );
     const workspace = modal.querySelector("[data-about-collage-workspace]");
     const layerToggle = modal.querySelector("[data-toggle-about-collage-landmarks]");
     if (workspace) workspace.dataset.backgroundOnly = "false";
+    workspace?.querySelectorAll('[data-about-collage-kind="background"]').forEach((photo) => {
+      photo.tabIndex = -1;
+    });
     if (layerToggle) {
       layerToggle.setAttribute("aria-pressed", "false");
       layerToggle.textContent = "Background Only";
@@ -533,7 +757,7 @@ document.addEventListener("click", (event) => {
     updateAboutCollageUndoButton();
     modal.hidden = false;
     document.body.dataset.aboutCollageOpen = "true";
-    modal.querySelector("[data-about-collage-photo]")?.focus();
+    modal.querySelector('[data-about-collage-kind="foreground"]')?.focus();
     return;
   }
 
@@ -542,11 +766,34 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const layerButton = event.target.closest?.("[data-about-collage-layer]");
+  if (layerButton) {
+    changeAboutCollageLayer(Number(layerButton.dataset.aboutCollageLayer));
+    return;
+  }
+
+  const rotateButton = event.target.closest?.("[data-about-collage-rotate]");
+  if (rotateButton) {
+    rotateAboutCollagePhoto(Number(rotateButton.dataset.aboutCollageRotate));
+    return;
+  }
+
+  if (event.target.closest?.("[data-reset-about-collage-photo]")) {
+    resetAboutCollagePhoto();
+    return;
+  }
+
   const layerToggle = event.target.closest?.("[data-toggle-about-collage-landmarks]");
   if (layerToggle) {
     const workspace = layerToggle.closest("[data-about-collage-workspace]");
     const backgroundOnly = workspace?.dataset.backgroundOnly !== "true";
-    if (workspace) workspace.dataset.backgroundOnly = String(backgroundOnly);
+    if (workspace) {
+      workspace.dataset.backgroundOnly = String(backgroundOnly);
+      deselectAboutCollagePhotos(workspace.querySelector("[data-about-collage-page]"));
+      workspace.querySelectorAll('[data-about-collage-kind="background"]').forEach((photo) => {
+        photo.tabIndex = backgroundOnly ? 0 : -1;
+      });
+    }
     layerToggle.setAttribute("aria-pressed", String(backgroundOnly));
     layerToggle.textContent = backgroundOnly ? "Show Page" : "Background Only";
     layerToggle.title = backgroundOnly
@@ -557,9 +804,8 @@ document.addEventListener("click", (event) => {
 
   if (event.target.closest?.("[data-accept-about-collage]")) {
     closeAboutCollageModal({ apply: true });
-    saveData().catch((error) => {
-      console.error(error);
-      setStatus(error.message, "error");
+    saveAboutCollageArrangement().catch((error) => {
+      reportSaveFailure(error, "About photos");
     });
     return;
   }
@@ -567,6 +813,14 @@ document.addEventListener("click", (event) => {
   if (event.target.closest?.("[data-cancel-about-collage]")) {
     closeAboutCollageModal();
   }
+});
+
+document.addEventListener("change", (event) => {
+  const opacityField = event.target.closest?.("[data-about-collage-opacity]");
+  if (!opacityField || opacityField.disabled) return;
+  const percent = Math.max(0, Math.min(100, Number(opacityField.value) || 0));
+  opacityField.value = String(percent);
+  changeAboutCollageOpacity(percent);
 });
 
 document.addEventListener("keydown", (event) => {
@@ -581,6 +835,12 @@ document.addEventListener("pointerdown", (event) => {
   if (!page || event.button !== 0) return;
   if (!photo) {
     deselectAboutCollagePhotos(page);
+    return;
+  }
+  if (
+    photo.dataset.aboutCollageKind === "background"
+    && photo.closest("[data-about-collage-workspace]")?.dataset.backgroundOnly !== "true"
+  ) {
     return;
   }
 
@@ -610,6 +870,7 @@ document.addEventListener("pointerdown", (event) => {
     preview.style.left = photo.style.left;
     preview.style.top = photo.style.top;
     preview.style.width = photo.style.width;
+    preview.style.transform = `rotate(${photo.style.getPropertyValue("--collage-rotation") || "0deg"})`;
     preview.style.aspectRatio = String(activeAboutCollageDrag.aspect);
     coordinateRoot.append(preview);
     activeAboutCollageDrag.preview = preview;
@@ -684,6 +945,7 @@ document.addEventListener("pointerup", (event) => {
     aboutCollageUndoStack.push(before);
     updateAboutCollageUndoButton();
   }
+  updateAboutCollageValueReadout(activeAboutCollageDrag.photo);
   const status = activeAboutCollageDrag.photo.closest("[data-about-collage-workspace]")
     ?.querySelector("[data-about-collage-preview-status] span");
   if (status) {
@@ -864,6 +1126,23 @@ function applyGalleryArchitectureView() {
     module.style.width = `${renderedWidth}px`;
     module.style.height = `${renderedHeight}px`;
   });
+  const spawn = world.querySelector("[data-gallery-architecture-spawn]");
+  if (spawn) {
+    const spawnX = Number(spawn.dataset.spawnX ?? 0);
+    const spawnZ = Number(spawn.dataset.spawnZ ?? 0);
+    const centerPxX = ((spawnX - Number(grid.minX)) / spanX) * width;
+    const centerPxZ = ((spawnZ - Number(grid.minZ)) / spanZ) * height;
+    spawn.style.left = `${(centerPxX - width / 2) * zoom + width / 2 + galleryArchitectureView.panX}px`;
+    spawn.style.top = `${(centerPxZ - height / 2) * zoom + height / 2 + galleryArchitectureView.panY}px`;
+    spawn.hidden = !galleryArchitectureSpawnVisible;
+  }
+  const spawnToggle = map.querySelector("[data-gallery-architecture-toggle-spawn]");
+  if (spawnToggle) {
+    spawnToggle.setAttribute("aria-pressed", String(galleryArchitectureSpawnVisible));
+    spawnToggle.title = galleryArchitectureSpawnVisible
+      ? "Hide spawn marker"
+      : "Show spawn marker";
+  }
 }
 
 function cloneGalleryCuration(records) {
@@ -1016,24 +1295,81 @@ function setStatus(message, statusState = "neutral") {
   elements.statusText.dataset.statusState = statusState;
 }
 
-// Tracks whether the visible editor data has changed since the last save.
-// This gives the user clearer feedback before leaving or reloading the editor.
-function setDirtyState(isDirty, message = null) {
-  hasUnsavedChanges = isDirty;
-  document.body.dataset.editorDirty = isDirty ? "true" : "false";
+async function withSaveLock(label, operation) {
+  if (activeSaveLabel) {
+    throw new Error(`A save is already in progress: ${activeSaveLabel}.`);
+  }
+
+  activeSaveLabel = label;
+  document.body.dataset.editorSaving = "true";
+  if (elements.saveButton) elements.saveButton.disabled = true;
+
+  try {
+    return await operation();
+  } finally {
+    activeSaveLabel = null;
+    document.body.dataset.editorSaving = "false";
+    if (elements.saveButton) elements.saveButton.disabled = false;
+  }
+}
+
+function reportSaveFailure(error, area = null) {
+  console.error(error);
+  const affectedArea = area ?? (Array.from(dirtyAreas).join(", ") || getCurrentDirtyAreaLabel());
+  setStatus(
+    `Save failed for ${affectedArea}: ${error.message} Your unsaved changes remain available in this editor session.`,
+    "error"
+  );
+}
+
+// Tracks which editor workspaces differ from their last persisted state.
+function getCurrentDirtyAreaLabel() {
+  const route = getCurrentRoute();
+  const labels = {
+    images: "Image library",
+    image: "Image editor",
+    crop: "Crop editor",
+    import: "Image import",
+    gallery: "Gallery",
+    about: "About copy",
+    "about-photos": "About photos",
+    categories: "Categories",
+    settings: "Site settings"
+  };
+  return labels[route.name] ?? "Editor";
+}
+
+function setDirtyState(isDirty, message = null, area = null) {
+  const affectedArea = area ?? getCurrentDirtyAreaLabel();
+
+  if (isDirty) {
+    dirtyAreas.add(affectedArea);
+  } else if (area) {
+    dirtyAreas.delete(affectedArea);
+  } else {
+    dirtyAreas.clear();
+  }
+
+  hasUnsavedChanges = dirtyAreas.size > 0;
+  document.body.dataset.editorDirty = hasUnsavedChanges ? "true" : "false";
+  document.body.dataset.dirtyAreas = Array.from(dirtyAreas).join(", ");
 
   if (elements.saveButton) {
-    elements.saveButton.textContent = isDirty ? "Save Changes *" : "Save Changes";
-    elements.saveButton.dataset.dirtyAction = isDirty ? "true" : "false";
+    elements.saveButton.textContent = hasUnsavedChanges ? "Save Changes *" : "Save Changes";
+    elements.saveButton.dataset.dirtyAction = hasUnsavedChanges ? "true" : "false";
   }
 
   if (elements.dirtyIndicator) {
-    elements.dirtyIndicator.textContent = isDirty ? "Unsaved changes" : "Saved";
-    elements.dirtyIndicator.dataset.dirtyState = isDirty ? "dirty" : "saved";
+    const dirtyLabel = Array.from(dirtyAreas).join(", ");
+    elements.dirtyIndicator.textContent = hasUnsavedChanges ? "Unsaved" : "Saved";
+    elements.dirtyIndicator.title = hasUnsavedChanges
+      ? `Changes pending in: ${dirtyLabel}`
+      : "All editor changes are saved";
+    elements.dirtyIndicator.dataset.dirtyState = hasUnsavedChanges ? "dirty" : "saved";
   }
 
   if (message) {
-    setStatus(message, isDirty ? "warning" : "success");
+    setStatus(message, hasUnsavedChanges ? "warning" : "success");
   }
 }
 
@@ -1042,7 +1378,7 @@ function confirmDiscardUnsavedChanges(actionLabel = "continue") {
     return true;
   }
 
-  return confirm(`You have unsaved editor changes. Discard them and ${actionLabel}?`);
+  return confirm(`You have unsaved changes in ${Array.from(dirtyAreas).join(", ")}. Discard them and ${actionLabel}?`);
 }
 
 // Updates the import workflow message shown below the import controls.
@@ -3865,14 +4201,14 @@ async function restoreBackup(backupFolder) {
 }
 
 async function savePayload(payload) {
-  setStatus("Saving data...", "neutral");
-
-  const savedData = await saveDataApi(payload);
-
-  applyLoadedState(savedData);
-  setDirtyState(false);
-  setStatus(`Saved ${state.images.length} images, ${state.categories.length} categories, and About page copy.${getBackupStatusText(savedData)}`, "success");
-  return savedData;
+  return withSaveLock("editor data", async () => {
+    setStatus("Saving data...", "neutral");
+    const savedData = await saveDataApi(payload);
+    applyLoadedState(savedData);
+    setDirtyState(false);
+    setStatus(`Saved ${state.images.length} images, ${state.categories.length} categories, and About page copy.${getBackupStatusText(savedData)}`, "success");
+    return savedData;
+  });
 }
 
 
@@ -3882,15 +4218,17 @@ async function saveGalleryCuration() {
   assertGalleryPlacementIsCollisionFree(galleryCuration);
   setStatus("Saving all gallery curation...", "neutral");
 
-  const savedData = await saveGalleryCurationApi(galleryCuration);
-
-  applyLoadedState(savedData);
-  setDirtyState(false);
-  setStatus(`Saved ${state.galleryCuration.length} gallery wall curation rows.${getBackupStatusText(savedData)}`, "success");
+  return withSaveLock("gallery curation", async () => {
+    const savedData = await saveGalleryCurationApi(galleryCuration);
+    applyLoadedState(savedData);
+    setDirtyState(false);
+    setStatus(`Saved ${state.galleryCuration.length} gallery wall curation rows.${getBackupStatusText(savedData)}`, "success");
+  });
 }
 
 function collectGalleryRoomLayoutFromPage() {
   const currentRoom = cloneGalleryRoom(state.galleryRoom);
+  const previousModules = getGalleryArchitectureModules(currentRoom);
   const cards = Array.from(elements.galleryCurationList?.querySelectorAll("[data-gallery-layout-module]") ?? []);
   const rooms = [];
   const hallways = [];
@@ -3924,12 +4262,76 @@ function collectGalleryRoomLayoutFromPage() {
     }
   });
 
-  return {
+  const nextRoom = {
     ...currentRoom,
     schemaVersion: 2,
     shape: rooms.length > 1 ? "l-shaped" : "rectangle",
     layout: { rooms, hallways }
   };
+  const nextModules = getGalleryArchitectureModules(nextRoom);
+  if (nextModules.length) {
+    const layoutBounds = nextModules.reduce((bounds, module) => {
+      const centerX = Number(module.center?.[0] ?? 0);
+      const centerZ = Number(module.center?.[1] ?? 0);
+      const halfWidth = Number(module.width) / 2;
+      const halfDepth = Number(module.depth) / 2;
+      return {
+        minX: Math.min(bounds.minX, centerX - halfWidth),
+        maxX: Math.max(bounds.maxX, centerX + halfWidth),
+        minZ: Math.min(bounds.minZ, centerZ - halfDepth),
+        maxZ: Math.max(bounds.maxZ, centerZ + halfDepth)
+      };
+    }, {
+      minX: Number.POSITIVE_INFINITY,
+      maxX: Number.NEGATIVE_INFINITY,
+      minZ: Number.POSITIVE_INFINITY,
+      maxZ: Number.NEGATIVE_INFINITY
+    });
+    nextRoom.movementBounds = {
+      minX: Math.min(Number(currentRoom.movementBounds?.minX ?? layoutBounds.minX), layoutBounds.minX),
+      maxX: Math.max(Number(currentRoom.movementBounds?.maxX ?? layoutBounds.maxX), layoutBounds.maxX),
+      minZ: Math.min(Number(currentRoom.movementBounds?.minZ ?? layoutBounds.minZ), layoutBounds.minZ),
+      maxZ: Math.max(Number(currentRoom.movementBounds?.maxZ ?? layoutBounds.maxZ), layoutBounds.maxZ)
+    };
+    nextRoom.grid = {
+      ...(currentRoom.grid ?? {}),
+      minX: Math.min(Number(currentRoom.grid?.minX ?? layoutBounds.minX - 2), layoutBounds.minX - 2),
+      maxX: Math.max(Number(currentRoom.grid?.maxX ?? layoutBounds.maxX + 2), layoutBounds.maxX + 2),
+      minZ: Math.min(Number(currentRoom.grid?.minZ ?? layoutBounds.minZ - 2), layoutBounds.minZ - 2),
+      maxZ: Math.max(Number(currentRoom.grid?.maxZ ?? layoutBounds.maxZ + 2), layoutBounds.maxZ + 2)
+    };
+  }
+
+  const startPosition = currentRoom.start?.position;
+  if (Array.isArray(startPosition) && startPosition.length >= 3) {
+    const [startX, startY, startZ] = startPosition.map(Number);
+    const containingModule = previousModules.find((module) => {
+      const centerX = Number(module.center?.[0] ?? 0);
+      const centerZ = Number(module.center?.[1] ?? 0);
+      return (
+        startX >= centerX - Number(module.width) / 2
+        && startX <= centerX + Number(module.width) / 2
+        && startZ >= centerZ - Number(module.depth) / 2
+        && startZ <= centerZ + Number(module.depth) / 2
+      );
+    });
+    const movedModule = containingModule
+      ? nextModules.find((module) => module.id === containingModule.id)
+      : null;
+
+    if (containingModule && movedModule) {
+      nextRoom.start = {
+        ...(currentRoom.start ?? {}),
+        position: [
+          startX + Number(movedModule.center?.[0] ?? 0) - Number(containingModule.center?.[0] ?? 0),
+          startY,
+          startZ + Number(movedModule.center?.[1] ?? 0) - Number(containingModule.center?.[1] ?? 0)
+        ]
+      };
+    }
+  }
+
+  return nextRoom;
 }
 
 function createGalleryModule(kind) {
@@ -3986,6 +4388,11 @@ function removeGalleryModule(card) {
   const id = card.dataset.moduleId;
   const room = cloneGalleryRoom(state.galleryRoom);
   const layout = room.layout ?? { rooms: [], hallways: [] };
+  const defaultRoomId = room.defaultRoomId || layout.rooms?.[0]?.id || "room-main";
+  if (kind === "room" && id === defaultRoomId) {
+    setStatus("The default spawn room cannot be deleted.", "error");
+    return;
+  }
   if (kind === "room" && (layout.rooms ?? []).length <= 1) {
     setStatus("The gallery must keep at least one room.", "error");
     return;
@@ -4003,16 +4410,33 @@ function removeGalleryModule(card) {
   setDirtyState(true);
 }
 
+function rotateGalleryHallway(card) {
+  if (!card || card.dataset.moduleKind !== "hallway") return;
+  const widthField = card.querySelector('[data-gallery-module-field="width"]');
+  const depthField = card.querySelector('[data-gallery-module-field="depth"]');
+  if (!widthField || !depthField) return;
+
+  pushGalleryRoomUndoSnapshot("rotate hallway");
+  const previousWidth = widthField.value;
+  widthField.value = depthField.value;
+  depthField.value = previousWidth;
+  state.galleryRoom = collectGalleryRoomLayoutFromPage();
+  rerenderCurrentRoute("Hallway rotated 90 degrees. Click Save Architecture to preserve it.");
+  setDirtyState(true);
+}
+
 async function saveGalleryRoom() {
   state.galleryRoom = collectGalleryRoomLayoutFromPage();
   if (!state.galleryRoom.layout.rooms.length) {
     throw new Error("The gallery must contain at least one room.");
   }
   setStatus("Saving gallery architecture...", "neutral");
-  const savedData = await saveGalleryRoomApi(state.galleryRoom);
-  applyLoadedState({ ...state, ...savedData });
-  setDirtyState(false);
-  setStatus(`Saved gallery architecture.${getBackupStatusText(savedData)}`, "success");
+  return withSaveLock("gallery architecture", async () => {
+    const savedData = await saveGalleryRoomApi(state.galleryRoom);
+    applyLoadedState({ ...state, ...savedData });
+    setDirtyState(false);
+    setStatus(`Saved gallery architecture.${getBackupStatusText(savedData)}`, "success");
+  });
 }
 
 async function saveGalleryCurationWall(card) {
@@ -4031,11 +4455,12 @@ async function saveGalleryCurationWall(card) {
   // Saving one card must not replace the page with an older server snapshot and
   // discard fields or ordering edits made on other cards. Persist the complete
   // current curation state, while keeping the card-level Save Wall affordance.
-  const savedData = await saveGalleryCurationApi(galleryCuration);
-
-  applyLoadedState(savedData);
-  setDirtyState(false);
-  setStatus(`Saved gallery wall ${wallId} and current curation changes.${getBackupStatusText(savedData)}`, "success");
+  return withSaveLock(`gallery wall ${wallId}`, async () => {
+    const savedData = await saveGalleryCurationApi(galleryCuration);
+    applyLoadedState(savedData);
+    setDirtyState(false);
+    setStatus(`Saved gallery wall ${wallId} and current curation changes.${getBackupStatusText(savedData)}`, "success");
+  });
 }
 
 async function saveData() {
@@ -4047,11 +4472,13 @@ async function saveData() {
   }
 
   if (route.name === "settings") {
-    const savedData = await saveSiteSeoApi(collectSiteSeoFromPage(state));
-    state.siteSeo = savedData.siteSeo;
-    renderAll(state, elements, route);
-    setDirtyState(false);
-    setStatus(`Saved site and search settings.${getBackupStatusText(savedData)}`, "success");
+    await withSaveLock("site and search settings", async () => {
+      const savedData = await saveSiteSeoApi(collectSiteSeoFromPage(state));
+      state.siteSeo = savedData.siteSeo;
+      renderAll(state, elements, route);
+      setDirtyState(false);
+      setStatus(`Saved site and search settings.${getBackupStatusText(savedData)}`, "success");
+    });
     return;
   }
 
@@ -4112,25 +4539,32 @@ async function saveCropPage() {
   const cropMode = document.querySelector("[data-crop-editor]")?.dataset.cropMode;
 
   setStatus("Saving crop settings...", "neutral");
+  return withSaveLock(cropMode === "about" ? "About crop" : "image crop", async () => {
+    let savedData;
 
-  const savedData = cropMode === "about"
-    ? await saveDataApi({
-        ...collectEditorData(state),
-        aboutPhotos: (state.aboutPhotos ?? []).map((photo) => (
-          photo.sourceImageId === imageId
-            ? {
-                ...photo,
-                aboutPosition: updates.aboutPosition ?? photo.aboutPosition ?? "50% 50%",
-                aboutScale: Number(updates.aboutScale ?? photo.aboutScale ?? 1)
-              }
-            : photo
-        ))
-      })
-    : await saveImageUpdatesApi(imageId, updates);
+    if (cropMode === "about") {
+      const aboutPhotos = (state.aboutPhotos ?? []).map((photo) => (
+        photo.sourceImageId === imageId
+          ? {
+              ...photo,
+              aboutPosition: updates.aboutPosition ?? photo.aboutPosition ?? "50% 50%",
+              aboutScale: Number(updates.aboutScale ?? photo.aboutScale ?? 1)
+            }
+          : photo
+      ));
+      savedData = await saveAboutPhotosApi(aboutPhotos);
+      applyLoadedState({ ...state, ...savedData });
+      setDirtyState(false, null, "Crop editor");
+      setDirtyState(false, null, "About photos");
+      setStatus(`Saved the About crop only.${getBackupStatusText(savedData)}`, "success");
+      return;
+    }
 
-  applyLoadedState(savedData);
-  setDirtyState(false);
-  setStatus(`Saved crop settings.${getBackupStatusText(savedData)}`, "success");
+    savedData = await saveImageUpdatesApi(imageId, updates);
+    applyLoadedState(savedData);
+    setDirtyState(false);
+    setStatus(`Saved image crop settings.${getBackupStatusText(savedData)}`, "success");
+  });
 }
 
 // Moves image cards in the DOM before the user saves the new order.
@@ -5312,10 +5746,12 @@ elements.galleryCurationList?.addEventListener("change", (event) => {
 elements.galleryCurationList?.addEventListener("click", (event) => {
   const addGalleryModuleButton = event.target.closest("[data-add-gallery-module]");
   const removeGalleryModuleButton = event.target.closest("[data-remove-gallery-module]");
+  const rotateGalleryHallwayButton = event.target.closest("[data-rotate-gallery-hallway]");
   const saveGalleryRoomButton = event.target.closest("[data-save-gallery-room]");
   const architectureZoomButton = event.target.closest("[data-gallery-architecture-zoom]");
   const architecturePanXButton = event.target.closest("[data-gallery-architecture-pan-x]");
   const architecturePanYButton = event.target.closest("[data-gallery-architecture-pan-y]");
+  const architectureSpawnToggle = event.target.closest("[data-gallery-architecture-toggle-spawn]");
   const undoGalleryButton = event.target.closest("[data-undo-gallery-curation]");
   const saveGalleryButton = event.target.closest("[data-save-gallery-curation]");
   const saveGalleryWallButton = event.target.closest("[data-save-gallery-curation-wall]");
@@ -5359,6 +5795,17 @@ elements.galleryCurationList?.addEventListener("click", (event) => {
 
   if (removeGalleryModuleButton) {
     removeGalleryModule(removeGalleryModuleButton.closest("[data-gallery-layout-module]"));
+    return;
+  }
+
+  if (architectureSpawnToggle) {
+    galleryArchitectureSpawnVisible = !galleryArchitectureSpawnVisible;
+    applyGalleryArchitectureView();
+    return;
+  }
+
+  if (rotateGalleryHallwayButton) {
+    rotateGalleryHallway(rotateGalleryHallwayButton.closest("[data-gallery-layout-module]"));
     return;
   }
 
@@ -5986,8 +6433,7 @@ elements.themeToggleButton?.addEventListener("click", () => {
 
 elements.saveButton.addEventListener("click", () => {
   saveData().catch((error) => {
-    console.error(error);
-    setStatus(error.message, "error");
+    reportSaveFailure(error);
   });
 });
 
@@ -6089,7 +6535,10 @@ window.addEventListener("mousemove", (event) => {
     return;
   }
 
-  drag.module.style.translate = `${dx / galleryArchitectureView.zoom}px ${dy / galleryArchitectureView.zoom}px`;
+  // The preview element already renders at the active zoom. Keep its temporary
+  // drag translation in screen pixels so it remains attached to the pointer;
+  // world-coordinate conversion applies the zoom once on mouseup below.
+  drag.module.style.translate = `${dx}px ${dy}px`;
 });
 
 window.addEventListener("mouseup", (event) => {

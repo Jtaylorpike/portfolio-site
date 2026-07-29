@@ -9,9 +9,9 @@
     "wallType": "feature-wall",
     "plaqueEnabled": true,
     "plaqueSide": "auto",
-    "positionX": 0,
+    "positionX": 0.0,
     "positionZ": 7.5,
-    "rotationYDegrees": 0
+    "rotationYDegrees": 0.0
   },
   {
     "wallId": "wall-left-climbing-01",
@@ -23,9 +23,9 @@
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
     "plaqueSide": "auto",
-    "positionX": -12,
-    "positionZ": 5,
-    "rotationYDegrees": 90
+    "positionX": -12.0,
+    "positionZ": 5.0,
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-left-climbing-02",
@@ -37,9 +37,9 @@
     "wallType": "standard-display-wall",
     "plaqueEnabled": true,
     "plaqueSide": "auto",
-    "positionX": -12,
-    "positionZ": -1,
-    "rotationYDegrees": 90
+    "positionX": -12.0,
+    "positionZ": -1.0,
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-left-climbing-03",
@@ -51,9 +51,9 @@
     "wallType": "standard-display-wall",
     "plaqueEnabled": true,
     "plaqueSide": "auto",
-    "positionX": -12,
-    "positionZ": -7,
-    "rotationYDegrees": 90
+    "positionX": -12.0,
+    "positionZ": -7.0,
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-left-inner-workbook-05",
@@ -67,7 +67,7 @@
     "plaqueSide": "auto",
     "positionX": -5.5,
     "positionZ": 4.5,
-    "rotationYDegrees": -90
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-left-inner-portfolio-08",
@@ -80,8 +80,8 @@
     "plaqueEnabled": true,
     "plaqueSide": "auto",
     "positionX": -5.5,
-    "positionZ": -1,
-    "rotationYDegrees": -90
+    "positionZ": -1.0,
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-left-inner-portfolio-09",
@@ -94,8 +94,8 @@
     "plaqueEnabled": true,
     "plaqueSide": "auto",
     "positionX": -5.5,
-    "positionZ": -6,
-    "rotationYDegrees": -90
+    "positionZ": -6.0,
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-rear-climbing-workbook-01",
@@ -107,9 +107,9 @@
     "wallType": "standard-display-wall",
     "plaqueEnabled": true,
     "plaqueSide": "auto",
-    "positionX": -6,
-    "positionZ": -12,
-    "rotationYDegrees": 0
+    "positionX": -6.0,
+    "positionZ": -12.0,
+    "rotationYDegrees": 0.0
   },
   {
     "wallId": "wall-rear-climbing-workbook-03",
@@ -122,8 +122,8 @@
     "plaqueEnabled": true,
     "plaqueSide": "auto",
     "positionX": 0.5,
-    "positionZ": -12,
-    "rotationYDegrees": 0
+    "positionZ": -12.0,
+    "rotationYDegrees": 0.0
   },
   {
     "wallId": "wall-rear-landscape-workbook-03",
@@ -136,8 +136,8 @@
     "plaqueEnabled": true,
     "plaqueSide": "auto",
     "positionX": 7.5,
-    "positionZ": -12,
-    "rotationYDegrees": 0
+    "positionZ": -12.0,
+    "rotationYDegrees": 0.0
   },
   {
     "wallId": "wall-right-inner-landscape-portfolio-02",
@@ -151,7 +151,7 @@
     "plaqueSide": "auto",
     "positionX": 5.5,
     "positionZ": 4.5,
-    "rotationYDegrees": 90
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-right-inner-landscape-portfolio-06",
@@ -164,8 +164,8 @@
     "plaqueEnabled": true,
     "plaqueSide": "auto",
     "positionX": 5.5,
-    "positionZ": -3,
-    "rotationYDegrees": 90
+    "positionZ": -3.0,
+    "rotationYDegrees": 90.0
   },
   {
     "wallId": "wall-right-landscape-01",
@@ -177,9 +177,9 @@
     "wallType": "standard-display-wall",
     "plaqueEnabled": true,
     "plaqueSide": "auto",
-    "positionX": 12,
+    "positionX": 12.0,
     "positionZ": 4.5,
-    "rotationYDegrees": -90
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-right-landscape-02",
@@ -191,9 +191,9 @@
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
     "plaqueSide": "auto",
-    "positionX": 12,
+    "positionX": 12.0,
     "positionZ": -1.5,
-    "rotationYDegrees": -90
+    "rotationYDegrees": -90.0
   },
   {
     "wallId": "wall-right-landscape-03",
@@ -205,8 +205,8 @@
     "wallType": "wide-display-wall",
     "plaqueEnabled": true,
     "plaqueSide": "auto",
-    "positionX": 12,
-    "positionZ": -8,
-    "rotationYDegrees": -90
+    "positionX": 12.0,
+    "positionZ": -8.0,
+    "rotationYDegrees": -90.0
   }
 ]

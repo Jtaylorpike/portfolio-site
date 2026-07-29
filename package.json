@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "validate:gallery-layout": "node scripts/validate-gallery-room-layout.mjs",
+    "build:gallery-fixture": "npm run validate:gallery-layout && vite build --config vite.gallery-fixture.config.ts"
   },
   "devDependencies": {
     "@types/three": "^0.184.0",

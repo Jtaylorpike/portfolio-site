@@ -8391,6 +8391,38 @@ label > span,
   background: rgba(115, 137, 104, 0.28);
 }
 
+.gallery-layout-spawn-marker {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  color: #fff3b0;
+  font: 700 9px/1 Arial, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 1px 1px #000);
+}
+
+.gallery-layout-spawn-marker span {
+  width: 14px;
+  height: 18px;
+  border: 2px solid #fff3b0;
+  background: #161712;
+  clip-path: polygon(50% 0, 100% 100%, 50% 76%, 0 100%);
+  transform: rotate(var(--spawn-yaw, 0rad));
+  transform-origin: 50% 50%;
+}
+
+.gallery-layout-spawn-marker strong {
+  padding: 2px 3px;
+  background: #161712;
+  color: inherit;
+  font: inherit;
+}
+
 .gallery-layout-module-list {
   display: grid;
   gap: 12px;
@@ -9237,6 +9269,66 @@ body[data-about-collage-open="true"] {
   font-size: 9px;
 }
 
+.about-collage-selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.about-collage-preview-status output {
+  display: block;
+  margin-top: 3px;
+  color: var(--text);
+  font-family: var(--editor-mono-font);
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.about-collage-selection-actions button {
+  min-height: 20px;
+  padding: 2px 7px;
+  border: 1px solid #000;
+  background: var(--editor-control);
+  color: var(--text);
+  font-family: var(--editor-chrome-font);
+  font-size: 9px;
+}
+
+.about-collage-selection-actions button:disabled {
+  color: var(--muted);
+  opacity: .55;
+}
+
+.about-collage-opacity-field {
+  display: inline-flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid #000;
+  background: var(--editor-control);
+  color: var(--text);
+  font-family: var(--editor-chrome-font);
+  font-size: 9px;
+}
+
+.about-collage-opacity-field input {
+  width: 48px;
+  min-height: 18px;
+  padding: 1px 3px;
+  border: 1px solid #000;
+  background: var(--editor-workspace, #fff);
+  color: var(--text);
+  font-family: var(--editor-mono-font);
+  font-size: 9px;
+}
+
+.about-collage-opacity-field:has(input:disabled) {
+  color: var(--muted);
+  opacity: .55;
+}
+
 .about-collage-viewport {
   min-height: 0;
   overflow: auto;
@@ -9247,7 +9339,7 @@ body[data-about-collage-open="true"] {
 .about-collage-page {
   position: relative;
   width: min(100%, 1120px);
-  aspect-ratio: 1440 / 2700;
+  aspect-ratio: 1440 / 3022;
   min-height: 1100px;
   margin: 0 auto;
   overflow: hidden;
@@ -9362,7 +9454,16 @@ body[data-about-collage-open="true"] {
 .about-collage-upper-stack,
 .about-collage-lower-stack {
   position: relative;
-  min-height: 100%;
+  min-height: 0;
+  align-self: center;
+}
+
+.about-collage-upper-stack {
+  aspect-ratio: 661.75 / 668.8;
+}
+
+.about-collage-lower-stack {
+  aspect-ratio: 610.4 / 721.6;
 }
 
 .about-collage-foreground {
@@ -9375,6 +9476,9 @@ body[data-about-collage-open="true"] {
   padding: 0;
   cursor: grab;
   touch-action: none;
+  z-index: var(--collage-layer, 1) !important;
+  transform: rotate(var(--collage-rotation, 0deg));
+  opacity: var(--collage-opacity, 1);
 }
 
 .about-collage-foreground img {
@@ -9401,7 +9505,7 @@ body[data-about-collage-open="true"] {
 
 .about-collage-foreground:hover,
 .about-collage-foreground[data-selected="true"] {
-  z-index: 7;
+  z-index: calc(var(--collage-layer, 1) + 20) !important;
   border-color: #fff;
   outline: 2px solid #000;
   outline-offset: 2px;
@@ -9430,29 +9534,32 @@ body[data-about-collage-open="true"] {
 
 .about-collage-background-photo {
   position: absolute;
-  z-index: 1;
+  z-index: var(--collage-layer, 1) !important;
   width: 42%;
   aspect-ratio: 3 / 4;
   overflow: hidden;
   padding: 0;
   border: 1px solid transparent;
   background: transparent;
-  opacity: .12;
+  opacity: var(--collage-opacity, .16);
   cursor: grab;
   touch-action: none;
   filter: grayscale(1) contrast(1.1);
-  transform: rotate(-2deg);
+  transform: rotate(var(--collage-rotation, -2deg));
+}
+
+.about-collage-workspace:not([data-background-only="true"]) .about-collage-background-photo {
+  pointer-events: none;
 }
 
 .about-collage-background-photo:nth-of-type(even) {
-  transform: rotate(2deg);
+  transform: rotate(var(--collage-rotation, 2deg));
 }
 
 .about-collage-background-photo:hover,
 .about-collage-background-photo[data-selected="true"] {
-  z-index: 5;
+  z-index: calc(var(--collage-layer, 1) + 20) !important;
   border-color: #fff;
-  opacity: .28;
   outline: 2px solid #000;
   outline-offset: 2px;
   filter: grayscale(.35) contrast(1.05);
@@ -11826,6 +11933,24 @@ details.bulk-editor-toolbar {
 .gallery-map-pan-controls {
   display: grid;
   gap: 2px;
+}
+
+.gallery-layout-map-controls .gallery-spawn-toggle {
+  align-self: stretch;
+  min-width: 46px;
+  padding-inline: 4px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.gallery-layout-map-controls .gallery-spawn-toggle[aria-pressed="false"] {
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  box-shadow: inset 1px 1px 0 var(--mac-dark);
+}
+
+.gallery-layout-spawn-marker[hidden] {
+  display: none;
 }
 
 .gallery-map-zoom-controls {

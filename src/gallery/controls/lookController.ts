@@ -19,11 +19,16 @@ export class LookController {
 
   private yaw: number;
   private pitch = 0;
+  private targetYaw: number;
+  private targetPitch = 0;
   private isPointerLocked = false;
   private activeTouchLookPointerId: number | null = null;
   private lastTouchLookX = 0;
   private lastTouchLookY = 0;
-  private sensitivity = 0.002;
+  private sensitivity = 0.0012;
+  private verticalSensitivityMultiplier = 1.03;
+  private maxMouseLookDelta = 64;
+  private mouseLookResponse = 24;
   private touchSensitivity = 0.00375;
   private maxTouchLookDelta = 48;
 
@@ -32,6 +37,7 @@ export class LookController {
     this.camera = options.camera;
     this.inputMode = options.inputMode ?? 'desktop';
     this.yaw = options.initialYaw;
+    this.targetYaw = options.initialYaw;
 
     this.camera.rotation.order = 'YXZ';
     this.camera.rotation.y = this.yaw;
@@ -69,6 +75,17 @@ export class LookController {
 
   public getYaw() {
     return this.yaw;
+  }
+
+  public update(delta: number) {
+    if (this.inputMode === 'touch') {
+      return;
+    }
+
+    const response = 1 - Math.exp(-this.mouseLookResponse * Math.max(0, delta));
+    this.yaw += (this.targetYaw - this.yaw) * response;
+    this.pitch += (this.targetPitch - this.pitch) * response;
+    this.applyCameraRotation();
   }
 
   public releasePointerLock() {
@@ -120,7 +137,13 @@ export class LookController {
       return;
     }
 
-    this.applyLookDelta(event.movementX, event.movementY, this.sensitivity);
+    this.applyLookDelta(
+      this.clampMouseDelta(event.movementX),
+      this.clampMouseDelta(event.movementY),
+      this.sensitivity,
+      this.verticalSensitivityMultiplier,
+      true
+    );
   };
 
   private handleTouchLookStart = (event: PointerEvent) => {
@@ -145,7 +168,7 @@ export class LookController {
 
     this.lastTouchLookX = event.clientX;
     this.lastTouchLookY = event.clientY;
-    this.applyLookDelta(deltaX, deltaY, this.touchSensitivity);
+    this.applyLookDelta(deltaX, deltaY, this.touchSensitivity, 1, false);
     event.preventDefault();
   };
 
@@ -170,13 +193,36 @@ export class LookController {
     return Math.max(-this.maxTouchLookDelta, Math.min(this.maxTouchLookDelta, value));
   }
 
-  private applyLookDelta(deltaX: number, deltaY: number, sensitivity: number) {
-    this.yaw -= deltaX * sensitivity;
-    this.pitch -= deltaY * sensitivity;
+  private clampMouseDelta(value: number) {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
 
+    return Math.max(-this.maxMouseLookDelta, Math.min(this.maxMouseLookDelta, value));
+  }
+
+  private applyLookDelta(
+    deltaX: number,
+    deltaY: number,
+    sensitivity: number,
+    verticalSensitivityMultiplier: number,
+    smooth: boolean
+  ) {
+    this.targetYaw -= deltaX * sensitivity;
+    this.targetPitch -= deltaY * sensitivity * verticalSensitivityMultiplier;
     const maxPitch = Math.PI / 2 - 0.1;
-    this.pitch = Math.max(-maxPitch, Math.min(maxPitch, this.pitch));
+    this.targetPitch = Math.max(-maxPitch, Math.min(maxPitch, this.targetPitch));
 
+    if (smooth) {
+      return;
+    }
+
+    this.yaw = this.targetYaw;
+    this.pitch = this.targetPitch;
+    this.applyCameraRotation();
+  }
+
+  private applyCameraRotation() {
     this.camera.rotation.y = this.yaw;
     this.camera.rotation.x = this.pitch;
   }

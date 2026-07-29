@@ -1871,6 +1871,32 @@ button:focus-visible {
   color: rgba(238, 231, 216, 0.88);
 }
 
+.gallery-environment-time-control {
+  display: grid;
+  grid-template-columns: minmax(94px, 0.7fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+
+.gallery-environment-time-control select {
+  min-width: 0;
+  height: 24px;
+  padding: 0 20px 0 7px;
+  border: 1px solid rgba(238, 231, 216, 0.28);
+  border-radius: 0;
+  background: rgba(238, 231, 216, 0.08);
+  color: var(--text);
+  font: inherit;
+  text-transform: uppercase;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.gallery-environment-time-control select:focus-visible {
+  outline: 1px solid var(--text);
+  outline-offset: 2px;
+}
+
 .gallery-control-card {
   position: absolute;
   left: 18px;
@@ -4348,6 +4374,16 @@ button:focus-visible {
       0
     )
     rotate(var(--about-photo-rotate, 0deg));
+}
+
+.modern-site[data-page='about'] .about-floating-photo.has-custom-background-layout {
+  transform:
+    translate3d(
+      calc(var(--about-float-x, 0) * 1px),
+      calc(var(--about-float-y, 0) * 1px),
+      0
+    )
+    rotate(var(--float-rotation, -2deg));
 }
 
 @supports not (overflow: clip) {

@@ -6,9 +6,23 @@
 // Keeping fetch calls in one file keeps the editor UI code focused on state and
 // rendering instead of repeated HTTP boilerplate.
 
+const configuredApiBase = document.querySelector('meta[name="editor-api-base"]')?.content?.trim() ?? "";
+const API_BASE = configuredApiBase.replace(/\/+$/, "");
+
+function apiUrl(path) {
+  return `${API_BASE}${path}`;
+}
+
+function apiFetch(path, options = {}) {
+  return fetch(apiUrl(path), {
+    credentials: API_BASE ? "include" : "same-origin",
+    ...options
+  });
+}
+
 export async function loadDataApi() {
   const cacheBust = encodeURIComponent(String(Date.now()));
-  const response = await fetch(`/api/data?cacheBust=${cacheBust}`, { cache: 'no-store' });
+  const response = await apiFetch(`/api/data?cacheBust=${cacheBust}`, { cache: 'no-store' });
 
   if (!response.ok) {
     throw new Error('Could not load data.');
@@ -18,7 +32,7 @@ export async function loadDataApi() {
 }
 
 export async function saveDataApi(payload) {
-  const response = await fetch('/api/save', {
+  const response = await apiFetch('/api/save', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -34,8 +48,25 @@ export async function saveDataApi(payload) {
   return response.json();
 }
 
+export async function saveAboutPhotosApi(aboutPhotos) {
+  const response = await apiFetch('/api/about-photos', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ aboutPhotos })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.error ?? 'Could not save About photos.');
+  }
+
+  return response.json();
+}
+
 export async function saveGalleryCurationApi(galleryCuration) {
-  const response = await fetch('/api/gallery-curation', {
+  const response = await apiFetch('/api/gallery-curation', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -52,7 +83,7 @@ export async function saveGalleryCurationApi(galleryCuration) {
 }
 
 export async function saveGalleryRoomApi(galleryRoom) {
-  const response = await fetch('/api/gallery-room', {
+  const response = await apiFetch('/api/gallery-room', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -69,7 +100,7 @@ export async function saveGalleryRoomApi(galleryRoom) {
 }
 
 export async function saveSiteSeoApi(siteSeo) {
-  const response = await fetch('/api/site-seo', {
+  const response = await apiFetch('/api/site-seo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ siteSeo })
@@ -85,7 +116,7 @@ export async function saveSiteSeoApi(siteSeo) {
 
 
 export async function saveGalleryCurationWallApi(wall) {
-  const response = await fetch('/api/gallery-curation/wall', {
+  const response = await apiFetch('/api/gallery-curation/wall', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -102,7 +133,7 @@ export async function saveGalleryCurationWallApi(wall) {
 }
 
 export async function saveImageUpdatesApi(imageId, updates) {
-  const response = await fetch('/api/image-updates', {
+  const response = await apiFetch('/api/image-updates', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -120,7 +151,7 @@ export async function saveImageUpdatesApi(imageId, updates) {
 
 
 export async function renameImageIdApi(currentImageId, newImageId, imageUpdates = {}) {
-  const response = await fetch('/api/rename-image-id', {
+  const response = await apiFetch('/api/rename-image-id', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -145,7 +176,8 @@ export async function importReviewedImagesApi(formData, options = {}) {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
 
-    request.open('POST', '/api/import-reviewed');
+    request.open('POST', apiUrl('/api/import-reviewed'));
+    request.withCredentials = Boolean(API_BASE);
 
     request.upload.addEventListener('progress', (event) => {
       if (!event.lengthComputable || typeof onUploadProgress !== 'function') {
@@ -193,7 +225,7 @@ export async function importReviewedImagesApi(formData, options = {}) {
 }
 
 export async function listBackupsApi() {
-  const response = await fetch('/api/backups');
+  const response = await apiFetch('/api/backups');
 
   if (!response.ok) {
     const error = await response.json().catch(() => null);
@@ -204,7 +236,7 @@ export async function listBackupsApi() {
 }
 
 export async function restoreBackupApi(backupFolder) {
-  const response = await fetch('/api/backups/restore', {
+  const response = await apiFetch('/api/backups/restore', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -226,7 +258,8 @@ export async function importReviewedAboutPhotosApi(formData, options = {}) {
 
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
-    request.open('POST', '/api/about-photos/import');
+    request.open('POST', apiUrl('/api/about-photos/import'));
+    request.withCredentials = Boolean(API_BASE);
 
     request.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable && typeof onUploadProgress === 'function') {

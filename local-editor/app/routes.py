@@ -6,7 +6,7 @@ framing settings, import new images, and preview local image files.
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, render_template, request, send_from_directory
+from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
 from .data_store import (
     DataValidationError,
@@ -21,6 +21,7 @@ from .data_store import (
     list_data_backups,
     restore_data_backup,
     save_full_data,
+    save_about_photos,
     save_gallery_curation,
     save_gallery_curation_wall,
     save_gallery_room,
@@ -39,7 +40,10 @@ bp = Blueprint("editor_routes", __name__)
 def editor_page():
     """Serve the local editor HTML shell."""
 
-    return render_template("editor.html")
+    return render_template(
+        "editor.html",
+        editor_api_base=current_app.config.get("EDITOR_API_BASE", ""),
+    )
 
 
 @bp.route("/api/data")
@@ -152,6 +156,28 @@ def save_data():
             "aboutPhotoCount": len(about_photos),
         }
     )
+
+
+@bp.route("/api/about-photos", methods=["POST"])
+def save_about_photos_data():
+    """Save only About photo records without rewriting unrelated editor data."""
+
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict) or not isinstance(payload.get("aboutPhotos"), list):
+        return jsonify({"error": "aboutPhotos must be a list."}), 400
+
+    try:
+        about_photos, backup = save_about_photos(payload["aboutPhotos"])
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
+
+    return jsonify({
+        "ok": True,
+        "aboutPhotos": about_photos,
+        "backup": backup,
+        "aboutPhotoCount": len(about_photos),
+    })
 
 
 @bp.route("/api/gallery-curation", methods=["POST"])

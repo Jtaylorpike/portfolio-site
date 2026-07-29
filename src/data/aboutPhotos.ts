@@ -33,6 +33,9 @@ export type AboutPhoto = {
   collageX?: number;
   collageY?: number;
   collageWidth?: number;
+  collageLayer?: number;
+  collageRotation?: number;
+  collageOpacity?: number;
   sourceType?: 'about' | 'portfolio-reference';
   sourceImageId?: string;
 };

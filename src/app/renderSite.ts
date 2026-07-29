@@ -34,6 +34,19 @@ export function renderSite(app: HTMLElement) {
           <div><dt>Renderer</dt><dd data-gallery-diagnostic="renderer">--</dd></div>
           <div><dt>Scene</dt><dd data-gallery-diagnostic="scene">--</dd></div>
           <div><dt>Device hints</dt><dd data-gallery-diagnostic="device">--</dd></div>
+          <div>
+            <dt>Environment</dt>
+            <dd class="gallery-environment-time-control">
+              <select id="galleryEnvironmentTimeSelect" aria-label="Preview gallery environment time">
+                <option value="auto">Local time</option>
+                <option value="dawn">Dawn</option>
+                <option value="day">Day</option>
+                <option value="dusk">Dusk</option>
+                <option value="night">Night</option>
+              </select>
+              <span data-gallery-diagnostic="environment">--</span>
+            </dd>
+          </div>
         </dl>
       </aside>
 
