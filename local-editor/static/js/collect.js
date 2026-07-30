@@ -610,7 +610,7 @@ function collectAboutCopyFromPage(state) {
     .filter((link) => link.label && link.url);
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     hero: {
       eyebrow: getCopyFieldValue("hero.eyebrow"),
       headline: getCopyFieldValue("hero.headline"),
@@ -630,6 +630,14 @@ function collectAboutCopyFromPage(state) {
       paragraphs: [
         getCopyFieldValue("project.paragraphs.0"),
         getCopyFieldValue("project.paragraphs.1")
+      ].filter(Boolean)
+    },
+    additional: {
+      eyebrow: getCopyFieldValue("additional.eyebrow"),
+      heading: getCopyFieldValue("additional.heading"),
+      paragraphs: [
+        getCopyFieldValue("additional.paragraphs.0"),
+        getCopyFieldValue("additional.paragraphs.1")
       ].filter(Boolean)
     },
     contact: {

@@ -3629,6 +3629,14 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
             </div>
           </section>
 
+          <section class="about-collage-page-section about-collage-page-writing">
+            <div class="about-collage-wide-copy">
+              <small>${escapeHtml(copy.additional.eyebrow)}</small>
+              <h3>${escapeHtml(copy.additional.heading)}</h3>
+              <p>${escapeHtml(copy.additional.paragraphs.join(" "))}</p>
+            </div>
+          </section>
+
           <section class="about-collage-page-section about-collage-page-contact">
             <div class="about-collage-wide-copy">
               <small>${escapeHtml(copy.contact.eyebrow)}</small>
@@ -3666,6 +3674,14 @@ const FALLBACK_ABOUT_COPY = {
       "Placeholder copy. Use this block for the bridge between photography, editing, web development, support work, and the interactive gallery concept."
     ]
   },
+  additional: {
+    eyebrow: "Additional Notes",
+    heading: "A third space for the story still taking shape.",
+    paragraphs: [
+      "Placeholder copy. Use this section to expand on an idea that does not fit naturally into the biography or project-practice sections above.",
+      "Placeholder copy. This can become a note about process, influences, current direction, selected experience, or the relationship between the archive and future work."
+    ]
+  },
   contact: {
     eyebrow: "Contact",
     headline: "Available for selected projects, collaborations, and image work.",
@@ -3693,6 +3709,11 @@ function getAboutCopy(state) {
       eyebrow: copy.project?.eyebrow ?? FALLBACK_ABOUT_COPY.project.eyebrow,
       heading: copy.project?.heading ?? FALLBACK_ABOUT_COPY.project.heading,
       paragraphs: Array.isArray(copy.project?.paragraphs) && copy.project.paragraphs.length ? copy.project.paragraphs : FALLBACK_ABOUT_COPY.project.paragraphs
+    },
+    additional: {
+      eyebrow: copy.additional?.eyebrow ?? FALLBACK_ABOUT_COPY.additional.eyebrow,
+      heading: copy.additional?.heading ?? FALLBACK_ABOUT_COPY.additional.heading,
+      paragraphs: Array.isArray(copy.additional?.paragraphs) && copy.additional.paragraphs.length ? copy.additional.paragraphs : FALLBACK_ABOUT_COPY.additional.paragraphs
     },
     contact: {
       eyebrow: copy.contact?.eyebrow ?? FALLBACK_ABOUT_COPY.contact.eyebrow,
@@ -3792,6 +3813,18 @@ function renderAboutCopyEditor(state) {
         renderAboutCopyInput("project.heading", "Heading", copy.project.heading),
         renderAboutCopyTextarea("project.paragraphs.0", "Paragraph 1", copy.project.paragraphs[0] ?? ""),
         renderAboutCopyTextarea("project.paragraphs.1", "Paragraph 2", copy.project.paragraphs[1] ?? "")
+      ]
+    })}
+
+    ${renderAboutCopyPanel({
+      eyebrow: "Additional Copy",
+      title: "Third copy block",
+      description: "Controls the full-width copy section between the project block and Contact.",
+      fields: [
+        renderAboutCopyInput("additional.eyebrow", "Eyebrow", copy.additional.eyebrow),
+        renderAboutCopyInput("additional.heading", "Heading", copy.additional.heading),
+        renderAboutCopyTextarea("additional.paragraphs.0", "Paragraph 1", copy.additional.paragraphs[0] ?? ""),
+        renderAboutCopyTextarea("additional.paragraphs.1", "Paragraph 2", copy.additional.paragraphs[1] ?? "")
       ]
     })}
 

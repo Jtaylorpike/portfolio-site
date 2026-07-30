@@ -1,29 +1,37 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "hero": {
     "eyebrow": "About / Contact",
     "headline": "Photography shaped by movement, landscape, and time outside.",
-    "intro": "Photographer and multidisciplinary creative working across images, environments, and digital spaces."
+    "intro": "Landscape and portrait photographer specializing in climbing, with a growing practice in web-based creative work."
   },
   "about": {
     "eyebrow": "About Me",
-    "heading": "Photography, climbing, and my journey as an artist.",
+    "heading": "Photography, climbing, and the places where they meet.",
     "paragraphs": [
-      "I’m Taylor Pike, a photographer and multidisciplinary creative working across climbing, landscape, portraiture, and personal projects. My work is grounded in time spent outside and an interest in how people move through and relate to their environments.",
-      "I started making photographs in 2012, borrowing a family iPhone to document the places around me. That curiosity grew into a serious practice, and in 2020 I earned my BS in Commercial Photography from Appalachian State University, where I also studied computer science. I’ve spent more than a decade climbing—an experience that continues to shape how I understand movement, landscape, risk, and community. Photography and climbing now overlap throughout my work."
+      "I started taking photographs in 2012 with a family iPhone. Most of the early images were of nature and close-up shots of flowers around our property. I was drawn to how beautiful it all was and wanted to see whether I could capture some of that beauty with a camera.",
+      "During my senior year of high school, I made a self-portrait and fell in love with editing it. Later, I took a photography class in college for fun. The professor pulled me aside and suggested that I consider switching majors. I eventually did, earning my BS in Commercial Photography from Appalachian State University in 2020, after switching from studying computer science."
     ]
   },
   "project": {
-    "eyebrow": "Photography / Project",
-    "heading": "My creative approach and building an archive on my own terms.",
+    "eyebrow": "Climbing",
+    "heading": "Learning to pay attention.",
     "paragraphs": [
-      "I make photographs through observation rather than strict control. Even when an image is planned, I leave room for the moment and the environment to shape it. I’m drawn to natural light, vivid color, and the small details that give a place its character.",
-      "This site began as a home for my photography and continues to serve as its primary archive. It is also designed to grow beyond a conventional portfolio, making room for experiments in web design, digital environments, and other creative work.\n\nI built the custom editor behind the site as a way to organize and shape that archive on my own terms. Like the work it contains, the system will continue to change as new projects, ideas, and forms are added."
+      "Before photography became a serious part of my life, soccer had been my lifelong passion. I knew it was not something I could continue forever, particularly as injuries became more of a concern, so I started climbing as another way to stay active.\n\nIt clicked almost immediately. I still cannot entirely explain why it connected with my brain so strongly, but more than a decade later, the passion has never gone away.",
+      "Climbing connects me with nature in a physical and immediate way. Moving across rock requires close attention to texture, shape, and the smallest details of a surface. That way of looking carries into my photography. Photographing climbers also creates its own opportunities: the movement is often epic, and the places where climbing happens are usually beautiful.\n\nI built the custom editor behind the site as a way to organize and shape that archive on my own terms. Like the work it contains, the system will continue to change as new projects, ideas, and forms are added."
+    ]
+  },
+  "additional": {
+    "eyebrow": "The Archive",
+    "heading": "A portfolio, an experiment, and an ongoing personal project.",
+    "paragraphs": [
+      "I built this website because I did not want to pay for a portfolio platform when I knew I was capable of making one myself. I had also wanted to create a virtual 3D gallery for years. What began as a practical decision became another creative project.\n\nPhotography and coding both act as lightning rods for my focus. Each gives me somewhere to direct my attention, make something tangible, and experience the satisfaction of finishing something that did not exist before.",
+      "This site brings those interests together. First and foremost, it is a personal project that I started for fun. It is also a professional portfolio, an archive of my work, and a place where I can continue experimenting. Over time, I want it to grow beyond photography to include web-based art, videos, and other digital projects."
     ]
   },
   "contact": {
     "eyebrow": "Contact",
-    "headline": "Available for selected projects, collaborations, and image work.",
+    "headline": "Work With Me",
     "body": "Available for selected photographic assignments, collaborations, and web projects. If you are interested in working together on an image-based project or a custom portfolio site, get in touch.",
     "email": "jtaylorpike@gmail.com",
     "links": []

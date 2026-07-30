@@ -36,11 +36,12 @@ export type AboutCopy = {
   hero: AboutCopyHeroSection;
   about: AboutCopyTextSection;
   project: AboutCopyTextSection;
+  additional: AboutCopyTextSection;
   contact: AboutCopyContactSection;
 };
 
 export const defaultAboutCopy: AboutCopy = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   hero: {
     eyebrow: 'About / Contact',
     headline: 'Photography shaped by movement, landscape, and time outside.',
@@ -60,6 +61,14 @@ export const defaultAboutCopy: AboutCopy = {
     paragraphs: [
       'Placeholder copy. Use this block for how you think about photography, climbing, landscape, portrait work, commercial work, visual storytelling, and building this site as an evolving archive.',
       'Placeholder copy. Use this block for the bridge between photography, editing, web development, support work, and the interactive gallery concept.'
+    ]
+  },
+  additional: {
+    eyebrow: 'Additional Notes',
+    heading: 'A third space for the story still taking shape.',
+    paragraphs: [
+      'Placeholder copy. Use this section to expand on an idea that does not fit naturally into the biography or project-practice sections above.',
+      'Placeholder copy. This can become a note about process, influences, current direction, selected experience, or the relationship between the archive and future work.'
     ]
   },
   contact: {
@@ -125,7 +134,7 @@ function normalizeAboutCopy(rawCopy: unknown): AboutCopy {
     : {};
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     hero: {
       eyebrow: cleanText(copy.hero?.eyebrow, defaultAboutCopy.hero.eyebrow),
       headline: cleanText(copy.hero?.headline, defaultAboutCopy.hero.headline),
@@ -140,6 +149,11 @@ function normalizeAboutCopy(rawCopy: unknown): AboutCopy {
       eyebrow: cleanText(copy.project?.eyebrow, defaultAboutCopy.project.eyebrow),
       heading: cleanText(copy.project?.heading, defaultAboutCopy.project.heading),
       paragraphs: normalizeParagraphs(copy.project?.paragraphs, defaultAboutCopy.project.paragraphs)
+    },
+    additional: {
+      eyebrow: cleanText(copy.additional?.eyebrow, defaultAboutCopy.additional.eyebrow),
+      heading: cleanText(copy.additional?.heading, defaultAboutCopy.additional.heading),
+      paragraphs: normalizeParagraphs(copy.additional?.paragraphs, defaultAboutCopy.additional.paragraphs)
     },
     contact: {
       eyebrow: cleanText(copy.contact?.eyebrow, defaultAboutCopy.contact.eyebrow),

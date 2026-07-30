@@ -1579,7 +1579,7 @@ def rename_gallery_curation_image_reference(
 
 
 DEFAULT_ABOUT_COPY = {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "hero": {
         "eyebrow": "About / Contact",
         "headline": "A reserved space for the personal side of the archive.",
@@ -1599,6 +1599,14 @@ DEFAULT_ABOUT_COPY = {
         "paragraphs": [
             "Placeholder copy. Use this block for how you think about photography, climbing, landscape, portrait work, commercial work, visual storytelling, and building this site as an evolving archive.",
             "Placeholder copy. Use this block for the bridge between photography, editing, web development, support work, and the interactive gallery concept.",
+        ],
+    },
+    "additional": {
+        "eyebrow": "Additional Notes",
+        "heading": "A third space for the story still taking shape.",
+        "paragraphs": [
+            "Placeholder copy. Use this section to expand on an idea that does not fit naturally into the biography or project-practice sections above.",
+            "Placeholder copy. This can become a note about process, influences, current direction, selected experience, or the relationship between the archive and future work.",
         ],
     },
     "contact": {
@@ -1666,10 +1674,11 @@ def normalize_about_copy(raw_copy: Any) -> dict[str, Any]:
     raw_hero = raw_copy.get("hero") if isinstance(raw_copy.get("hero"), dict) else {}
     raw_about = raw_copy.get("about") if isinstance(raw_copy.get("about"), dict) else {}
     raw_project = raw_copy.get("project") if isinstance(raw_copy.get("project"), dict) else {}
+    raw_additional = raw_copy.get("additional") if isinstance(raw_copy.get("additional"), dict) else {}
     raw_contact = raw_copy.get("contact") if isinstance(raw_copy.get("contact"), dict) else {}
 
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "hero": {
             "eyebrow": clean_copy_text(raw_hero.get("eyebrow"), DEFAULT_ABOUT_COPY["hero"]["eyebrow"]),
             "headline": clean_copy_text(raw_hero.get("headline"), DEFAULT_ABOUT_COPY["hero"]["headline"]),
@@ -1684,6 +1693,11 @@ def normalize_about_copy(raw_copy: Any) -> dict[str, Any]:
             "eyebrow": clean_copy_text(raw_project.get("eyebrow"), DEFAULT_ABOUT_COPY["project"]["eyebrow"]),
             "heading": clean_copy_text(raw_project.get("heading"), DEFAULT_ABOUT_COPY["project"]["heading"]),
             "paragraphs": normalize_copy_paragraphs(raw_project.get("paragraphs"), DEFAULT_ABOUT_COPY["project"]["paragraphs"]),
+        },
+        "additional": {
+            "eyebrow": clean_copy_text(raw_additional.get("eyebrow"), DEFAULT_ABOUT_COPY["additional"]["eyebrow"]),
+            "heading": clean_copy_text(raw_additional.get("heading"), DEFAULT_ABOUT_COPY["additional"]["heading"]),
+            "paragraphs": normalize_copy_paragraphs(raw_additional.get("paragraphs"), DEFAULT_ABOUT_COPY["additional"]["paragraphs"]),
         },
         "contact": {
             "eyebrow": clean_copy_text(raw_contact.get("eyebrow"), DEFAULT_ABOUT_COPY["contact"]["eyebrow"]),

@@ -765,6 +765,16 @@ export function renderAboutPage(): string {
           </article>
         </section>
 
+        <section class="about-wide-copy-block about-additional-copy-block" aria-labelledby="about-additional-copy-title">
+          <div>
+            <p class="eyebrow">${escapeHtml(aboutCopy.additional.eyebrow)}</p>
+            <h2 id="about-additional-copy-title">${escapeHtml(aboutCopy.additional.heading)}</h2>
+          </div>
+          <div class="about-wide-copy-columns">
+            ${renderAboutParagraphs(aboutCopy.additional.paragraphs)}
+          </div>
+        </section>
+
         <section class="about-contact-section" aria-labelledby="about-contact-title">
           <div>
             <p class="eyebrow">${escapeHtml(aboutCopy.contact.eyebrow)}</p>
