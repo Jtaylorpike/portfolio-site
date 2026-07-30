@@ -64,7 +64,7 @@ const fallbackSeo: SiteSeoConfig = {
     },
     about: {
       title: 'About / Contact | Taylor Pike',
-      description: 'About and contact page for Taylor Pike, a photography portfolio and evolving interactive image archive.',
+      description: 'About Taylor Pike, a photographer and multidisciplinary creative working across climbing, landscape, portraiture, and digital projects.',
       canonicalPath: '/'
     },
     gallery: {

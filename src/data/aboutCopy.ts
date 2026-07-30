@@ -43,8 +43,8 @@ export const defaultAboutCopy: AboutCopy = {
   schemaVersion: 1,
   hero: {
     eyebrow: 'About / Contact',
-    headline: 'A reserved space for the personal side of the archive.',
-    intro: 'Placeholder copy. Replace this with your final About introduction when you are ready.'
+    headline: 'Photography shaped by movement, landscape, and time outside.',
+    intro: 'Photographer and multidisciplinary creative working across images, environments, and digital spaces.'
   },
   about: {
     eyebrow: 'About Me',

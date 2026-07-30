@@ -101,6 +101,15 @@ export function renderSite(app: HTMLElement) {
         </div>
       </div>
 
+      <div class="gallery-failure" id="galleryFailure" role="alertdialog" aria-modal="true" aria-labelledby="galleryFailureTitle" hidden>
+        <div class="gallery-failure-card">
+          <p class="eyebrow">Gallery unavailable</p>
+          <h2 id="galleryFailureTitle">The virtual gallery isn’t available in this browser.</h2>
+          <p>This experience requires WebGL hardware acceleration.</p>
+          <a class="button primary" href="#/portfolio" data-gallery-failure-portfolio>View the traditional portfolio instead</a>
+        </div>
+      </div>
+
       <div class="gallery-canvas" id="galleryCanvas"></div>
     </div>
   `;

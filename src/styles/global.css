@@ -1316,6 +1316,9 @@ button:focus-visible {
   line-height: 0.93;
   letter-spacing: -0.078em;
   font-weight: 500;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .about-page-kicker {
@@ -1692,7 +1695,8 @@ button:focus-visible {
 .image-lightbox-nav {
   position: absolute;
   z-index: 4;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   border: 1px solid rgba(238, 231, 216, 0.34);
   border-radius: 0;
   background: rgba(2, 3, 3, 0.72);
@@ -2072,13 +2076,6 @@ button:focus-visible {
   }
 }
 
-.image-lightbox.is-controls-idle .image-lightbox-close[data-close-control-mode='retract'] {
-  opacity: 0.42;
-  filter: blur(0.7px);
-  clip-path: inset(0 0 0 calc(100% - 1px));
-}
-
-.image-lightbox.is-controls-idle .image-lightbox-close[data-close-control-mode='fade'],
 .image-lightbox.is-controls-idle .image-lightbox-nav[data-overlaps-image='true'] {
   opacity: 0.08;
   filter: blur(0.45px);
@@ -2103,10 +2100,6 @@ button:focus-visible {
     transition: none;
   }
 
-  .image-lightbox.is-controls-idle .image-lightbox-close[data-close-control-mode='retract'] {
-    filter: none;
-    clip-path: inset(0 0 0 calc(100% - 1px));
-  }
 }
 
 .portfolio-grid-image-button img.is-awaiting-load {
@@ -4302,6 +4295,44 @@ button:focus-visible {
   overflow: clip;
 }
 
+.gallery-failure[hidden] {
+  display: none;
+}
+
+.gallery-failure {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(7, 8, 7, 0.94);
+}
+
+.gallery-failure-card {
+  width: min(520px, 100%);
+  padding: clamp(28px, 5vw, 54px);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.gallery-failure-card h2 {
+  margin: 12px 0;
+  font-size: clamp(28px, 5vw, 46px);
+  line-height: 1.04;
+  letter-spacing: -0.045em;
+}
+
+.gallery-failure-card > p:not(.eyebrow) {
+  margin: 0 0 26px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.gallery-failure-card .button {
+  min-height: 44px;
+}
+
 .modern-site[data-page='about'] .modern-about-page {
   position: relative;
   z-index: 2;
@@ -5302,6 +5333,23 @@ body.gallery-touch-enabled .gallery-crosshair {
   }
 }
 
+/* Audit closeout: compact layouts retain the visual density of the interface
+   while exposing a full 44px activation area for every primary control. */
+@media (max-width: 900px), (max-height: 560px) and (orientation: landscape) {
+  .modern-site .modern-nav a,
+  .modern-site .modern-nav button,
+  .modern-site[data-page='home'] .hero-index-button,
+  .modern-site[data-page='portfolio'] .portfolio-index-button,
+  .image-lightbox-close,
+  .image-lightbox-nav {
+    min-height: 44px;
+  }
+
+  .modern-site[data-page='home'] .home-hero-index-list {
+    overflow-y: auto;
+  }
+}
+
 /* Phase 6I mobile public-route and touch-interruption hardening.
    Keep the accepted Phase 6 mobile gallery controls intact while making
    short landscape-phone layouts safer beyond the homepage and preventing
@@ -5603,7 +5651,7 @@ body.gallery-touch-enabled .gallery-close {
   .modern-site[data-page='home'] .modern-nav button,
   .modern-site:not([data-page='home']) .modern-nav a,
   .modern-site:not([data-page='home']) .modern-nav button {
-    min-height: 34px;
+    min-height: 44px;
     font-size: var(--interface-size-sm);
     letter-spacing: 0.035em;
   }

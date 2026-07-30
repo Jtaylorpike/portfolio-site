@@ -578,6 +578,10 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
 
   document.body.appendChild(lightbox);
   document.body.classList.add('image-lightbox-is-open');
+  const backgroundRoot = document.querySelector<HTMLElement>('#app');
+  if (backgroundRoot) {
+    backgroundRoot.inert = true;
+  }
 
   const closeButton = lightbox.querySelector<HTMLButtonElement>('[data-lightbox-close]');
   const prevButton = lightbox.querySelector<HTMLButtonElement>('[data-lightbox-prev]');
@@ -715,6 +719,9 @@ function openImageLightbox(image: GalleryImage, imageSet: GalleryImage[] = galle
     }
     document.body.classList.remove('image-lightbox-is-open');
     lightbox.remove();
+    if (backgroundRoot) {
+      backgroundRoot.inert = false;
+    }
 
     if (previouslyFocusedElement?.isConnected) {
       previouslyFocusedElement.focus({ preventScroll: true });

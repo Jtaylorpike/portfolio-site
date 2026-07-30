@@ -362,7 +362,7 @@ function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): 
             type="button"
             data-lightbox-image-id="${escapeHtml(image.id)}"
             data-lightbox-category="${escapeHtml(initialCategory)}"
-            aria-label="Open larger view of ${escapeHtml(image.title)}"
+            aria-label="Open image ${index + 1} of ${images.length}: ${escapeHtml(image.title)}"
           >
             <img
               class="portfolio-grid-image is-awaiting-load"

@@ -219,6 +219,9 @@ export function setupGalleryController() {
   const galleryOverlay = document.querySelector<HTMLDivElement>('#galleryOverlay');
   const galleryCanvas = document.querySelector<HTMLDivElement>('#galleryCanvas');
   const galleryLoading = document.querySelector<HTMLDivElement>('#galleryLoading');
+  const galleryFailure = document.querySelector<HTMLElement>('#galleryFailure');
+  const galleryFailurePortfolio =
+    document.querySelector<HTMLAnchorElement>('[data-gallery-failure-portfolio]');
   const galleryLoadingPhase = document.querySelector<HTMLElement>('#galleryLoadingPhase');
   const galleryControlCard = document.querySelector<HTMLElement>('#galleryControlCard');
   const galleryTouchControls = document.querySelector<HTMLElement>('#galleryTouchControls');
@@ -805,6 +808,9 @@ export function setupGalleryController() {
 
     galleryOverlay.classList.add('is-active');
     galleryOverlay.setAttribute('aria-hidden', 'false');
+    if (galleryFailure) {
+      galleryFailure.hidden = true;
+    }
     document.body.classList.add('gallery-is-open');
     setTouchControlsVisible(activeGalleryInputMode === 'touch');
 
@@ -862,7 +868,17 @@ export function setupGalleryController() {
       setGalleryLoadingPhase('Preparing image textures');
     } catch (error) {
       console.error('Gallery failed to open:', error);
-      closeGallery();
+      activeGallery?.destroy();
+      activeGallery = null;
+      stopGalleryDiagnostics();
+      unbindGalleryInputListeners();
+      setTouchControlsVisible(false);
+      galleryLoading?.classList.remove('is-active');
+      clearArtworkInfo();
+      if (galleryFailure) {
+        galleryFailure.hidden = false;
+        galleryFailurePortfolio?.focus({ preventScroll: true });
+      }
     } finally {
       isGalleryOpening = false;
     }
@@ -877,6 +893,9 @@ export function setupGalleryController() {
     contextRecoveryId += 1;
     stopGalleryDiagnostics();
     galleryLoading?.classList.remove('is-active');
+    if (galleryFailure) {
+      galleryFailure.hidden = true;
+    }
     setGalleryLoadingPhase('Preparing image textures');
 
     if (activeGallery) {
@@ -980,6 +999,7 @@ export function setupGalleryController() {
   );
   galleryDiagnosticsToggle?.addEventListener('click', toggleGalleryDiagnostics);
   closeGalleryButton?.addEventListener('click', closeGallery);
+  galleryFailurePortfolio?.addEventListener('click', closeGallery);
   updateGalleryEnvironmentTimeSelect();
   updateDiagnosticsToggle();
 }
