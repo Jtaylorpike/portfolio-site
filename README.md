@@ -29,7 +29,7 @@ The active visual direction is a dark editorial/gallery-index system rather than
 
 The design should stay photography-first. Photographs should render cleanly and should not be pixelated or stylized by default. Experimental/game-like cues should live in the interface system, gallery environment, navigation, loading states, map/index patterns, and future theme modes.
 
-The current logo image is intentionally not used in the public header or entry page. The active header uses a text lockup so the logo can be reintroduced later without blocking the current visual direction.
+The public header uses the reversed Taylor Pike symbol between the Taylor and Pike wordmark text. The entry screen keeps the simpler text-only name treatment. Do not substitute the full logo lockup without explicit direction.
 
 Future design work should allow alternate creative presentation modes. A planned later project is a full-site late-1990s/early-2000s theme toggle. Do not hardcode visual decisions in a way that prevents future theme switching; prefer reusable design tokens, route/page classes, and mode-friendly UI structure.
 
@@ -62,11 +62,11 @@ The traditional portfolio is the stable public-facing site. It supports these ha
 #/editor
 ```
 
-The virtual gallery is loaded only when opened. The controller lazy-loads Three.js scene code, preloads gallery textures, blocks mobile/touch devices with a fallback message, and keeps the traditional portfolio as the accessible baseline.
+The virtual gallery is loaded only when opened. The controller lazy-loads Three.js scene code, preloads gallery textures, selects desktop or touch controls, provides an explicit unsupported-WebGL fallback, and keeps the traditional portfolio as the accessible baseline.
 
 The gallery currently supports:
 
-- Desktop-only fullscreen overlay.
+- Fullscreen desktop and touch presentation with input-specific controls.
 - Enclosed architectural room shell with perimeter walls, ceiling, room base trim, and ceiling light-panel geometry.
 - Subtle procedural floor texture and perimeter floor-shadow strips to reduce the blank-platform feeling without adding external texture assets.
 - Pointer-lock mouse look.
@@ -85,10 +85,14 @@ Primary editable data lives in:
 src/data/categories.json
 src/data/galleryImages.json
 src/data/heroSlides.json
-src/data/images.ts
+src/data/galleryCuration.json
+src/data/galleryRoom.json
+src/data/aboutPhotos.json
+src/data/aboutCopy.json
+src/data/siteSeo.json
 ```
 
-`src/data/images.ts` imports the JSON records and exposes shared types and runtime image data for the traditional portfolio, hero slideshow, and virtual gallery.
+The TypeScript modules beside these JSON files provide shared types, defaults, and normalized runtime data for the public site and virtual gallery.
 
 `public/data/gallery.json` and `public/data/projects.json` are legacy or secondary exported data unless active source code is changed to consume them directly.
 
@@ -131,6 +135,8 @@ python editor.py
 Use the editor only against a local working copy. Commit or back up data files after meaningful content changes.
 
 ## Development commands
+
+Node.js 24 is the supported runtime for local development and GitHub Pages builds. Version managers can read the pinned major from `.nvmrc`.
 
 ```bash
 npm install

@@ -117,6 +117,8 @@ An editor save must never silently discard newly introduced fields.
 
 ## Development and validation
 
+Use Node.js 24.x. The repository pins this major in `.nvmrc`, declares it in `package.json`, and uses it in the GitHub Pages workflow.
+
 Install reproducibly when needed:
 
 ```powershell

@@ -88,6 +88,8 @@ function renderRoute() {
 
   const route = getRouteFromHash();
 
+  document.body.classList.toggle('entry-page-is-active', route.name === 'entry');
+
   applySeoForRoute({
     name: route.name,
     category: route.category
