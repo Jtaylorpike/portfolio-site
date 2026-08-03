@@ -250,7 +250,7 @@ Protected gallery constraints remain in force:
 
 ### Current repository checkpoint
 
-- `main` and `origin/main` include commit `ec6c256` (`Add repository guidance for AI coding agents`).
+- `main` and `origin/main` include commit `f1419c5` (`Update Node runtime and fit landing viewport`).
 - Node.js 24.x is the supported local and GitHub Pages build runtime; the workflow, package engine, and `.nvmrc` must remain aligned.
 - The public audit fixes, third editable About copy block, favicon/brand assets, gallery frame constraints, and editor/public parity work are pushed.
 - Root `AGENTS.md` is the shared operational guide for coding agents; active source remains authoritative when older phase prose conflicts.
@@ -397,17 +397,24 @@ There is no active `public/images/logo` directory. Public paths must continue re
 
 ## Release workflow
 
+Branch roles:
+
+- `dev` is the integration and validation branch for all normal project work.
+- `main` is the live GitHub Pages deployment branch.
+- New work goes to `dev` first. Do not bypass `dev` unless the user explicitly authorizes an exception.
+
 Before release:
 
 1. Inspect `git status`, staged changes, and the complete diff.
 2. Confirm no unintended active data, local-editor, image, room, or curation changes.
 3. Run `npm ci` when dependency reproducibility needs confirmation.
 4. Run `npm run build`.
-5. Run desktop and mobile gallery smoke tests.
-6. Commit the reviewed working tree on the current development branch.
-7. Push the development branch.
-8. Merge into the live branch through the repository's established pull-request or merge workflow.
-9. Verify the deployed site, especially loading, Auto promotion, gallery close/reopen, and touch controls.
+5. Run the change-specific validation and relevant desktop/mobile smoke tests.
+6. Commit the reviewed working tree on `dev` and push `dev`.
+7. Confirm the working tree is clean and local `dev` matches `origin/dev`.
+8. Update local `main` from `origin/main`, then merge the accepted `dev` state into `main` through the established merge or pull-request workflow.
+9. Push `main` to trigger the live deployment.
+10. Verify the deployed site, especially loading, Auto promotion, gallery close/reopen, and touch controls.
 
 Never switch branches, commit, push, or merge unless the user explicitly authorizes those actions.
 

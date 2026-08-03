@@ -153,7 +153,10 @@ Do not claim browser, device, high-GPU, or deployed-domain validation that was n
 - Do not commit, push, deploy, or change external state unless the user asks.
 - Before a requested commit: inspect status and the complete diff, run relevant validation, and include only intended files.
 - Never use destructive Git commands to discard user changes.
-- The live branch is `main`; pushing it triggers the GitHub Pages deployment workflow.
+- `dev` is the integration and validation branch. New work must be committed and pushed to `dev` first unless the user explicitly authorizes an exception.
+- Before publishing, confirm the working tree is clean, local `dev` matches `origin/dev`, and `dev` contains the intended validated changes without unrelated files.
+- `main` is the live deployment branch. Merge the accepted `dev` state into an up-to-date `main`, then push `main`; that push triggers the GitHub Pages deployment workflow.
+- Do not develop directly on `main` or push a feature commit straight to `main` under the normal workflow.
 - After pushing, report the commit hash and distinguish "pushed/deployment triggered" from "verified live."
 - Search Console crawl requests and future Cloudflare migration steps require explicit user action or authorization.
 

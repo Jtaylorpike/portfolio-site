@@ -145,6 +145,10 @@ npm run build
 npm run preview
 ```
 
+## Branch workflow
+
+Use `dev` for normal implementation, validation, and review. Push accepted work to `origin/dev` first and confirm the working tree and branch are clean. Then update `main`, merge the validated `dev` state into it, and push `main` to trigger the GitHub Pages deployment. Direct feature work on `main` is reserved for an explicit user-approved exception.
+
 ## Packaging for future handoff
 
 Use `scripts/New-TaylorPikePortfolioChatUpload.cmd` to create a clean project package before moving work into another chat. The older root-level uploader has been retired.
