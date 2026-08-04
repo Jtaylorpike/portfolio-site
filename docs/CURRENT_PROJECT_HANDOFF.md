@@ -139,6 +139,7 @@ Implementation started:
 - Added a complete restore regression proving that portfolio, gallery, About, SEO, and site-copy documents recover together while the automatic pre-restore safety backup retains the state being replaced.
 - Added focused image-update regressions proving crop/framing fields save only to the selected record, unrelated metadata and hero assignments remain stable, disallowed fields are ignored, the previous image state is backed up, and unknown image IDs fail safely.
 - Added About-photo regressions covering placement roles, active/unused assignments, crop position and scale, desktop/background collage geometry, independent mobile geometry, layer/rotation/opacity preservation, safe clamping, persistence, and pre-save backups.
+- Added focused gallery-wall regressions proving one-card saves preserve unrelated walls and back up the previous curation, while colliding placement changes are rejected before any backup or write occurs.
 
 ### 3D gallery polish - follows editor completion
 
