@@ -4041,6 +4041,32 @@ function renderSiteSettings(state, elements) {
       </div>
     </section>
     <section class="panel">
+      <p class="eyebrow">Public Copy</p>
+      <h2>Virtual gallery notices</h2>
+      <div class="panel-grid">
+        ${[
+          ["gallery.releaseStatus", "Release badge", siteCopy.gallery?.releaseStatus, false, false],
+          ["gallery.persistentNotice", "Persistent experimental notice", siteCopy.gallery?.persistentNotice, true, false],
+          ["gallery.loadingEyebrow", "Loading label", siteCopy.gallery?.loadingEyebrow, false, false],
+          ["gallery.loadingHeadline", "Loading heading", siteCopy.gallery?.loadingHeadline, false, false],
+          ["gallery.loadingBody", "Loading explanation", siteCopy.gallery?.loadingBody, true, true],
+          ["gallery.loadingDisclaimer", "Loading disclaimer", siteCopy.gallery?.loadingDisclaimer, true, true],
+          ["gallery.loadingPhase", "Initial loading phase", siteCopy.gallery?.loadingPhase, false, false],
+          ["gallery.unavailableEyebrow", "Unavailable label", siteCopy.gallery?.unavailableEyebrow, false, false],
+          ["gallery.unavailableHeadline", "Unavailable heading", siteCopy.gallery?.unavailableHeadline, true, false],
+          ["gallery.unavailableBody", "Unavailable explanation", siteCopy.gallery?.unavailableBody, true, true],
+          ["gallery.unavailableAction", "Portfolio fallback action", siteCopy.gallery?.unavailableAction, true, false]
+        ].map(([field, label, value, wide, multiline]) => `
+          <label class="${wide ? "panel-wide" : ""}">
+            <span>${escapeHtml(label)}</span>
+            ${multiline
+              ? `<textarea data-site-copy-field="${field}">${escapeHtml(value ?? "")}</textarea>`
+              : `<input data-site-copy-field="${field}" value="${escapeHtml(value ?? "")}" />`}
+          </label>
+        `).join("")}
+      </div>
+    </section>
+    <section class="panel">
       <p class="eyebrow">Global</p>
       <h2>Site identity</h2>
       <div class="panel-grid">

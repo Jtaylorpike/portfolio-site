@@ -1834,6 +1834,19 @@ DEFAULT_SITE_COPY = {
         "owner": "Taylor Pike",
         "rights": "All rights reserved.",
     },
+    "gallery": {
+        "releaseStatus": "Gallery · Alpha",
+        "persistentNotice": "Experimental gallery · Features may change or be unavailable · Not the final product",
+        "loadingEyebrow": "Loading Gallery",
+        "loadingHeadline": "Preparing the room",
+        "loadingBody": "Images are loading before the gallery opens so the first movement feels smoother.",
+        "loadingDisclaimer": "This experimental gallery is still in alpha. Some features may be incomplete or unavailable, and this is not the final product.",
+        "loadingPhase": "Preparing image textures",
+        "unavailableEyebrow": "Gallery unavailable",
+        "unavailableHeadline": "The virtual gallery isn’t available in this browser.",
+        "unavailableBody": "This experience requires WebGL hardware acceleration.",
+        "unavailableAction": "View the traditional portfolio instead",
+    },
 }
 
 
@@ -1846,6 +1859,7 @@ def normalize_site_copy(raw_site_copy: Any) -> dict[str, Any]:
     raw_navigation = source.get("navigation") if isinstance(source.get("navigation"), dict) else {}
     raw_portfolio = source.get("portfolio") if isinstance(source.get("portfolio"), dict) else {}
     raw_footer = source.get("footer") if isinstance(source.get("footer"), dict) else {}
+    raw_gallery = source.get("gallery") if isinstance(source.get("gallery"), dict) else {}
 
     return {
         "schemaVersion": 1,
@@ -1868,6 +1882,10 @@ def normalize_site_copy(raw_site_copy: Any) -> dict[str, Any]:
         "footer": {
             key: clean_copy_text(raw_footer.get(key), fallback)
             for key, fallback in DEFAULT_SITE_COPY["footer"].items()
+        },
+        "gallery": {
+            key: clean_copy_text(raw_gallery.get(key), fallback)
+            for key, fallback in DEFAULT_SITE_COPY["gallery"].items()
         },
     }
 

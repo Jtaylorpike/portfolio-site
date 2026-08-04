@@ -30,6 +30,19 @@ export type SiteCopy = {
     owner: string;
     rights: string;
   };
+  gallery: {
+    releaseStatus: string;
+    persistentNotice: string;
+    loadingEyebrow: string;
+    loadingHeadline: string;
+    loadingBody: string;
+    loadingDisclaimer: string;
+    loadingPhase: string;
+    unavailableEyebrow: string;
+    unavailableHeadline: string;
+    unavailableBody: string;
+    unavailableAction: string;
+  };
 };
 
 const fallbackSiteCopy: SiteCopy = {
@@ -61,6 +74,19 @@ const fallbackSiteCopy: SiteCopy = {
   footer: {
     owner: 'Taylor Pike',
     rights: 'All rights reserved.'
+  },
+  gallery: {
+    releaseStatus: 'Gallery · Alpha',
+    persistentNotice: 'Experimental gallery · Features may change or be unavailable · Not the final product',
+    loadingEyebrow: 'Loading Gallery',
+    loadingHeadline: 'Preparing the room',
+    loadingBody: 'Images are loading before the gallery opens so the first movement feels smoother.',
+    loadingDisclaimer: 'This experimental gallery is still in alpha. Some features may be incomplete or unavailable, and this is not the final product.',
+    loadingPhase: 'Preparing image textures',
+    unavailableEyebrow: 'Gallery unavailable',
+    unavailableHeadline: 'The virtual gallery isn’t available in this browser.',
+    unavailableBody: 'This experience requires WebGL hardware acceleration.',
+    unavailableAction: 'View the traditional portfolio instead'
   }
 };
 
@@ -75,6 +101,7 @@ function normalizeSiteCopy(value: unknown): SiteCopy {
   const navigation: Partial<SiteCopy['navigation']> = source.navigation && typeof source.navigation === 'object' ? source.navigation : {};
   const portfolio: Partial<SiteCopy['portfolio']> = source.portfolio && typeof source.portfolio === 'object' ? source.portfolio : {};
   const footer: Partial<SiteCopy['footer']> = source.footer && typeof source.footer === 'object' ? source.footer : {};
+  const gallery: Partial<SiteCopy['gallery']> = source.gallery && typeof source.gallery === 'object' ? source.gallery : {};
 
   return {
     schemaVersion: 1,
@@ -105,6 +132,19 @@ function normalizeSiteCopy(value: unknown): SiteCopy {
     footer: {
       owner: cleanText(footer.owner, fallbackSiteCopy.footer.owner),
       rights: cleanText(footer.rights, fallbackSiteCopy.footer.rights)
+    },
+    gallery: {
+      releaseStatus: cleanText(gallery.releaseStatus, fallbackSiteCopy.gallery.releaseStatus),
+      persistentNotice: cleanText(gallery.persistentNotice, fallbackSiteCopy.gallery.persistentNotice),
+      loadingEyebrow: cleanText(gallery.loadingEyebrow, fallbackSiteCopy.gallery.loadingEyebrow),
+      loadingHeadline: cleanText(gallery.loadingHeadline, fallbackSiteCopy.gallery.loadingHeadline),
+      loadingBody: cleanText(gallery.loadingBody, fallbackSiteCopy.gallery.loadingBody),
+      loadingDisclaimer: cleanText(gallery.loadingDisclaimer, fallbackSiteCopy.gallery.loadingDisclaimer),
+      loadingPhase: cleanText(gallery.loadingPhase, fallbackSiteCopy.gallery.loadingPhase),
+      unavailableEyebrow: cleanText(gallery.unavailableEyebrow, fallbackSiteCopy.gallery.unavailableEyebrow),
+      unavailableHeadline: cleanText(gallery.unavailableHeadline, fallbackSiteCopy.gallery.unavailableHeadline),
+      unavailableBody: cleanText(gallery.unavailableBody, fallbackSiteCopy.gallery.unavailableBody),
+      unavailableAction: cleanText(gallery.unavailableAction, fallbackSiteCopy.gallery.unavailableAction)
     }
   };
 }

@@ -813,6 +813,19 @@ export function collectSiteCopyFromPage(state) {
     footer: {
       owner: value("footer.owner"),
       rights: value("footer.rights")
+    },
+    gallery: {
+      releaseStatus: value("gallery.releaseStatus"),
+      persistentNotice: value("gallery.persistentNotice"),
+      loadingEyebrow: value("gallery.loadingEyebrow"),
+      loadingHeadline: value("gallery.loadingHeadline"),
+      loadingBody: value("gallery.loadingBody"),
+      loadingDisclaimer: value("gallery.loadingDisclaimer"),
+      loadingPhase: value("gallery.loadingPhase"),
+      unavailableEyebrow: value("gallery.unavailableEyebrow"),
+      unavailableHeadline: value("gallery.unavailableHeadline"),
+      unavailableBody: value("gallery.unavailableBody"),
+      unavailableAction: value("gallery.unavailableAction")
     }
   };
 }

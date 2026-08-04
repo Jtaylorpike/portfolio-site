@@ -3,13 +3,24 @@
 // Page content is inserted into #sitePage by siteRouter.ts.
 // The virtual gallery overlay stays mounted so it can open from any page.
 
+import { siteCopy } from '../data/siteCopy';
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export function renderSite(app: HTMLElement) {
   app.innerHTML = `
     <div id="sitePage"></div>
 
     <div class="gallery-overlay" id="galleryOverlay" aria-hidden="true">
       <div class="gallery-toolbar" aria-label="Gallery status and settings">
-        <span class="gallery-release-status" data-gallery-release="alpha">Gallery · Alpha</span>
+        <span class="gallery-release-status" data-gallery-release="alpha">${escapeHtml(siteCopy.gallery.releaseStatus)}</span>
         <button class="gallery-diagnostics-toggle" id="galleryDiagnosticsToggle" type="button" aria-controls="galleryDiagnostics" aria-pressed="false">Diagnostics</button>
         <select class="gallery-quality" id="galleryQualitySelect" aria-label="Gallery quality">
           <option value="auto">Quality · Auto</option>
@@ -68,7 +79,7 @@ export function renderSite(app: HTMLElement) {
         </dl>
       </div>
 
-      <p class="gallery-experimental-note">Experimental gallery · Features may change or be unavailable · Not the final product</p>
+      <p class="gallery-experimental-note">${escapeHtml(siteCopy.gallery.persistentNotice)}</p>
 
       <div class="gallery-crosshair" aria-hidden="true"></div>
 
@@ -90,11 +101,11 @@ export function renderSite(app: HTMLElement) {
 
       <div class="gallery-loading" id="galleryLoading" aria-live="polite">
         <div class="gallery-loading-card">
-          <p class="eyebrow">Loading Gallery</p>
-          <h2>Preparing the room</h2>
-          <p>Images are loading before the gallery opens so the first movement feels smoother.</p>
-          <p class="gallery-loading-disclaimer">This experimental gallery is still in alpha. Some features may be incomplete or unavailable, and this is not the final product.</p>
-          <p class="gallery-loading-phase" id="galleryLoadingPhase">Preparing image textures</p>
+          <p class="eyebrow">${escapeHtml(siteCopy.gallery.loadingEyebrow)}</p>
+          <h2>${escapeHtml(siteCopy.gallery.loadingHeadline)}</h2>
+          <p>${escapeHtml(siteCopy.gallery.loadingBody)}</p>
+          <p class="gallery-loading-disclaimer">${escapeHtml(siteCopy.gallery.loadingDisclaimer)}</p>
+          <p class="gallery-loading-phase" id="galleryLoadingPhase">${escapeHtml(siteCopy.gallery.loadingPhase)}</p>
           <div class="gallery-loading-bar" aria-hidden="true">
             <span></span>
           </div>
@@ -103,10 +114,10 @@ export function renderSite(app: HTMLElement) {
 
       <div class="gallery-failure" id="galleryFailure" role="alertdialog" aria-modal="true" aria-labelledby="galleryFailureTitle" hidden>
         <div class="gallery-failure-card">
-          <p class="eyebrow">Gallery unavailable</p>
-          <h2 id="galleryFailureTitle">The virtual gallery isn’t available in this browser.</h2>
-          <p>This experience requires WebGL hardware acceleration.</p>
-          <a class="button primary" href="#/portfolio" data-gallery-failure-portfolio>View the traditional portfolio instead</a>
+          <p class="eyebrow">${escapeHtml(siteCopy.gallery.unavailableEyebrow)}</p>
+          <h2 id="galleryFailureTitle">${escapeHtml(siteCopy.gallery.unavailableHeadline)}</h2>
+          <p>${escapeHtml(siteCopy.gallery.unavailableBody)}</p>
+          <a class="button primary" href="#/portfolio" data-gallery-failure-portfolio>${escapeHtml(siteCopy.gallery.unavailableAction)}</a>
         </div>
       </div>
 

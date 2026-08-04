@@ -27,5 +27,18 @@
   "footer": {
     "owner": "Taylor Pike",
     "rights": "All rights reserved."
+  },
+  "gallery": {
+    "releaseStatus": "Gallery · Alpha",
+    "persistentNotice": "Experimental gallery · Features may change or be unavailable · Not the final product",
+    "loadingEyebrow": "Loading Gallery",
+    "loadingHeadline": "Preparing the room",
+    "loadingBody": "Images are loading before the gallery opens so the first movement feels smoother.",
+    "loadingDisclaimer": "This experimental gallery is still in alpha. Some features may be incomplete or unavailable, and this is not the final product.",
+    "loadingPhase": "Preparing image textures",
+    "unavailableEyebrow": "Gallery unavailable",
+    "unavailableHeadline": "The virtual gallery isn’t available in this browser.",
+    "unavailableBody": "This experience requires WebGL hardware acceleration.",
+    "unavailableAction": "View the traditional portfolio instead"
   }
 }
