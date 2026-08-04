@@ -67,12 +67,15 @@ The public website and editor are separate processes. Run them in two terminals 
 
 ```powershell
 npm run test:editor-contracts
+npm run test:editor-browser
 npm run validate:gallery-layout
 node scripts/validate-portfolio-image-data.mjs
 npm run build
 ```
 
 If PowerShell says `tsc` or `vite` is not recognized, run `npm ci` and invoke them through the npm scripts above rather than as global commands. If local script execution is restricted, use `python local-editor/editor.py` instead of the PowerShell launcher.
+
+`npm run test:editor-browser` uses local Chromium through Playwright. It starts and stops an isolated editor server on port 5055, leaves the normal port-5000 editor alone, and does not save or modify portfolio data.
 
 ## Current architecture
 

@@ -146,6 +146,7 @@ Implementation started:
 - The fullscreen About visual editor now isolates the editor behind its modal, traps forward and reverse Tab navigation, and restores focus to its launcher after Apply, Cancel, or Escape.
 - Reduced-motion handling is now enforced by a final editor-wide CSS contract after all component/style passes: smooth scrolling, transitions, crop snapping, and decorative animation resolve immediately when `prefers-reduced-motion: reduce` is active.
 - The cross-route editor-state audit found no unnamed visible controls. About Photos now explains disabled crop editing directly on unused thumbnails, and the About visual editor's disabled arrangement controls are explicitly associated with its selection instructions.
+- Added `npm run test:editor-browser` as a repeatable, non-mutating Chromium audit for all editor routes, visible control names, reduced-motion enforcement, disabled About crop explanations, About modal isolation, focus wrapping, Escape close, and focus restoration. It owns temporary port 5055 so the normal port-5000 editor can remain open and untouched.
 
 ### 3D gallery polish - follows editor completion
 

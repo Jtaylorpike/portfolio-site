@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "validate:gallery-layout": "node scripts/validate-gallery-room-layout.mjs",
     "build:gallery-fixture": "npm run validate:gallery-layout && vite build --config vite.gallery-fixture.config.ts",
-    "test:editor-contracts": "python -m unittest discover -s tests -p \"test_editor_*.py\""
+    "test:editor-contracts": "python -m unittest discover -s tests -p \"test_editor_*.py\"",
+    "test:editor-browser": "node scripts/test-editor-browser.mjs"
   },
   "devDependencies": {
     "@types/three": "^0.184.0",
