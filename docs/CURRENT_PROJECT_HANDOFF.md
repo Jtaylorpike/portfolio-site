@@ -137,6 +137,7 @@ Implementation started:
 - Added a repository-owned `test:editor-contracts` suite covering complete `siteCopy` normalization, fallback preservation, combined site-settings persistence, backup contents, API payload rejection, and successful API response shape without mutating user data.
 - Extended the suite with an isolated full-editor save regression that exercises categories, image metadata, hero assignments, About photos, About copy, and complete pre-save backups in a temporary data directory.
 - Added a complete restore regression proving that portfolio, gallery, About, SEO, and site-copy documents recover together while the automatic pre-restore safety backup retains the state being replaced.
+- Added focused image-update regressions proving crop/framing fields save only to the selected record, unrelated metadata and hero assignments remain stable, disallowed fields are ignored, the previous image state is backed up, and unknown image IDs fail safely.
 
 ### 3D gallery polish - follows editor completion
 
