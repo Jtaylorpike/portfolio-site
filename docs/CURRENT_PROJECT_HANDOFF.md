@@ -140,6 +140,7 @@ Implementation started:
 - Added focused image-update regressions proving crop/framing fields save only to the selected record, unrelated metadata and hero assignments remain stable, disallowed fields are ignored, the previous image state is backed up, and unknown image IDs fail safely.
 - Added About-photo regressions covering placement roles, active/unused assignments, crop position and scale, desktop/background collage geometry, independent mobile geometry, layer/rotation/opacity preservation, safe clamping, persistence, and pre-save backups.
 - Added focused gallery-wall regressions proving one-card saves preserve unrelated walls and back up the previous curation, while colliding placement changes are rejected before any backup or write occurs.
+- Added portfolio/About import preflight regressions covering stable reviewed IDs, safe filenames, duplicate and existing IDs, unsafe IDs, unsupported formats, rendition overwrite prevention, About placement defaults, unused/inactive imports, and invalid placement rejection without processing real images.
 
 ### 3D gallery polish - follows editor completion
 
