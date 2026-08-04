@@ -135,6 +135,7 @@ Implementation started:
 Implementation started:
 
 - Added a repository-owned `test:editor-contracts` suite covering complete `siteCopy` normalization, fallback preservation, combined site-settings persistence, backup contents, API payload rejection, and successful API response shape without mutating user data.
+- Extended the suite with an isolated full-editor save regression that exercises categories, image metadata, hero assignments, About photos, About copy, and complete pre-save backups in a temporary data directory.
 
 ### 3D gallery polish - follows editor completion
 
