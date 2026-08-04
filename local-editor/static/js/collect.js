@@ -779,6 +779,29 @@ export function collectSiteSeoFromPage(state) {
   };
 }
 
+export function collectSiteCopyFromPage(state) {
+  const current = state.siteCopy ?? {};
+  const value = (field) => document.querySelector(`[data-site-copy-field="${field}"]`)?.value?.trim() ?? "";
+
+  return {
+    ...current,
+    schemaVersion: 1,
+    entry: {
+      eyebrow: value("entry.eyebrow"),
+      headline: value("entry.headline"),
+      body: value("entry.body"),
+      primaryAction: value("entry.primaryAction"),
+      galleryAction: value("entry.galleryAction")
+    },
+    home: {
+      eyebrow: value("home.eyebrow"),
+      statement: value("home.statement"),
+      galleryAction: value("home.galleryAction"),
+      portfolioAction: value("home.portfolioAction")
+    }
+  };
+}
+
 // Builds image metadata records for files waiting to be imported.
 export function collectImportReviewRecords(state) {
   const cards = Array.from(document.querySelectorAll("[data-import-card]"));

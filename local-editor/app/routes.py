@@ -17,6 +17,7 @@ from .data_store import (
     get_current_gallery_curation,
     get_current_gallery_room,
     get_current_site_seo,
+    get_current_site_copy,
     get_gallery_curation_status,
     list_data_backups,
     restore_data_backup,
@@ -27,6 +28,7 @@ from .data_store import (
     save_gallery_room,
     save_image_updates,
     save_site_seo,
+    save_site_settings,
     rename_image_id,
 )
 from .image_importer import import_reviewed_images_from_request
@@ -57,6 +59,7 @@ def get_data():
         about_photos = get_current_about_photos()
         about_copy = get_current_about_copy()
         site_seo = get_current_site_seo()
+        site_copy = get_current_site_copy()
     except DataValidationError as error:
         return jsonify({"error": str(error)}), 400
 
@@ -71,6 +74,7 @@ def get_data():
             "aboutPhotos": about_photos,
             "aboutCopy": about_copy,
             "siteSeo": site_seo,
+            "siteCopy": site_copy,
         }
     )
 
@@ -90,6 +94,23 @@ def save_site_seo_data():
         return jsonify({"error": str(error)}), 400
 
     return jsonify({"ok": True, "siteSeo": site_seo, "backup": backup})
+
+
+@bp.route("/api/site-settings", methods=["POST"])
+def save_site_settings_data():
+    """Save portfolio metadata plus entry-screen and homepage copy."""
+
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict) or not isinstance(payload.get("siteSeo"), dict) or not isinstance(payload.get("siteCopy"), dict):
+        return jsonify({"error": "siteSeo and siteCopy must be objects."}), 400
+
+    try:
+        site_seo, site_copy, backup = save_site_settings(payload["siteSeo"], payload["siteCopy"])
+    except DataValidationError as error:
+        return jsonify({"error": str(error)}), 400
+
+    return jsonify({"ok": True, "siteSeo": site_seo, "siteCopy": site_copy, "backup": backup})
 
 
 @bp.route("/api/save", methods=["POST"])

@@ -13,7 +13,7 @@ import {
   saveGalleryCurationApi,
   saveGalleryRoomApi,
   saveImageUpdatesApi,
-  saveSiteSeoApi
+  saveSiteSettingsApi
 } from "./api.js";
 import { elements } from "./dom.js";
 import {
@@ -23,6 +23,7 @@ import {
   collectGalleryCuration,
   collectGalleryCurationCard,
   collectSiteSeoFromPage,
+  collectSiteCopyFromPage,
   collectImportReviewRecords,
   collectAboutImportReviewRecords,
   getFieldValue
@@ -103,6 +104,7 @@ let state = {
   aboutPhotos: [],
   aboutCopy: {},
   siteSeo: {},
+  siteCopy: {},
   backups: []
 };
 
@@ -2581,6 +2583,7 @@ function applyLoadedState(nextState, routeOverride = null) {
     aboutPhotos: nextState.aboutPhotos ?? state.aboutPhotos ?? [],
     aboutCopy: nextState.aboutCopy ?? state.aboutCopy ?? {},
     siteSeo: nextState.siteSeo ?? state.siteSeo ?? {},
+    siteCopy: nextState.siteCopy ?? state.siteCopy ?? {},
     backups: nextState.backups ?? state.backups ?? []
   };
 
@@ -2612,6 +2615,7 @@ function updateStateFromCurrentDom() {
     aboutPhotos: nextState.aboutPhotos ?? state.aboutPhotos ?? [],
     aboutCopy: nextState.aboutCopy ?? state.aboutCopy ?? {},
     siteSeo: state.siteSeo ?? {},
+    siteCopy: state.siteCopy ?? {},
     backups: state.backups ?? []
   };
 }
@@ -4554,8 +4558,12 @@ async function saveData() {
 
   if (route.name === "settings") {
     await withSaveLock("site and search settings", async () => {
-      const savedData = await saveSiteSeoApi(collectSiteSeoFromPage(state));
+      const savedData = await saveSiteSettingsApi(
+        collectSiteSeoFromPage(state),
+        collectSiteCopyFromPage(state)
+      );
       state.siteSeo = savedData.siteSeo;
+      state.siteCopy = savedData.siteCopy;
       renderAll(state, elements, route);
       setDirtyState(false);
       setStatus(`Saved site and search settings.${getBackupStatusText(savedData)}`, "success");

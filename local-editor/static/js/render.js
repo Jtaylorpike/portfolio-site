@@ -3957,6 +3957,7 @@ function renderSiteSettings(state, elements) {
   }
 
   const seo = state.siteSeo ?? {};
+  const siteCopy = state.siteCopy ?? {};
   const routes = seo.routes ?? {};
   const globalFields = [
     ["siteName", "Site name", seo.siteName],
@@ -3969,6 +3970,41 @@ function renderSiteSettings(state, elements) {
   ];
 
   elements.siteSettingsEditor.innerHTML = `
+    <section class="panel">
+      <p class="eyebrow">Public Copy</p>
+      <h2>Entry screen</h2>
+      <div class="panel-grid">
+        ${[
+          ["entry.eyebrow", "Eyebrow", siteCopy.entry?.eyebrow, false],
+          ["entry.headline", "Headline", siteCopy.entry?.headline, true],
+          ["entry.body", "Introduction", siteCopy.entry?.body, true],
+          ["entry.primaryAction", "Website action", siteCopy.entry?.primaryAction, false],
+          ["entry.galleryAction", "Gallery action", siteCopy.entry?.galleryAction, false]
+        ].map(([field, label, value, wide]) => `
+          <label class="${wide ? "panel-wide" : ""}">
+            <span>${escapeHtml(label)}</span>
+            <input data-site-copy-field="${field}" value="${escapeHtml(value ?? "")}" />
+          </label>
+        `).join("")}
+      </div>
+    </section>
+    <section class="panel">
+      <p class="eyebrow">Public Copy</p>
+      <h2>Homepage introduction</h2>
+      <div class="panel-grid">
+        ${[
+          ["home.eyebrow", "Eyebrow", siteCopy.home?.eyebrow, false],
+          ["home.statement", "Statement", siteCopy.home?.statement, true],
+          ["home.galleryAction", "Gallery action", siteCopy.home?.galleryAction, false],
+          ["home.portfolioAction", "Portfolio action", siteCopy.home?.portfolioAction, false]
+        ].map(([field, label, value, wide]) => `
+          <label class="${wide ? "panel-wide" : ""}">
+            <span>${escapeHtml(label)}</span>
+            <input data-site-copy-field="${field}" value="${escapeHtml(value ?? "")}" />
+          </label>
+        `).join("")}
+      </div>
+    </section>
     <section class="panel">
       <p class="eyebrow">Global</p>
       <h2>Site identity</h2>

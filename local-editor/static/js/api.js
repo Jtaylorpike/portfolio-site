@@ -114,6 +114,21 @@ export async function saveSiteSeoApi(siteSeo) {
   return response.json();
 }
 
+export async function saveSiteSettingsApi(siteSeo, siteCopy) {
+  const response = await apiFetch('/api/site-settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ siteSeo, siteCopy })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.error ?? 'Could not save site settings.');
+  }
+
+  return response.json();
+}
+
 export async function saveGalleryCurationWallApi(wall) {
   const response = await apiFetch('/api/gallery-curation/wall', {
     method: 'POST',

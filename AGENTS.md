@@ -159,7 +159,8 @@ Do not claim browser, device, high-GPU, or deployed-domain validation that was n
 
 ## Git and release behavior
 
-- Do not commit, push, deploy, or change external state unless the user asks.
+- After completing and validating an authorized repository change, commit and push it to `dev` without requiring a separate prompt.
+- A user request to "push" authorizes merging the clean, synchronized `dev` branch into `main` and pushing `main` to trigger deployment.
 - Before a requested commit: inspect status and the complete diff, run relevant validation, and include only intended files.
 - Never use destructive Git commands to discard user changes.
 - `dev` is the integration and validation branch. New work must be committed and pushed to `dev` first unless the user explicitly authorizes an exception.

@@ -34,6 +34,7 @@ GALLERY_ROOM_PATH = DATA_DIR / "galleryRoom.json"
 ABOUT_PHOTOS_PATH = DATA_DIR / "aboutPhotos.json"
 ABOUT_COPY_PATH = DATA_DIR / "aboutCopy.json"
 SITE_SEO_PATH = DATA_DIR / "siteSeo.json"
+SITE_COPY_PATH = DATA_DIR / "siteCopy.json"
 
 DEFAULT_CATEGORIES = [
     {"id": "climbing", "label": "Climbing"},
@@ -559,7 +560,7 @@ def create_data_backup(reason: str) -> dict[str, Any]:
 
     backed_up_files: list[str] = []
 
-    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH, GALLERY_CURATION_PATH, GALLERY_ROOM_PATH, ABOUT_PHOTOS_PATH, ABOUT_COPY_PATH, SITE_SEO_PATH]:
+    for source_path in [CATEGORIES_PATH, GALLERY_IMAGES_PATH, HERO_SLIDES_PATH, GALLERY_CURATION_PATH, GALLERY_ROOM_PATH, ABOUT_PHOTOS_PATH, ABOUT_COPY_PATH, SITE_SEO_PATH, SITE_COPY_PATH]:
         if not source_path.exists():
             continue
 
@@ -635,7 +636,7 @@ def summarize_backup_folder(backup_path: Path) -> dict[str, Any]:
     manifest = read_backup_manifest(backup_path)
     files = [
         file_name
-        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json", "aboutPhotos.json", "aboutCopy.json", "siteSeo.json"]
+        for file_name in ["categories.json", "galleryImages.json", "heroSlides.json", "galleryCuration.json", "galleryRoom.json", "aboutPhotos.json", "aboutCopy.json", "siteSeo.json", "siteCopy.json"]
         if (backup_path / file_name).exists()
     ]
 
@@ -789,6 +790,11 @@ def restore_data_backup(backup_name: str) -> tuple[list[dict[str, str]], list[di
 
     if backup_site_seo_path.exists():
         write_json(SITE_SEO_PATH, normalize_site_seo(read_json(backup_site_seo_path)))
+
+    backup_site_copy_path = backup_path / "siteCopy.json"
+
+    if backup_site_copy_path.exists():
+        write_json(SITE_COPY_PATH, normalize_site_copy(read_json(backup_site_copy_path)))
 
 
     restored_backup = summarize_backup_folder(backup_path)
@@ -1797,6 +1803,64 @@ def save_site_seo(raw_site_seo: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     backup = create_data_backup("site-seo-save")
     write_json(SITE_SEO_PATH, site_seo)
     return site_seo, backup
+
+
+DEFAULT_SITE_COPY = {
+    "entry": {
+        "eyebrow": "Creative Portfolio",
+        "headline": "A visual archive for photography, climbing, landscape, and experimental web spaces.",
+        "body": "Enter the traditional portfolio or move through the work in the desktop virtual gallery.",
+        "primaryAction": "Continue to Website",
+        "galleryAction": "Enter Virtual Gallery",
+    },
+    "home": {
+        "eyebrow": "Selected Work",
+        "statement": "A visual archive of movement, space, and imagination.",
+        "galleryAction": "Enter Virtual Gallery",
+        "portfolioAction": "View Portfolio",
+    },
+}
+
+
+def normalize_site_copy(raw_site_copy: Any) -> dict[str, Any]:
+    """Normalize portfolio entry-screen and homepage copy."""
+
+    source = raw_site_copy if isinstance(raw_site_copy, dict) else {}
+    raw_entry = source.get("entry") if isinstance(source.get("entry"), dict) else {}
+    raw_home = source.get("home") if isinstance(source.get("home"), dict) else {}
+
+    return {
+        "schemaVersion": 1,
+        "entry": {
+            key: clean_copy_text(raw_entry.get(key), fallback)
+            for key, fallback in DEFAULT_SITE_COPY["entry"].items()
+        },
+        "home": {
+            key: clean_copy_text(raw_home.get(key), fallback)
+            for key, fallback in DEFAULT_SITE_COPY["home"].items()
+        },
+    }
+
+
+def get_current_site_copy() -> dict[str, Any]:
+    return normalize_site_copy(read_json(SITE_COPY_PATH))
+
+
+def save_site_settings(raw_site_seo: Any, raw_site_copy: Any) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Save the portfolio's SEO metadata and public entry/home copy together."""
+
+    site_seo = normalize_site_seo(raw_site_seo)
+    site_copy = normalize_site_copy(raw_site_copy)
+
+    if not site_seo["siteName"] or not site_seo["siteUrl"]:
+        raise DataValidationError("Site name and site URL are required.")
+
+    backup = create_data_backup("site-settings-save")
+    write_json(SITE_SEO_PATH, site_seo)
+    write_json(SITE_COPY_PATH, site_copy)
+    return site_seo, site_copy, backup
+
+
 ABOUT_PHOTO_PLACEMENT_ROLES = {"upper-collage", "lower-collage", "background-float", "unused"}
 
 
