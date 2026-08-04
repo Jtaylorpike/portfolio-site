@@ -462,6 +462,73 @@ function updateAboutCollageValueReadout(photo) {
   if (opacityField) opacityField.value = String(Math.round(opacity * 100));
 }
 
+function announceAboutCollageChange(photo, action) {
+  const announcer = photo?.closest("[data-about-collage-workspace]")
+    ?.querySelector("[data-about-collage-announcer]");
+  if (!announcer || !photo) return;
+  const x = Number.parseFloat(photo.style.left) || 0;
+  const y = Number.parseFloat(photo.style.top) || 0;
+  const width = Number.parseFloat(photo.style.width) || 0;
+  const title = photo.dataset.aboutCollageTitle || "Image";
+  announcer.textContent = `${title} ${action}. Position ${x.toFixed(1)}%, ${y.toFixed(1)}%. Size ${width.toFixed(1)}%.`;
+}
+
+function adjustAboutCollagePhotoFromKeyboard(photo, event) {
+  const workspace = photo?.closest("[data-about-collage-workspace]");
+  const page = photo?.closest("[data-about-collage-page]");
+  if (!workspace || !page || workspace.dataset.previewOnly === "true") return false;
+  if (photo.dataset.aboutCollageKind === "background" && workspace.dataset.backgroundOnly !== "true") return false;
+  if (!event.key.startsWith("Arrow")) return false;
+
+  const step = event.shiftKey ? 5 : 1;
+  const startX = Number.parseFloat(photo.style.left) || 0;
+  const startY = Number.parseFloat(photo.style.top) || 0;
+  const startWidth = Number.parseFloat(photo.style.width) || 42;
+  let x = startX;
+  let y = startY;
+  let width = startWidth;
+
+  if (event.altKey) {
+    const grow = event.key === "ArrowRight" || event.key === "ArrowUp";
+    const maximumWidth = photo.dataset.aboutCollageKind === "foreground" ? 100 : 90;
+    width = Math.max(12, Math.min(maximumWidth, startWidth + (grow ? step : -step)));
+    if (width === startWidth) return true;
+
+    const coordinateRoot = photo.dataset.aboutCollageKind === "foreground" ? photo.parentElement : page;
+    const rect = coordinateRoot?.getBoundingClientRect();
+    const aspect = Math.max(0.1, Number(photo.dataset.aboutCollageAspect) || 0.75);
+    if (rect?.width && rect?.height) {
+      const oldHeight = ((startWidth / 100) * rect.width / aspect / rect.height) * 100;
+      const newHeight = ((width / 100) * rect.width / aspect / rect.height) * 100;
+      x = startX - ((width - startWidth) / 2);
+      y = startY - ((newHeight - oldHeight) / 2);
+    }
+  } else {
+    if (event.key === "ArrowLeft") x -= step;
+    if (event.key === "ArrowRight") x += step;
+    if (event.key === "ArrowUp") y -= step;
+    if (event.key === "ArrowDown") y += step;
+  }
+
+  const minimumY = photo.dataset.aboutCollageKind === "foreground" ? -35 : -12;
+  x = Math.max(-35, Math.min(100, x));
+  y = Math.max(minimumY, Math.min(100, y));
+  aboutCollageUndoStack.push({
+    kind: "keyboard",
+    photoId: photo.dataset.aboutCollagePhoto,
+    left: photo.style.left,
+    top: photo.style.top,
+    width: photo.style.width
+  });
+  photo.style.left = `${x.toFixed(2)}%`;
+  photo.style.top = `${y.toFixed(2)}%`;
+  photo.style.width = `${width.toFixed(2)}%`;
+  selectAboutCollagePhoto(photo);
+  updateAboutCollageUndoButton();
+  announceAboutCollageChange(photo, event.altKey ? "resized" : "moved");
+  return true;
+}
+
 function updateAboutCollageUndoButton() {
   const button = document.querySelector("[data-undo-about-collage]");
   const workspace = button?.closest("[data-about-collage-workspace]");
@@ -903,7 +970,19 @@ document.addEventListener("change", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && document.body.dataset.aboutCollageOpen === "true") {
     closeAboutCollageModal();
+    return;
   }
+  const photo = event.target.closest?.("[data-about-collage-photo]");
+  if (photo && adjustAboutCollagePhotoFromKeyboard(photo, event)) event.preventDefault();
+});
+
+document.addEventListener("focusin", (event) => {
+  const photo = event.target.closest?.("[data-about-collage-photo]");
+  const workspace = photo?.closest("[data-about-collage-workspace]");
+  if (!photo || document.body.dataset.aboutCollageOpen !== "true" || workspace?.dataset.previewOnly === "true") return;
+  if (photo.dataset.aboutCollageKind === "background" && workspace.dataset.backgroundOnly !== "true") return;
+  selectAboutCollagePhoto(photo);
+  announceAboutCollageChange(photo, "selected. Use arrow keys to move; Alt plus an arrow key to resize; hold Shift for larger steps");
 });
 
 document.addEventListener("pointerdown", (event) => {

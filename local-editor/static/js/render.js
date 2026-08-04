@@ -3562,6 +3562,7 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
             </label>
             <button type="button" data-reset-about-collage-photo disabled>Reset Selected</button>
           </div>
+          <span class="sr-only" data-about-collage-announcer role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
       </div>
 
