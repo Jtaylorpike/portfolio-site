@@ -1819,6 +1819,21 @@ DEFAULT_SITE_COPY = {
         "galleryAction": "Enter Virtual Gallery",
         "portfolioAction": "View Portfolio",
     },
+    "navigation": {
+        "home": "Home",
+        "portfolio": "Portfolio",
+        "gallery": "Gallery",
+        "about": "About",
+    },
+    "portfolio": {
+        "eyebrow": "Portfolio",
+        "headline": "A visual index of climbing, landscape, personal work, and experimental image studies.",
+        "allWork": "All Work",
+    },
+    "footer": {
+        "owner": "Taylor Pike",
+        "rights": "All rights reserved.",
+    },
 }
 
 
@@ -1828,6 +1843,9 @@ def normalize_site_copy(raw_site_copy: Any) -> dict[str, Any]:
     source = raw_site_copy if isinstance(raw_site_copy, dict) else {}
     raw_entry = source.get("entry") if isinstance(source.get("entry"), dict) else {}
     raw_home = source.get("home") if isinstance(source.get("home"), dict) else {}
+    raw_navigation = source.get("navigation") if isinstance(source.get("navigation"), dict) else {}
+    raw_portfolio = source.get("portfolio") if isinstance(source.get("portfolio"), dict) else {}
+    raw_footer = source.get("footer") if isinstance(source.get("footer"), dict) else {}
 
     return {
         "schemaVersion": 1,
@@ -1838,6 +1856,18 @@ def normalize_site_copy(raw_site_copy: Any) -> dict[str, Any]:
         "home": {
             key: clean_copy_text(raw_home.get(key), fallback)
             for key, fallback in DEFAULT_SITE_COPY["home"].items()
+        },
+        "navigation": {
+            key: clean_copy_text(raw_navigation.get(key), fallback)
+            for key, fallback in DEFAULT_SITE_COPY["navigation"].items()
+        },
+        "portfolio": {
+            key: clean_copy_text(raw_portfolio.get(key), fallback)
+            for key, fallback in DEFAULT_SITE_COPY["portfolio"].items()
+        },
+        "footer": {
+            key: clean_copy_text(raw_footer.get(key), fallback)
+            for key, fallback in DEFAULT_SITE_COPY["footer"].items()
         },
     }
 

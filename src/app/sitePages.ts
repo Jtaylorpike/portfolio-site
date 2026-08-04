@@ -121,10 +121,10 @@ function renderTopNav(activePage: PageName): string {
       </a>
 
       <nav class="modern-nav" aria-label="Main navigation">
-        <a class="${activePage === 'home' ? 'is-active' : ''}" href="#/home"${homeCurrent}>Home</a>
-        <a class="${activePage === 'portfolio' ? 'is-active' : ''}" href="#/portfolio"${portfolioCurrent}>Portfolio</a>
-        <button class="modern-nav-gallery-button" type="button" data-open-virtual-gallery aria-label="Open virtual gallery">Gallery</button>
-        <a class="${activePage === 'about' ? 'is-active' : ''}" href="#/about"${aboutCurrent}>About</a>
+        <a class="${activePage === 'home' ? 'is-active' : ''}" href="#/home"${homeCurrent}>${escapeHtml(siteCopy.navigation.home)}</a>
+        <a class="${activePage === 'portfolio' ? 'is-active' : ''}" href="#/portfolio"${portfolioCurrent}>${escapeHtml(siteCopy.navigation.portfolio)}</a>
+        <button class="modern-nav-gallery-button" type="button" data-open-virtual-gallery aria-label="Open virtual gallery">${escapeHtml(siteCopy.navigation.gallery)}</button>
+        <a class="${activePage === 'about' ? 'is-active' : ''}" href="#/about"${aboutCurrent}>${escapeHtml(siteCopy.navigation.about)}</a>
       </nav>
     </header>
   `;
@@ -133,7 +133,7 @@ function renderTopNav(activePage: PageName): string {
 function renderSiteFooter(): string {
   return `
     <footer class="modern-site-footer">
-      <p>&copy; ${new Date().getFullYear()} Taylor Pike. All rights reserved.</p>
+      <p>&copy; ${new Date().getFullYear()} ${escapeHtml(siteCopy.footer.owner)}. ${escapeHtml(siteCopy.footer.rights)}</p>
     </footer>
   `;
 }
@@ -400,7 +400,7 @@ function renderPortfolioGrid(initialCategory: PortfolioCategoryFilter = 'all'): 
 // Builds the portfolio category filter buttons.
 function renderCategoryButtons(initialCategory: PortfolioCategoryFilter): string {
   const categories = [
-    { id: 'all', label: 'All Work' },
+    { id: 'all', label: siteCopy.portfolio.allWork },
     ...portfolioCategories
   ];
 
@@ -485,14 +485,14 @@ export function renderPortfolioPage(initialCategory: PortfolioCategoryFilter = '
 
       <main id="main-content" class="modern-main modern-portfolio-page" tabindex="-1">
         <aside class="portfolio-category-sidebar" aria-label="Portfolio categories">
-          <p class="eyebrow">Portfolio</p>
+          <p class="eyebrow">${escapeHtml(siteCopy.portfolio.eyebrow)}</p>
           ${renderCategoryButtons(initialCategory)}
         </aside>
 
         <div class="portfolio-grid-main">
           <header class="portfolio-page-heading">
             <p class="eyebrow">${activeCategoryLabel}</p>
-            <h1>A visual index of climbing, landscape, personal work, and experimental image studies.</h1>
+            <h1>${escapeHtml(siteCopy.portfolio.headline)}</h1>
             <div class="portfolio-page-meta-strip" aria-label="Portfolio archive details">
               <span>${String(visibleImageCount).padStart(2, '0')} shown</span>
               <span>${String(totalImageCount).padStart(2, '0')} total</span>

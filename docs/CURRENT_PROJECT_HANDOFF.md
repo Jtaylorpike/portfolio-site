@@ -121,6 +121,7 @@ Implementation started:
 
 - Added typed `src/data/siteCopy.json` ownership for the existing entry-screen and homepage eyebrow, headline/statement, body, and action labels. The public renderers now consume that source with normalized fallbacks; wording was moved unchanged. Any editor integration in this phase must remain portfolio-specific and must not begin the deferred standalone-editor platform work.
 - Added focused Site Settings controls and a portfolio-specific save contract for entry-screen and homepage copy. `siteCopy.json` now loads, validates, saves, backs up, and restores alongside the existing portfolio data without introducing the deferred general-purpose document registry.
+- Extended the same contract to shared navigation labels, the portfolio archive label/headline/all-work filter, and footer ownership/rights copy while keeping the current year generated automatically.
 
 ### Editor E5 - final QA, accessibility, and cleanup
 

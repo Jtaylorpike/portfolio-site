@@ -4006,6 +4006,41 @@ function renderSiteSettings(state, elements) {
       </div>
     </section>
     <section class="panel">
+      <p class="eyebrow">Public Copy</p>
+      <h2>Navigation and archive</h2>
+      <div class="panel-grid">
+        ${[
+          ["navigation.home", "Home navigation", siteCopy.navigation?.home, false],
+          ["navigation.portfolio", "Portfolio navigation", siteCopy.navigation?.portfolio, false],
+          ["navigation.gallery", "Gallery navigation", siteCopy.navigation?.gallery, false],
+          ["navigation.about", "About navigation", siteCopy.navigation?.about, false],
+          ["portfolio.eyebrow", "Portfolio label", siteCopy.portfolio?.eyebrow, false],
+          ["portfolio.allWork", "All-work filter", siteCopy.portfolio?.allWork, false],
+          ["portfolio.headline", "Portfolio heading", siteCopy.portfolio?.headline, true]
+        ].map(([field, label, value, wide]) => `
+          <label class="${wide ? "panel-wide" : ""}">
+            <span>${escapeHtml(label)}</span>
+            <input data-site-copy-field="${field}" value="${escapeHtml(value ?? "")}" />
+          </label>
+        `).join("")}
+      </div>
+    </section>
+    <section class="panel">
+      <p class="eyebrow">Public Copy</p>
+      <h2>Footer</h2>
+      <p class="panel-description">The current year and copyright symbol are generated automatically.</p>
+      <div class="panel-grid">
+        <label>
+          <span>Copyright owner</span>
+          <input data-site-copy-field="footer.owner" value="${escapeHtml(siteCopy.footer?.owner ?? "")}" />
+        </label>
+        <label>
+          <span>Rights statement</span>
+          <input data-site-copy-field="footer.rights" value="${escapeHtml(siteCopy.footer?.rights ?? "")}" />
+        </label>
+      </div>
+    </section>
+    <section class="panel">
       <p class="eyebrow">Global</p>
       <h2>Site identity</h2>
       <div class="panel-grid">

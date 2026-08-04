@@ -798,6 +798,21 @@ export function collectSiteCopyFromPage(state) {
       statement: value("home.statement"),
       galleryAction: value("home.galleryAction"),
       portfolioAction: value("home.portfolioAction")
+    },
+    navigation: {
+      home: value("navigation.home"),
+      portfolio: value("navigation.portfolio"),
+      gallery: value("navigation.gallery"),
+      about: value("navigation.about")
+    },
+    portfolio: {
+      eyebrow: value("portfolio.eyebrow"),
+      headline: value("portfolio.headline"),
+      allWork: value("portfolio.allWork")
+    },
+    footer: {
+      owner: value("footer.owner"),
+      rights: value("footer.rights")
     }
   };
 }

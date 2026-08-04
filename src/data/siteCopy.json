@@ -12,5 +12,20 @@
     "statement": "A visual archive of movement, space, and imagination.",
     "galleryAction": "Enter Virtual Gallery",
     "portfolioAction": "View Portfolio"
+  },
+  "navigation": {
+    "home": "Home",
+    "portfolio": "Portfolio",
+    "gallery": "Gallery",
+    "about": "About"
+  },
+  "portfolio": {
+    "eyebrow": "Portfolio",
+    "headline": "A visual index of climbing, landscape, personal work, and experimental image studies.",
+    "allWork": "All Work"
+  },
+  "footer": {
+    "owner": "Taylor Pike",
+    "rights": "All rights reserved."
   }
 }
