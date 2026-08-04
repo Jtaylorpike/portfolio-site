@@ -1064,12 +1064,19 @@ def filter_hero_slides_for_landscape_images(
     images: list[dict[str, Any]],
 ) -> list[dict[str, str]]:
     images_by_id = {image["id"]: image for image in images}
+    filtered_slides: list[dict[str, str]] = []
+    seen_image_ids: set[str] = set()
 
-    return [
-        slide
-        for slide in hero_slides
-        if is_landscape_hero_image(images_by_id.get(slide.get("imageId", "")))
-    ]
+    for slide in hero_slides:
+        image_id = clean_string(slide.get("imageId"))
+
+        if image_id in seen_image_ids or not is_landscape_hero_image(images_by_id.get(image_id)):
+            continue
+
+        seen_image_ids.add(image_id)
+        filtered_slides.append(slide)
+
+    return filtered_slides
 
 
 # Cleans one hero slide record and validates its target category.
@@ -1190,6 +1197,11 @@ def validate_project_data(
 
     valid_image_ids = set(image_ids)
     images_by_id = {image["id"]: image for image in images}
+    hero_image_ids = [slide.get("imageId", "") for slide in hero_slides]
+    duplicate_hero_image_ids = sorted({image_id for image_id in hero_image_ids if hero_image_ids.count(image_id) > 1})
+
+    if duplicate_hero_image_ids:
+        raise DataValidationError(f"Duplicate hero image assignments: {', '.join(duplicate_hero_image_ids)}")
 
     for slide in hero_slides:
         if slide.get("imageId") not in valid_image_ids:

@@ -141,6 +141,7 @@ Implementation started:
 - Added About-photo regressions covering placement roles, active/unused assignments, crop position and scale, desktop/background collage geometry, independent mobile geometry, layer/rotation/opacity preservation, safe clamping, persistence, and pre-save backups.
 - Added focused gallery-wall regressions proving one-card saves preserve unrelated walls and back up the previous curation, while colliding placement changes are rejected before any backup or write occurs.
 - Added portfolio/About import preflight regressions covering stable reviewed IDs, safe filenames, duplicate and existing IDs, unsafe IDs, unsupported formats, rendition overwrite prevention, About placement defaults, unused/inactive imports, and invalid placement rejection without processing real images.
+- Added hero-assignment regressions and normalization safeguards so only unique landscape images survive in reviewed order; portrait, square, missing, and duplicate assignments are removed at save boundaries, invalid categories fall back safely, and direct validation rejects duplicate hero records.
 
 ### 3D gallery polish - follows editor completion
 
