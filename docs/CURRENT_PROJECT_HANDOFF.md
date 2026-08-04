@@ -143,12 +143,13 @@ Implementation started:
 After E1-E5 are accepted, resume gallery environment work in this order:
 
 1. Audit the current modular rooms and hallways in Low, Medium, and High.
-2. Refine material scale, seams, trim junctions, track-fixture alignment, and architectural transitions.
-3. Improve empty-room composition and wayfinding without adding game-like props.
-4. Tune artwork presentation and plaque readability while preserving accepted curation.
-5. Validate collision, traversal, loading, Auto quality, diagnostics, touch controls, and close/reopen behavior.
-6. Complete the gallery's final feature phase with the deferred Living Environment pass described below. It begins only after the current visual, interaction, and lifecycle checks are accepted.
-7. Run the required post-environment performance validation across Low, Medium, High, and Auto before the gallery is considered complete.
+2. Increase Low- and Medium-quality gallery brightness so architecture, artwork, and wayfinding remain legible without adding expensive per-artwork lights, flattening image contrast, or changing the accepted High-quality lighting treatment.
+3. Refine material scale, seams, trim junctions, track-fixture alignment, and architectural transitions.
+4. Improve empty-room composition and wayfinding without adding game-like props.
+5. Tune artwork presentation and plaque readability while preserving accepted curation.
+6. Validate collision, traversal, loading, Auto quality, diagnostics, touch controls, and close/reopen behavior.
+7. Complete the gallery's final feature phase with the deferred Living Environment pass described below. It begins only after the current visual, interaction, and lifecycle checks are accepted.
+8. Run the required post-environment performance validation across Low, Medium, High, and Auto before the gallery is considered complete.
 
 Gallery polish audit started:
 
