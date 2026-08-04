@@ -3522,7 +3522,7 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
     </section>
 
     <div class="about-collage-modal" data-about-collage-modal hidden>
-    <section class="about-collage-workspace panel" data-about-collage-workspace data-about-preview-mode="desktop" data-preview-only="false" role="dialog" aria-modal="true" aria-label="About background collage editor">
+    <section class="about-collage-workspace panel" data-about-collage-workspace data-about-preview-mode="desktop" data-preview-only="false" role="dialog" aria-modal="true" aria-label="About collage editor">
       <div class="mac-panel-titlebar">
         <strong>Visual About Collage</strong>
         <span class="about-collage-window-controls">

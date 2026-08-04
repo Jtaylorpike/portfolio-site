@@ -142,6 +142,8 @@ Implementation started:
 - Added focused gallery-wall regressions proving one-card saves preserve unrelated walls and back up the previous curation, while colliding placement changes are rejected before any backup or write occurs.
 - Added portfolio/About import preflight regressions covering stable reviewed IDs, safe filenames, duplicate and existing IDs, unsafe IDs, unsupported formats, rendition overwrite prevention, About placement defaults, unused/inactive imports, and invalid placement rejection without processing real images.
 - Added hero-assignment regressions and normalization safeguards so only unique landscape images survive in reviewed order; portrait, square, missing, and duplicate assignments are removed at save boundaries, invalid categories fall back safely, and direct validation rejects duplicate hero records.
+- Added keyboard movement and aspect-locked resizing to the About visual editor, with larger Shift-modified steps, shared Undo support, focus-driven selection, and concise live position/size announcements.
+- The fullscreen About visual editor now isolates the editor behind its modal, traps forward and reverse Tab navigation, and restores focus to its launcher after Apply, Cancel, or Escape.
 
 ### 3D gallery polish - follows editor completion
 

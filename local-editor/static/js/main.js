@@ -136,6 +136,8 @@ let activeCropModalDrag = null;
 let activeAboutCollageDrag = null;
 let aboutCollageOpenSnapshot = null;
 let aboutCollageUndoStack = [];
+let aboutCollageFocusOrigin = null;
+let aboutCollageInertRecords = [];
 const GALLERY_ARCHITECTURE_SNAP_METERS = 1.5;
 
 function clampCropPercent(value) {
@@ -751,6 +753,54 @@ function resetAboutCollagePhoto() {
   selectAboutCollagePhoto(selected);
 }
 
+function isolateAboutCollageModal(modal) {
+  aboutCollageInertRecords = [];
+  let activeBranch = modal;
+
+  while (activeBranch?.parentElement && activeBranch.parentElement !== document.documentElement) {
+    const parent = activeBranch.parentElement;
+    Array.from(parent.children).forEach((sibling) => {
+      if (sibling === activeBranch) return;
+      aboutCollageInertRecords.push({ element: sibling, wasInert: sibling.inert });
+      sibling.inert = true;
+    });
+    activeBranch = parent;
+  }
+}
+
+function restoreAboutCollageModalIsolation() {
+  aboutCollageInertRecords.forEach(({ element, wasInert }) => {
+    element.inert = wasInert;
+  });
+  aboutCollageInertRecords = [];
+}
+
+function getAboutCollageFocusableElements(modal) {
+  return Array.from(modal?.querySelectorAll(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  ) ?? []).filter((element) => !element.hidden && element.getClientRects().length > 0);
+}
+
+function trapAboutCollageFocus(event) {
+  if (event.key !== "Tab" || document.body.dataset.aboutCollageOpen !== "true") return false;
+  const modal = document.querySelector("[data-about-collage-modal]");
+  const focusable = getAboutCollageFocusableElements(modal);
+  if (!focusable.length) return false;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+
+  if (event.shiftKey && (active === first || !modal.contains(active))) {
+    last.focus();
+    return true;
+  }
+  if (!event.shiftKey && (active === last || !modal.contains(active))) {
+    first.focus();
+    return true;
+  }
+  return false;
+}
+
 function closeAboutCollageModal({ apply = false } = {}) {
   const modal = document.querySelector("[data-about-collage-modal]");
   if (!modal) return false;
@@ -830,6 +880,9 @@ function closeAboutCollageModal({ apply = false } = {}) {
 
   modal.hidden = true;
   document.body.dataset.aboutCollageOpen = "false";
+  restoreAboutCollageModalIsolation();
+  if (aboutCollageFocusOrigin?.isConnected) aboutCollageFocusOrigin.focus();
+  aboutCollageFocusOrigin = null;
   aboutCollageOpenSnapshot = null;
   aboutCollageUndoStack = [];
   activeAboutCollageDrag?.preview?.remove();
@@ -853,6 +906,7 @@ async function saveAboutCollageArrangement() {
   return withSaveLock("About collage arrangement", async () => {
     const savedData = await saveAboutPhotosApi(state.aboutPhotos);
     applyLoadedState({ ...state, ...savedData });
+    document.querySelector("[data-open-about-collage]")?.focus();
     setDirtyState(false, null, "About photos");
     setStatus(
       `Saved the About collage arrangement only (${savedData.aboutPhotoCount} photo records).${getBackupStatusText(savedData)}`,
@@ -890,8 +944,10 @@ document.addEventListener("click", (event) => {
     }
     aboutCollageUndoStack = [];
     updateAboutCollageUndoButton();
+    aboutCollageFocusOrigin = openButton;
     modal.hidden = false;
     document.body.dataset.aboutCollageOpen = "true";
+    isolateAboutCollageModal(modal);
     modal.querySelector('[data-about-collage-kind="foreground"]')?.focus();
     return;
   }
@@ -968,6 +1024,10 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (trapAboutCollageFocus(event)) {
+    event.preventDefault();
+    return;
+  }
   if (event.key === "Escape" && document.body.dataset.aboutCollageOpen === "true") {
     closeAboutCollageModal();
     return;
