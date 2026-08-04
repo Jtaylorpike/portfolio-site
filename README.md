@@ -6,6 +6,74 @@ The current project is plain TypeScript. It is not a React project.
 
 Current operational guidance, protected gallery baselines, release checks, and the visible timeline live in `docs/CURRENT_PROJECT_HANDOFF.md`. Complete historical records are preserved in `docs/PROJECT_HISTORY_ARCHIVE.md`.
 
+## Run locally
+
+### Prerequisites
+
+- [Node.js 24.x](https://nodejs.org/) and npm. The required Node major is recorded in `.nvmrc` and `package.json`.
+- Python 3 with pip for the local editor.
+- Git if you are cloning the repository rather than downloading an archive.
+
+Run every command below from the repository root unless stated otherwise.
+
+### Public website
+
+Install the locked Node dependencies:
+
+```powershell
+npm ci
+```
+
+Start the Vite development server:
+
+```powershell
+npm run dev
+```
+
+Open the local address printed by Vite, normally `http://localhost:5173/`. Stop the server with `Ctrl+C`.
+
+To verify or preview a production build:
+
+```powershell
+npm run build
+npm run preview
+```
+
+`npm run preview` serves the already-built `dist/` output and prints its local address. It is not the normal editing server.
+
+### Local portfolio editor
+
+Install the editor's Python dependencies:
+
+```powershell
+python -m pip install -r local-editor/requirements.txt
+```
+
+Then start the editor from the repository root using either command:
+
+```powershell
+.\scripts\Run-LocalEditor.ps1
+```
+
+```powershell
+python local-editor/editor.py
+```
+
+Open `http://127.0.0.1:5000/`. The editor reads and writes the active JSON and image assets in this working copy, so commit or back up meaningful content changes. It is a trusted local tool and must not be exposed as a public web server.
+
+The public website and editor are separate processes. Run them in two terminals when you need both at the same time. The editor can preview repository images itself, so Vite is not required for ordinary editor use.
+
+### Useful checks
+
+```powershell
+npm run test:editor-contracts
+npm run validate:gallery-layout
+node scripts/validate-portfolio-image-data.mjs
+npm run build
+```
+
+If PowerShell says `tsc` or `vite` is not recognized, run `npm ci` and invoke them through the npm scripts above rather than as global commands. If local script execution is restricted, use `python local-editor/editor.py` instead of the PowerShell launcher.
+
 ## Current architecture
 
 ```text
@@ -120,30 +188,6 @@ src/gallery/controls/movementController.ts
 ### Virtual gallery direction
 
 The gallery should continue moving toward a realistic architectural room rather than a floating platform. Room-scale elements such as perimeter walls, ceiling, trim, lighting tracks, surface materials, and movement bounds should remain data-driven where possible so the future local/server-side gallery editor can expose them as editable settings instead of hardcoded scene decoration. Visual realism should come from quiet architectural detail, material scale, and better lighting rather than novelty effects that compete with the images. Fog is intentionally off by default; if performance-constrained clients eventually need a lower-quality rendering mode, atmospheric masking should be added as an explicit quality setting rather than as permanent gallery styling. The gallery HUD should stay quiet and editorial: minimal top bar, compact control reference, center reticle, and metadata only when the viewer is focused on an artwork.
-
-## Local editor
-
-The local editor is a Flask tool under `local-editor/`. It is intended for local content management and image metadata work, not public production hosting.
-
-Typical use:
-
-```bash
-cd local-editor
-python editor.py
-```
-
-Use the editor only against a local working copy. Commit or back up data files after meaningful content changes.
-
-## Development commands
-
-Node.js 24 is the supported runtime for local development and GitHub Pages builds. Version managers can read the pinned major from `.nvmrc`.
-
-```bash
-npm install
-npm run dev
-npm run build
-npm run preview
-```
 
 ## Branch workflow
 
