@@ -549,6 +549,12 @@ function collectAboutPhotosFromPage(state) {
     const collageLayer = getFieldValue(card, "collageLayer");
     const collageRotation = getFieldValue(card, "collageRotation");
     const collageOpacity = getFieldValue(card, "collageOpacity");
+    const mobileX = getFieldValue(card, "mobileX");
+    const mobileY = getFieldValue(card, "mobileY");
+    const mobileWidth = getFieldValue(card, "mobileWidth");
+    const mobileLayer = getFieldValue(card, "mobileLayer");
+    const mobileRotation = getFieldValue(card, "mobileRotation");
+    const mobileOpacity = getFieldValue(card, "mobileOpacity");
     if (backgroundX !== "" && backgroundY !== "") {
       photo.backgroundX = Number(backgroundX);
       photo.backgroundY = Number(backgroundY);
@@ -572,6 +578,14 @@ function collectAboutPhotosFromPage(state) {
     if (collageOpacity !== "") {
       photo.collageOpacity = Number(collageOpacity);
     }
+    if (mobileX !== "" && mobileY !== "") {
+      photo.mobileX = Number(mobileX);
+      photo.mobileY = Number(mobileY);
+    }
+    if (mobileWidth !== "") photo.mobileWidth = Number(mobileWidth);
+    if (mobileLayer !== "") photo.mobileLayer = Number(mobileLayer);
+    if (mobileRotation !== "") photo.mobileRotation = Number(mobileRotation);
+    if (mobileOpacity !== "") photo.mobileOpacity = Number(mobileOpacity);
 
     if (!getCheckboxValue(card, "isActive")) {
       photo.isActive = false;

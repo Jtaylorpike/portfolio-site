@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "entry": {
+    "eyebrow": "Creative Portfolio",
+    "headline": "A visual archive for photography, climbing, landscape, and experimental web spaces.",
+    "body": "Enter the traditional portfolio or move through the work in the desktop virtual gallery.",
+    "primaryAction": "Continue to Website",
+    "galleryAction": "Enter Virtual Gallery"
+  },
+  "home": {
+    "eyebrow": "Selected Work",
+    "statement": "A visual archive of movement, space, and imagination.",
+    "galleryAction": "Enter Virtual Gallery",
+    "portfolioAction": "View Portfolio"
+  }
+}

@@ -462,7 +462,63 @@ function updateAboutCollageValueReadout(photo) {
 
 function updateAboutCollageUndoButton() {
   const button = document.querySelector("[data-undo-about-collage]");
-  if (button) button.disabled = aboutCollageUndoStack.length === 0;
+  const workspace = button?.closest("[data-about-collage-workspace]");
+  if (button) button.disabled = aboutCollageUndoStack.length === 0 || workspace?.dataset.previewOnly === "true";
+}
+
+const ABOUT_PREVIEW_MODES = {
+  desktop: "Desktop preview / 1440px composition",
+  tablet: "Tablet preview / 834px composition / preview only",
+  mobile: "Mobile composition / 390px / editable"
+};
+
+function captureAboutCollageLayout(workspace, mode) {
+  if (!workspace || !["desktop", "mobile"].includes(mode)) return;
+  workspace.querySelectorAll("[data-about-collage-photo]").forEach((photo) => {
+    photo.dataset[`${mode}X`] = String(Number.parseFloat(photo.style.left));
+    photo.dataset[`${mode}Y`] = String(Number.parseFloat(photo.style.top));
+    photo.dataset[`${mode}Width`] = String(Number.parseFloat(photo.style.width));
+    photo.dataset[`${mode}Layer`] = String(Number.parseInt(photo.style.getPropertyValue("--collage-layer"), 10));
+    photo.dataset[`${mode}Rotation`] = String(Number.parseFloat(photo.style.getPropertyValue("--collage-rotation")));
+    photo.dataset[`${mode}Opacity`] = String(Number.parseFloat(photo.style.getPropertyValue("--collage-opacity")));
+  });
+}
+
+function applyAboutCollageLayout(workspace, mode) {
+  const layoutMode = mode === "mobile" ? "mobile" : "desktop";
+  workspace?.querySelectorAll("[data-about-collage-photo]").forEach((photo) => {
+    photo.style.left = `${photo.dataset[`${layoutMode}X`]}%`;
+    photo.style.top = `${photo.dataset[`${layoutMode}Y`]}%`;
+    photo.style.width = `${photo.dataset[`${layoutMode}Width`]}%`;
+    photo.style.setProperty("--collage-layer", photo.dataset[`${layoutMode}Layer`]);
+    photo.style.setProperty("--collage-rotation", `${photo.dataset[`${layoutMode}Rotation`]}deg`);
+    photo.style.setProperty("--collage-opacity", photo.dataset[`${layoutMode}Opacity`]);
+  });
+  workspace.dataset.activeLayoutMode = layoutMode;
+}
+
+function setAboutCollagePreviewMode(workspace, requestedMode) {
+  if (!workspace) return;
+  const mode = Object.hasOwn(ABOUT_PREVIEW_MODES, requestedMode) ? requestedMode : "desktop";
+  const previousLayoutMode = workspace.dataset.activeLayoutMode;
+  if (previousLayoutMode) captureAboutCollageLayout(workspace, previousLayoutMode);
+  applyAboutCollageLayout(workspace, mode);
+  const previewOnly = mode === "tablet";
+  const backgroundOnly = workspace.dataset.backgroundOnly === "true";
+  workspace.dataset.aboutPreviewMode = mode;
+  workspace.dataset.previewOnly = String(previewOnly);
+  aboutCollageUndoStack = [];
+  workspace.querySelectorAll("[data-about-preview-mode]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.aboutPreviewMode === mode));
+  });
+  const label = workspace.querySelector("[data-about-collage-mode-label]");
+  if (label) label.textContent = ABOUT_PREVIEW_MODES[mode];
+  deselectAboutCollagePhotos(workspace.querySelector("[data-about-collage-page]"));
+  workspace.querySelectorAll("[data-about-collage-photo]").forEach((photo) => {
+    const isBackground = photo.dataset.aboutCollageKind === "background";
+    photo.tabIndex = !previewOnly && (!isBackground || backgroundOnly) ? 0 : -1;
+  });
+  updateAboutCollageUndoButton();
 }
 
 function deselectAboutCollagePhotos(page) {
@@ -636,14 +692,22 @@ function closeAboutCollageModal({ apply = false } = {}) {
   }
 
   if (apply) {
+    const workspace = modal.querySelector("[data-about-collage-workspace]");
+    captureAboutCollageLayout(workspace, workspace?.dataset.activeLayoutMode);
     modal.querySelectorAll("[data-about-collage-photo]").forEach((photoElement) => {
       const photoId = photoElement.dataset.aboutCollagePhoto;
-      const layoutX = Number.parseFloat(photoElement.style.left);
-      const layoutY = Number.parseFloat(photoElement.style.top);
-      const layoutWidth = Number.parseFloat(photoElement.style.width);
-      const layoutLayer = Number.parseInt(photoElement.style.getPropertyValue("--collage-layer"), 10);
-      const layoutRotation = Number.parseFloat(photoElement.style.getPropertyValue("--collage-rotation"));
-      const layoutOpacity = Number.parseFloat(photoElement.style.getPropertyValue("--collage-opacity"));
+      const layoutX = Number(photoElement.dataset.desktopX);
+      const layoutY = Number(photoElement.dataset.desktopY);
+      const layoutWidth = Number(photoElement.dataset.desktopWidth);
+      const layoutLayer = Number(photoElement.dataset.desktopLayer);
+      const layoutRotation = Number(photoElement.dataset.desktopRotation);
+      const layoutOpacity = Number(photoElement.dataset.desktopOpacity);
+      const mobileX = Number(photoElement.dataset.mobileX);
+      const mobileY = Number(photoElement.dataset.mobileY);
+      const mobileWidth = Number(photoElement.dataset.mobileWidth);
+      const mobileLayer = Number(photoElement.dataset.mobileLayer);
+      const mobileRotation = Number(photoElement.dataset.mobileRotation);
+      const mobileOpacity = Number(photoElement.dataset.mobileOpacity);
       const isBackground = photoElement.dataset.aboutCollageKind === "background";
       const aboutPhoto = (state.aboutPhotos ?? []).find((photo) => photo.id === photoId);
       if (aboutPhoto && Number.isFinite(layoutX) && Number.isFinite(layoutY) && Number.isFinite(layoutWidth)) {
@@ -659,6 +723,12 @@ function closeAboutCollageModal({ apply = false } = {}) {
         if (Number.isFinite(layoutLayer)) aboutPhoto.collageLayer = layoutLayer;
         if (Number.isFinite(layoutRotation)) aboutPhoto.collageRotation = layoutRotation;
         if (Number.isFinite(layoutOpacity)) aboutPhoto.collageOpacity = layoutOpacity;
+        if (Number.isFinite(mobileX)) aboutPhoto.mobileX = mobileX;
+        if (Number.isFinite(mobileY)) aboutPhoto.mobileY = mobileY;
+        if (Number.isFinite(mobileWidth)) aboutPhoto.mobileWidth = mobileWidth;
+        if (Number.isFinite(mobileLayer)) aboutPhoto.mobileLayer = mobileLayer;
+        if (Number.isFinite(mobileRotation)) aboutPhoto.mobileRotation = mobileRotation;
+        if (Number.isFinite(mobileOpacity)) aboutPhoto.mobileOpacity = mobileOpacity;
       }
       const card = document.querySelector(`[data-about-photo-card][data-about-photo-id="${CSS.escape(photoId)}"]`);
       const fieldPrefix = isBackground ? "background" : "collage";
@@ -674,19 +744,19 @@ function closeAboutCollageModal({ apply = false } = {}) {
       if (layerField) layerField.value = String(layoutLayer);
       if (rotationField) rotationField.value = String(layoutRotation);
       if (opacityField) opacityField.value = String(layoutOpacity);
+      ["X", "Y", "Width", "Layer", "Rotation", "Opacity"].forEach((suffix) => {
+        const field = card?.querySelector(`[data-field="mobile${suffix}"]`);
+        if (field) field.value = photoElement.dataset[`mobile${suffix}`];
+      });
     });
     setDirtyState(true, "About collage arrangement applied. Saving About photos only...", "About photos");
   } else if (aboutCollageOpenSnapshot) {
     modal.querySelectorAll("[data-about-collage-photo]").forEach((photoElement) => {
       const saved = aboutCollageOpenSnapshot.get(photoElement.dataset.aboutCollagePhoto);
       if (!saved) return;
-      photoElement.style.left = saved.left;
-      photoElement.style.top = saved.top;
-      photoElement.style.width = saved.width;
-      photoElement.style.setProperty("--collage-layer", saved.layer);
-      photoElement.style.setProperty("--collage-rotation", saved.rotation);
-      photoElement.style.setProperty("--collage-opacity", saved.opacity);
+      Object.entries(saved.layouts).forEach(([key, value]) => { photoElement.dataset[key] = value; });
     });
+    applyAboutCollageLayout(modal.querySelector("[data-about-collage-workspace]"), "desktop");
   }
 
   modal.hidden = true;
@@ -700,16 +770,13 @@ function closeAboutCollageModal({ apply = false } = {}) {
 
 function hasUnappliedAboutCollageChanges(modal) {
   if (!aboutCollageOpenSnapshot) return false;
+  const workspace = modal.querySelector("[data-about-collage-workspace]");
+  captureAboutCollageLayout(workspace, workspace?.dataset.activeLayoutMode);
 
   return Array.from(modal.querySelectorAll("[data-about-collage-photo]")).some((photo) => {
     const saved = aboutCollageOpenSnapshot.get(photo.dataset.aboutCollagePhoto);
     if (!saved) return true;
-    return photo.style.left !== saved.left
-      || photo.style.top !== saved.top
-      || photo.style.width !== saved.width
-      || photo.style.getPropertyValue("--collage-layer") !== saved.layer
-      || photo.style.getPropertyValue("--collage-rotation") !== saved.rotation
-      || photo.style.getPropertyValue("--collage-opacity") !== saved.opacity;
+    return Object.entries(saved.layouts).some(([key, value]) => photo.dataset[key] !== value);
   });
 }
 
@@ -734,18 +801,17 @@ document.addEventListener("click", (event) => {
       Array.from(modal.querySelectorAll("[data-about-collage-photo]")).map((photo) => [
         photo.dataset.aboutCollagePhoto,
         {
-          left: photo.style.left,
-          top: photo.style.top,
-          width: photo.style.width,
-          layer: photo.style.getPropertyValue("--collage-layer"),
-          rotation: photo.style.getPropertyValue("--collage-rotation"),
-          opacity: photo.style.getPropertyValue("--collage-opacity")
+          layouts: Object.fromEntries(
+            ["desktopX", "desktopY", "desktopWidth", "desktopLayer", "desktopRotation", "desktopOpacity", "mobileX", "mobileY", "mobileWidth", "mobileLayer", "mobileRotation", "mobileOpacity"]
+              .map((key) => [key, photo.dataset[key]])
+          )
         }
       ])
     );
     const workspace = modal.querySelector("[data-about-collage-workspace]");
     const layerToggle = modal.querySelector("[data-toggle-about-collage-landmarks]");
     if (workspace) workspace.dataset.backgroundOnly = "false";
+    setAboutCollagePreviewMode(workspace, "desktop");
     workspace?.querySelectorAll('[data-about-collage-kind="background"]').forEach((photo) => {
       photo.tabIndex = -1;
     });
@@ -763,6 +829,15 @@ document.addEventListener("click", (event) => {
 
   if (event.target.closest?.("[data-undo-about-collage]")) {
     undoAboutCollageChange();
+    return;
+  }
+
+  const previewModeButton = event.target.closest?.("button[data-about-preview-mode]");
+  if (previewModeButton) {
+    setAboutCollagePreviewMode(
+      previewModeButton.closest("[data-about-collage-workspace]"),
+      previewModeButton.dataset.aboutPreviewMode
+    );
     return;
   }
 
@@ -833,6 +908,7 @@ document.addEventListener("pointerdown", (event) => {
   const photo = event.target.closest?.("[data-about-collage-photo]");
   const page = event.target.closest?.("[data-about-collage-page]");
   if (!page || event.button !== 0) return;
+  if (page.closest("[data-about-collage-workspace]")?.dataset.previewOnly === "true") return;
   if (!photo) {
     deselectAboutCollagePhotos(page);
     return;

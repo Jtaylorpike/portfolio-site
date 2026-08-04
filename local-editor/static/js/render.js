@@ -3114,6 +3114,12 @@ function renderAboutPhotoCard(photo, index) {
         <input type="hidden" data-field="collageLayer" value="${escapeHtml(String(photo.collageLayer ?? ""))}" />
         <input type="hidden" data-field="collageRotation" value="${escapeHtml(String(photo.collageRotation ?? ""))}" />
         <input type="hidden" data-field="collageOpacity" value="${escapeHtml(String(photo.collageOpacity ?? ""))}" />
+        <input type="hidden" data-field="mobileX" value="${escapeHtml(String(photo.mobileX ?? ""))}" />
+        <input type="hidden" data-field="mobileY" value="${escapeHtml(String(photo.mobileY ?? ""))}" />
+        <input type="hidden" data-field="mobileWidth" value="${escapeHtml(String(photo.mobileWidth ?? ""))}" />
+        <input type="hidden" data-field="mobileLayer" value="${escapeHtml(String(photo.mobileLayer ?? ""))}" />
+        <input type="hidden" data-field="mobileRotation" value="${escapeHtml(String(photo.mobileRotation ?? ""))}" />
+        <input type="hidden" data-field="mobileOpacity" value="${escapeHtml(String(photo.mobileOpacity ?? ""))}" />
 
         <label>
           <span>ID</span>
@@ -3472,6 +3478,14 @@ function renderAboutForegroundEditorPhoto(entry, index, group) {
       data-default-layer="${fallbackLayer}"
       data-default-rotation="${fallbackRotation ?? 0}"
       data-default-opacity="${fallbackOpacity}"
+      data-desktop-x="${x}" data-desktop-y="${y}" data-desktop-width="${width}"
+      data-desktop-layer="${layer}" data-desktop-rotation="${rotation}" data-desktop-opacity="${opacity}"
+      data-mobile-x="${Number.isFinite(Number(entry.photo.mobileX)) ? Number(entry.photo.mobileX) : x}"
+      data-mobile-y="${Number.isFinite(Number(entry.photo.mobileY)) ? Number(entry.photo.mobileY) : y}"
+      data-mobile-width="${Number.isFinite(Number(entry.photo.mobileWidth)) ? Number(entry.photo.mobileWidth) : width}"
+      data-mobile-layer="${Number.isFinite(Number(entry.photo.mobileLayer)) ? Number(entry.photo.mobileLayer) : layer}"
+      data-mobile-rotation="${Number.isFinite(Number(entry.photo.mobileRotation)) ? Number(entry.photo.mobileRotation) : rotation}"
+      data-mobile-opacity="${Number.isFinite(Number(entry.photo.mobileOpacity)) ? Number(entry.photo.mobileOpacity) : opacity}"
       style="left:${x}%;right:auto;top:${y}%;bottom:auto;width:${width}%;height:auto;aspect-ratio:${aspect};--collage-layer:${layer};--collage-rotation:${rotation}deg;--collage-opacity:${opacity};"
       aria-label="Move ${escapeHtml(entry.photo.title ?? entry.photo.id)}"
     >
@@ -3508,11 +3522,16 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
     </section>
 
     <div class="about-collage-modal" data-about-collage-modal hidden>
-    <section class="about-collage-workspace panel" data-about-collage-workspace role="dialog" aria-modal="true" aria-label="About background collage editor">
+    <section class="about-collage-workspace panel" data-about-collage-workspace data-about-preview-mode="desktop" data-preview-only="false" role="dialog" aria-modal="true" aria-label="About background collage editor">
       <div class="mac-panel-titlebar">
         <strong>Visual About Collage</strong>
         <span class="about-collage-window-controls">
-          <span>Desktop preview / 1440px composition</span>
+          <span data-about-collage-mode-label>Desktop preview / 1440px composition</span>
+          <span class="about-collage-device-switcher" role="group" aria-label="About page preview size">
+            <button type="button" data-about-preview-mode="desktop" aria-pressed="true">Desktop</button>
+            <button type="button" data-about-preview-mode="tablet" aria-pressed="false">Tablet</button>
+            <button type="button" data-about-preview-mode="mobile" aria-pressed="false">Mobile</button>
+          </span>
           <button class="about-collage-undo" type="button" data-undo-about-collage disabled title="Undo last move or resize">Undo</button>
           <button class="about-collage-layer-toggle" type="button" data-toggle-about-collage-landmarks aria-pressed="false" title="Hide page copy and foreground collage">Background Only</button>
           <button type="button" data-accept-about-collage aria-label="Apply and save collage arrangement" title="Apply arrangement">✓</button>
@@ -3524,7 +3543,7 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
           <p class="eyebrow">About Page Composition</p>
           <h2>Arrange the About page collages</h2>
           <p>
-            Select, move, and resize the foreground collages or translucent background photographs directly on the scaled desktop page.
+            Select, move, and resize photographs in the independent Desktop or Mobile composition. Tablet remains preview-only.
           </p>
         </div>
         <div class="about-collage-preview-status" data-about-collage-preview-status>
@@ -3546,7 +3565,7 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
         </div>
       </div>
 
-      <div class="about-collage-viewport">
+      <div class="about-collage-viewport" data-about-collage-viewport>
         <div class="about-collage-page" data-about-collage-page>
           ${activeBackgroundEntries.map((entry, index) => {
             const fallbackPosition = ABOUT_BACKGROUND_PREVIEW_POSITIONS[index] ?? { x: 40, y: 40 };
@@ -3579,6 +3598,14 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
                 data-default-layer="${index + 1}"
                 data-default-rotation="${ABOUT_BACKGROUND_PREVIEW_ROTATIONS[index] ?? 0}"
                 data-default-opacity="${fallbackOpacity}"
+                data-desktop-x="${position.x}" data-desktop-y="${position.y}" data-desktop-width="${width}"
+                data-desktop-layer="${layer}" data-desktop-rotation="${rotation}" data-desktop-opacity="${opacity}"
+                data-mobile-x="${Number.isFinite(Number(entry.photo.mobileX)) ? Number(entry.photo.mobileX) : position.x}"
+                data-mobile-y="${Number.isFinite(Number(entry.photo.mobileY)) ? Number(entry.photo.mobileY) : position.y}"
+                data-mobile-width="${Number.isFinite(Number(entry.photo.mobileWidth)) ? Number(entry.photo.mobileWidth) : width}"
+                data-mobile-layer="${Number.isFinite(Number(entry.photo.mobileLayer)) ? Number(entry.photo.mobileLayer) : layer}"
+                data-mobile-rotation="${Number.isFinite(Number(entry.photo.mobileRotation)) ? Number(entry.photo.mobileRotation) : rotation}"
+                data-mobile-opacity="${Number.isFinite(Number(entry.photo.mobileOpacity)) ? Number(entry.photo.mobileOpacity) : opacity}"
                 style="left:${position.x}%;top:${position.y}%;width:${width}%;--collage-layer:${layer};--collage-rotation:${rotation}deg;--collage-opacity:${opacity};"
                 tabindex="-1"
                 aria-label="Move ${escapeHtml(entry.photo.title ?? entry.photo.id)}"

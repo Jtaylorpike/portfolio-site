@@ -790,6 +790,7 @@ def restore_data_backup(backup_name: str) -> tuple[list[dict[str, str]], list[di
     if backup_site_seo_path.exists():
         write_json(SITE_SEO_PATH, normalize_site_seo(read_json(backup_site_seo_path)))
 
+
     restored_backup = summarize_backup_folder(backup_path)
 
     return categories, images, hero_slides, restored_backup, safety_backup
@@ -1796,8 +1797,6 @@ def save_site_seo(raw_site_seo: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     backup = create_data_backup("site-seo-save")
     write_json(SITE_SEO_PATH, site_seo)
     return site_seo, backup
-
-
 ABOUT_PHOTO_PLACEMENT_ROLES = {"upper-collage", "lower-collage", "background-float", "unused"}
 
 
@@ -1866,6 +1865,22 @@ def normalize_about_photo(raw_photo: Any) -> dict[str, Any]:
 
     if raw_photo.get("collageOpacity") not in (None, ""):
         normalized["collageOpacity"] = max(0.0, min(1.0, clean_number(raw_photo.get("collageOpacity"), 1.0)))
+
+    if raw_photo.get("mobileX") not in (None, "") and raw_photo.get("mobileY") not in (None, ""):
+        normalized["mobileX"] = max(-35.0, min(100.0, clean_number(raw_photo.get("mobileX"), 0.0)))
+        normalized["mobileY"] = max(-35.0, min(100.0, clean_number(raw_photo.get("mobileY"), 0.0)))
+
+    if raw_photo.get("mobileWidth") not in (None, ""):
+        normalized["mobileWidth"] = max(12.0, min(100.0, clean_number(raw_photo.get("mobileWidth"), 42.0)))
+
+    if raw_photo.get("mobileLayer") not in (None, ""):
+        normalized["mobileLayer"] = max(1, min(99, int(clean_number(raw_photo.get("mobileLayer"), 1))))
+
+    if raw_photo.get("mobileRotation") not in (None, ""):
+        normalized["mobileRotation"] = max(-45.0, min(45.0, clean_number(raw_photo.get("mobileRotation"), 0.0)))
+
+    if raw_photo.get("mobileOpacity") not in (None, ""):
+        normalized["mobileOpacity"] = max(0.0, min(1.0, clean_number(raw_photo.get("mobileOpacity"), 1.0)))
 
     if raw_photo.get("isActive") is False:
         normalized["isActive"] = False

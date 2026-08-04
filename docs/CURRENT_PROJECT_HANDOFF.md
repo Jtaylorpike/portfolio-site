@@ -87,6 +87,10 @@ Cloud migration is anticipated but is not current implementation scope. New edit
 - Keep the current GitHub Pages hash routes for now. Converting Home, Portfolio, About, and category views into separately crawlable canonical routes and sitemap entries is intentionally deferred to the Cloudflare migration period.
 - When that phase begins, durable JSON revisions, uploaded assets, authentication, CSRF protection, authorization, and audit history must replace assumptions about a trusted local filesystem.
 
+### Deferred post-portfolio editor direction
+
+After the portfolio website is fully complete, evaluate turning the editor into a standalone, schema-driven editor for different kinds of websites. Use the About visual composition editor as the interaction reference and retain the 3D Gallery editor as an example of a specialized workspace. Do not begin this platform work until the user explicitly resumes it.
+
 ### Editor E3 - responsive editing
 
 - Add tablet and mobile public-page previews.
@@ -94,12 +98,28 @@ Cloud migration is anticipated but is not current implementation scope. New edit
 - Improve narrow-screen editor navigation and fullscreen workspace controls.
 - Verify crop frames and image placement at all supported preview sizes.
 
+Implementation started:
+
+- The fullscreen About composition editor now exposes Desktop, Tablet, and Mobile preview modes.
+- Desktop remains the authoritative editable composition during the first E3 slice.
+- Tablet and Mobile use responsive preview shells and are intentionally preview-only until separate responsive placement data is introduced, preventing accidental mutation of accepted desktop coordinates.
+- Antigravity's responsive-preview audit passed all twelve functional, state-safety, accessibility, layout-analysis, build, gallery-layout, and portfolio-data checks. Its Playwright browser driver was unavailable because of an external CDN 404, so pixel-level automated screenshots remain unverified; no implementation defect was reported.
+- Mobile now has an independent editable About-photo arrangement (`mobileX`, `mobileY`, `mobileWidth`, `mobileLayer`, `mobileRotation`, and `mobileOpacity`) that round-trips through the editor API and is applied by the public About page at the compact breakpoint. Existing records fall back to their desktop arrangement until Mobile is deliberately edited; Tablet remains preview-only.
+- A real local Chromium pass found and fixed a mode-switch click-delegation bug: the selector previously matched the workspace's preview-mode attribute and intercepted other toolbar controls. The selector is now limited to device buttons. Desktop/Mobile isolation, drag, corner resize, rotation, opacity, layering, undo, Background Only, Tablet lockout, discard, focused API round-trip, 390px/760px public rendering, overflow, and console checks all passed. Temporary About data was restored after the persistence check.
+- Narrow editor windows retain the active Macintosh File/Edit menu architecture with 44px menu triggers and items plus viewport-bounded dropdowns. The fullscreen About workspace uses the full dynamic viewport, separates its device/action controls into a compact toolbar, provides 44px compact targets, and collapses explanatory chrome before reducing the composition canvas.
+- Local Chromium validation passed at 1024x768, 760x900, 390x844, and 844x390. The pass caught and fixed a 390px device-switcher overlap caused by a generic titlebar-span constraint and a stylesheet-order override that reduced compact File/Edit targets below 44px. Sticky menus, bounded dropdowns, workspace fit, independent canvas scrolling, selected modes, Mobile editing, rotation/Undo, Background Only, Tablet lockout, keyboard traversal, X-without-save, overflow, and console checks now pass across the matrix.
+- Responsive crop-window validation passed across the same four viewport sizes. The modal now keeps its title and actions outside the scrolling body, uses a three-column phone action bar, provides 44px compact and short-landscape controls, and sizes short-landscape crop frames from available height without distorting their authored aspect. Local Chromium confirmed zoom, Cancel, containment, no overflow/errors, and exact frame parity for both upper slots, a lower slot, and a background-float slot.
+
 ### Editor E4 - copy and global content coverage
 
 - Keep About copy user-authored and data-backed.
 - Add editor coverage for homepage introduction and calls to action.
 - Add entry-screen, gallery experimental/loading notice, portfolio label, navigation, and footer copy where still source-authored.
 - Do not generate or replace final user copy without explicit direction.
+
+Implementation started:
+
+- Added typed `src/data/siteCopy.json` ownership for the existing entry-screen and homepage eyebrow, headline/statement, body, and action labels. The public renderers now consume that source with normalized fallbacks; wording was moved unchanged. Any editor integration in this phase must remain portfolio-specific and must not begin the deferred standalone-editor platform work.
 
 ### Editor E5 - final QA, accessibility, and cleanup
 
@@ -417,6 +437,13 @@ Before release:
 10. Verify the deployed site, especially loading, Auto promotion, gallery close/reopen, and touch controls.
 
 Never switch branches, commit, push, or merge unless the user explicitly authorizes those actions.
+
+### Implementation and validation ownership
+
+- Codex is responsible for new feature implementation and updates to the existing public-site, editor, data, and gallery architecture.
+- Google Antigravity is responsible for performance testing, browser smoke testing, and runtime debugging.
+- Codex continues to run build, type, syntax, data-integrity, fixture, and diff checks appropriate to the files it changes.
+- Runtime or performance findings should be supplied back to Codex when an architectural or implementation change is needed.
 
 ## Phase history
 

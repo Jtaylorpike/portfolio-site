@@ -8,6 +8,7 @@
 import { galleryImages, type GalleryImage } from '../data/images';
 import { aboutPhotos, type AboutPhoto } from '../data/aboutPhotos';
 import { aboutCopy, type AboutCopyContactLink } from '../data/aboutCopy';
+import { siteCopy } from '../data/siteCopy';
 import { heroSlides } from '../data/heroSlides';
 import { getCategoryLabel, portfolioCategories } from '../data/categories';
 import {
@@ -306,20 +307,20 @@ function renderHomeHeroSlideshow(): string {
         </div>
 
         <div class="home-hero-copy-panel">
-          <p class="home-hero-welcome">Selected Work</p>
-          <p class="home-hero-statement">A visual archive of movement, space, and imagination.</p>
+          <p class="home-hero-welcome">${escapeHtml(siteCopy.home.eyebrow)}</p>
+          <p class="home-hero-statement">${escapeHtml(siteCopy.home.statement)}</p>
 
           <div class="home-hero-actions">
             <button class="home-hero-gallery-cta" type="button" data-open-virtual-gallery>
               <span class="home-hero-gallery-icon" aria-hidden="true">↗</span>
-              <span>Enter Virtual Gallery</span>
+              <span>${escapeHtml(siteCopy.home.galleryAction)}</span>
             </button>
             <a
               class="home-hero-portfolio-link"
               data-hero-link
               href="#/portfolio/${firstSlide.targetCategory}"
             >
-              <span data-hero-link-label>View Portfolio</span>
+              <span data-hero-link-label>${escapeHtml(siteCopy.home.portfolioAction)}</span>
               <span class="sr-only" data-hero-link-context> — ${escapeHtml(categoryLabel)}</span>
             </a>
           </div>
@@ -440,16 +441,16 @@ export function renderEntryPage(): string {
         </a>
 
         <div>
-          <p class="eyebrow">Creative Portfolio</p>
-          <h1>A visual archive for photography, climbing, landscape, and experimental web spaces.</h1>
+          <p class="eyebrow">${escapeHtml(siteCopy.entry.eyebrow)}</p>
+          <h1>${escapeHtml(siteCopy.entry.headline)}</h1>
           <p>
-            Enter the traditional portfolio or move through the work in the desktop virtual gallery.
+            ${escapeHtml(siteCopy.entry.body)}
           </p>
         </div>
 
         <div class="entry-actions">
-          <a class="button primary" href="#/home">Continue to Website</a>
-          <button class="button secondary" type="button" data-open-virtual-gallery>Enter Virtual Gallery</button>
+          <a class="button primary" href="#/home">${escapeHtml(siteCopy.entry.primaryAction)}</a>
+          <button class="button secondary" type="button" data-open-virtual-gallery>${escapeHtml(siteCopy.entry.galleryAction)}</button>
         </div>
       </div>
     </main>
@@ -577,12 +578,16 @@ function renderAboutFigure(photo: AboutPhoto, index: number, className: string, 
   const opacityStyle = Number.isFinite(photo.collageOpacity)
     ? `opacity:${photo.collageOpacity};`
     : '';
+  const mobileLayoutStyle = Number.isFinite(photo.mobileX) && Number.isFinite(photo.mobileY) && Number.isFinite(photo.mobileWidth)
+    ? `--about-mobile-x:${photo.mobileX}%;--about-mobile-y:${photo.mobileY}%;--about-mobile-width:${photo.mobileWidth}%;`
+    : '';
+  const mobilePresentationStyle = `${Number.isFinite(photo.mobileLayer) ? `--about-mobile-layer:${photo.mobileLayer};` : ''}${Number.isFinite(photo.mobileRotation) ? `--about-mobile-rotation:${photo.mobileRotation}deg;` : ''}${Number.isFinite(photo.mobileOpacity) ? `--about-mobile-opacity:${photo.mobileOpacity};` : ''}`;
   const layoutStyle = hasCustomLayout
-    ? ` style="left:${photo.collageX}%;right:auto;top:${photo.collageY}%;bottom:auto;width:${photo.collageWidth}%;height:auto;aspect-ratio:${frameAspect};${Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : ''}${rotationStyle}${opacityStyle}"`
+    ? ` style="left:${photo.collageX}%;right:auto;top:${photo.collageY}%;bottom:auto;width:${photo.collageWidth}%;height:auto;aspect-ratio:${frameAspect};${Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : ''}${rotationStyle}${opacityStyle}${mobileLayoutStyle}${mobilePresentationStyle}"`
     : className.includes('about-photo-frame-1')
-      ? ` style="height:auto;aspect-ratio:${frameAspect};${Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : ''}${rotationStyle}${opacityStyle}"`
+      ? ` style="height:auto;aspect-ratio:${frameAspect};${Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : ''}${rotationStyle}${opacityStyle}${mobileLayoutStyle}${mobilePresentationStyle}"`
       : Number.isFinite(photo.collageLayer) || rotationStyle || opacityStyle
-        ? ` style="${Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : ''}${rotationStyle}${opacityStyle}"`
+        ? ` style="${Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : ''}${rotationStyle}${opacityStyle}${mobileLayoutStyle}${mobilePresentationStyle}"`
         : '';
   const resolvedClassName = `${className}${hasCustomLayout ? ' has-custom-collage-layout' : ''}`;
 
@@ -704,6 +709,9 @@ function renderAboutFloatingPhotos(): string {
         const layerStyle = Number.isFinite(photo.collageLayer) ? `z-index:${photo.collageLayer};` : '';
         const rotationStyle = Number.isFinite(photo.collageRotation) ? `--float-rotation:${photo.collageRotation}deg;` : '';
         const opacityStyle = Number.isFinite(photo.collageOpacity) ? `opacity:${photo.collageOpacity};` : '';
+        const mobileStyle = Number.isFinite(photo.mobileX) && Number.isFinite(photo.mobileY) && Number.isFinite(photo.mobileWidth)
+          ? `--about-mobile-x:${photo.mobileX}%;--about-mobile-y:${photo.mobileY}%;--about-mobile-width:${photo.mobileWidth}%;${Number.isFinite(photo.mobileLayer) ? `--about-mobile-layer:${photo.mobileLayer};` : ''}${Number.isFinite(photo.mobileRotation) ? `--about-mobile-rotation:${photo.mobileRotation}deg;` : ''}${Number.isFinite(photo.mobileOpacity) ? `--about-mobile-opacity:${photo.mobileOpacity};` : ''}`
+          : '';
         const hasCustomPosition = Number.isFinite(photo.backgroundX) && Number.isFinite(photo.backgroundY);
         return `
           <div
@@ -711,7 +719,7 @@ function renderAboutFloatingPhotos(): string {
             data-about-float
             data-about-float-speed="${ySpeed.toFixed(3)}"
             data-about-float-x-speed="${xSpeed.toFixed(3)}"
-            ${customPositionStyle || layerStyle || rotationStyle || opacityStyle ? `style="${customPositionStyle}${layerStyle}${rotationStyle}${opacityStyle}"` : ''}
+            ${customPositionStyle || layerStyle || rotationStyle || opacityStyle || mobileStyle ? `style="${customPositionStyle}${layerStyle}${rotationStyle}${opacityStyle}${mobileStyle}"` : ''}
           >
             <img src="${escapeHtml(getAboutPhotoImageSource(photo))}" alt="" loading="lazy" decoding="async" />
           </div>

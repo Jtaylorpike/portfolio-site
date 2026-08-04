@@ -4488,6 +4488,25 @@ button:focus-visible {
 }
 
 @media (max-width: 760px) {
+  .modern-site[data-page='about'] .about-photo-frame[style*='--about-mobile-x'],
+  .modern-site[data-page='about'] .about-floating-photo[style*='--about-mobile-x'] {
+    left: var(--about-mobile-x) !important;
+    right: auto !important;
+    top: var(--about-mobile-y) !important;
+    bottom: auto !important;
+    width: var(--about-mobile-width) !important;
+    z-index: var(--about-mobile-layer, auto) !important;
+    opacity: var(--about-mobile-opacity, 1) !important;
+  }
+
+  .modern-site[data-page='about'] .about-photo-frame[style*='--about-mobile-x'] {
+    --about-photo-rotate: var(--about-mobile-rotation, 0deg);
+  }
+
+  .modern-site[data-page='about'] .about-floating-photo[style*='--about-mobile-x'] {
+    --float-rotation: var(--about-mobile-rotation, 0deg);
+  }
+
   .modern-site[data-page='about'] .about-floating-photo-1,
   .modern-site[data-page='about'] .about-floating-photo-3,
   .modern-site[data-page='about'] .about-floating-photo-7 {

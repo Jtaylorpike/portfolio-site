@@ -114,7 +114,6 @@ export async function saveSiteSeoApi(siteSeo) {
   return response.json();
 }
 
-
 export async function saveGalleryCurationWallApi(wall) {
   const response = await apiFetch('/api/gallery-curation/wall', {
     method: 'POST',

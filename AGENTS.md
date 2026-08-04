@@ -52,6 +52,7 @@ Active editable data lives in:
 - `src/data/aboutPhotos.json`
 - `src/data/aboutCopy.json`
 - `src/data/siteSeo.json`
+- `src/data/siteCopy.json`
 
 `public/data/` is legacy/archive-only. Do not recreate it or make it authoritative.
 
@@ -119,6 +120,14 @@ An editor save must never silently discard newly introduced fields.
 
 Use Node.js 24.x. The repository pins this major in `.nvmrc`, declares it in `package.json`, and uses it in the GitHub Pages workflow.
 
+### Tool responsibilities
+
+- Codex owns implementation: adding features, changing existing architecture, maintaining editor/public data parity, and applying fixes from confirmed findings.
+- Google Antigravity owns runtime debugging, browser smoke testing, and performance testing.
+- Do not start browser smoke tests, performance benchmarks, or exploratory runtime debugging in Codex unless the user explicitly requests an exception.
+- Codex must still run implementation-level checks that do not duplicate Antigravity: builds, type checking, syntax checks, JSON/data validation, layout fixtures, and `git diff --check` as relevant.
+- Report which static checks Codex completed and leave runtime/performance acceptance to the Antigravity results supplied by the user.
+
 Install reproducibly when needed:
 
 ```powershell
@@ -144,7 +153,7 @@ Minimum validation by change type:
 - Gallery architecture, framing, collision, or traversal: also run `npm run validate:gallery-layout`; use `npm run build:gallery-fixture` when fixture rendering matters.
 - Editor JavaScript: run `node --check` on changed plain-JS modules and smoke the affected editor route.
 - Flask/Python: parse or compile changed Python and exercise the affected API/save path when practical.
-- Responsive/accessibility changes: smoke representative desktop and compact viewports with Playwright, including keyboard and error states.
+- Responsive/accessibility changes: implement against the established contracts, then leave browser, keyboard, error-state, and viewport smoke testing to Google Antigravity unless explicitly requested otherwise.
 
 Do not claim browser, device, high-GPU, or deployed-domain validation that was not actually performed.
 

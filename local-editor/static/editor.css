@@ -9203,6 +9203,31 @@ body[data-about-collage-open="true"] {
   font-size: 9px;
 }
 
+.about-collage-device-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid #000;
+}
+
+.about-collage-window-controls .about-collage-device-switcher button {
+  width: auto;
+  min-width: 48px;
+  border: 0;
+  border-right: 1px solid #000;
+  font-size: 9px;
+  padding-inline: 6px;
+}
+
+.about-collage-window-controls .about-collage-device-switcher button:last-child {
+  border-right: 0;
+}
+
+.about-collage-window-controls .about-collage-device-switcher button[aria-pressed="true"] {
+  background: #000;
+  color: #fff;
+}
+
 .about-collage-window-controls button:hover,
 .about-collage-window-controls button:focus-visible {
   background: #000;
@@ -9351,6 +9376,28 @@ body[data-about-collage-open="true"] {
   background-size: 6.25% 4%, 6.25% 4%, auto;
   color: #eee7d8;
   isolation: isolate;
+  container-type: inline-size;
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-page {
+  width: min(100%, 760px);
+  aspect-ratio: 834 / 2600;
+  min-height: 1320px;
+}
+
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-page {
+  width: min(100%, 430px);
+  aspect-ratio: 390 / 2800;
+  min-height: 1540px;
+}
+
+.about-collage-workspace[data-preview-only="true"] [data-about-collage-photo] {
+  pointer-events: none;
+  cursor: default;
+}
+
+.about-collage-workspace[data-preview-only="true"] .about-collage-resize-handle {
+  display: none;
 }
 
 .about-collage-site-header {
@@ -9436,6 +9483,81 @@ body[data-about-collage-open="true"] {
   line-height: .96;
   letter-spacing: -.055em;
   font-weight: 400;
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-page-hero,
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-page-project,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-page-hero,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-page-project {
+  grid-template-columns: 1fr;
+  gap: 3%;
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-page-hero,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-page-hero {
+  min-height: 24%;
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-page-project,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-page-project {
+  min-height: 27%;
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-page-writing,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-page-writing {
+  min-height: 14%;
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-page-contact,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-page-contact {
+  min-height: 12%;
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-copy-card,
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-wide-copy,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-copy-card,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-wide-copy {
+  width: 88%;
+  margin-inline: auto;
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-copy-card h3,
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-wide-copy h3 {
+  font-size: clamp(20px, 7cqw, 48px);
+}
+
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-copy-card h3,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-wide-copy h3 {
+  font-size: clamp(18px, 9cqw, 38px);
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-copy-card p,
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-wide-copy p,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-copy-card p,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-wide-copy p {
+  font-size: clamp(8px, 2.5cqw, 13px);
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-upper-stack,
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-lower-stack,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-upper-stack,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-lower-stack {
+  width: 84%;
+  margin-inline: auto;
+}
+
+.about-collage-workspace[data-about-preview-mode="tablet"] .about-collage-site-header span,
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-site-header span {
+  display: none;
+}
+
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-site-header {
+  gap: 8px;
+  padding-inline: 5%;
+}
+
+.about-collage-workspace[data-about-preview-mode="mobile"] .about-collage-site-header nav {
+  font-size: 5px;
 }
 
 .about-collage-copy-card p,
@@ -9648,6 +9770,131 @@ body[data-about-collage-open="true"] {
 
   .about-collage-viewport {
     padding: 8px;
+  }
+
+  .about-collage-modal {
+    padding: 0;
+  }
+
+  .about-collage-modal .about-collage-workspace {
+    height: 100dvh;
+    border-inline: 0;
+    outline: 0;
+  }
+
+  .about-collage-workspace > .mac-panel-titlebar {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .about-collage-workspace > .mac-panel-titlebar > strong {
+    text-align: center;
+  }
+
+  .about-collage-window-controls,
+  .mac-panel-titlebar .about-collage-window-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+    width: 100%;
+    max-width: none;
+    gap: 3px;
+    margin: 0;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .about-collage-window-controls > [data-about-collage-mode-label] {
+    display: none;
+  }
+
+  .mac-panel-titlebar .about-collage-window-controls .about-collage-device-switcher {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    padding: 0;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .about-collage-window-controls button,
+  .about-collage-window-controls .about-collage-device-switcher button,
+  .about-collage-window-controls .about-collage-undo,
+  .about-collage-window-controls .about-collage-layer-toggle {
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
+  }
+
+  .about-collage-window-controls .about-collage-device-switcher button {
+    width: 100%;
+  }
+
+  .about-collage-window-controls .about-collage-layer-toggle {
+    min-width: 88px;
+  }
+
+  .about-collage-selection-actions button,
+  .about-collage-opacity-field {
+    min-height: 44px;
+  }
+
+  .about-collage-opacity-field input {
+    min-height: 34px;
+  }
+}
+
+@media (max-width: 640px) {
+  .mac-menu-bar {
+    min-height: 44px;
+  }
+
+  .mac-menu-trigger {
+    min-width: 44px;
+    min-height: 44px;
+    padding-inline: 10px;
+  }
+
+  .mac-menu-dropdown {
+    max-width: calc(100vw - 8px);
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+
+  .mac-menu-dropdown [role="menuitem"] {
+    min-height: 44px;
+  }
+
+  .about-collage-workspace-heading > div:first-child {
+    display: none;
+  }
+
+  .about-collage-workspace-heading {
+    padding: 4px;
+  }
+
+  .about-collage-preview-status {
+    padding: 4px 6px;
+  }
+
+  .about-collage-preview-status > span,
+  .about-collage-preview-status > output {
+    display: none;
+  }
+
+  .about-collage-selection-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .about-collage-selection-actions button,
+  .about-collage-opacity-field {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -10224,9 +10471,11 @@ body[data-about-collage-open="true"] {
 
 .crop-modal-window {
   position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(760px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid var(--mac-ink);
   background: var(--mac-paper);
   box-shadow: 7px 7px 0 rgba(0, 0, 0, .45);
@@ -10238,8 +10487,10 @@ body[data-about-collage-open="true"] {
 
 .crop-modal-body {
   display: grid;
+  min-height: 0;
   gap: 10px;
   padding: 14px;
+  overflow: auto;
 }
 
 .crop-modal-stage {
@@ -10329,6 +10580,87 @@ body[data-about-collage-open="true"] {
 
 body[data-crop-modal-open="true"] {
   overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .crop-modal {
+    padding: 8px;
+  }
+
+  .crop-modal-window {
+    width: min(100%, 760px);
+    max-height: calc(100dvh - 16px);
+  }
+
+  .crop-modal-body {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .crop-modal-stage {
+    min-height: min(52dvh, 420px);
+    padding: 8px;
+  }
+
+  .crop-modal-toolbar .button,
+  .crop-modal-actions .button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .crop-modal-actions {
+    padding: 6px 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .crop-modal-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .crop-modal-actions .button {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .crop-modal {
+    padding: 4px;
+  }
+
+  .crop-modal-window {
+    width: min(100%, 760px);
+    height: calc(100dvh - 8px);
+    max-height: none;
+  }
+
+  .crop-modal-body {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .crop-modal-stage {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .crop-modal-frame {
+    width: auto !important;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .crop-modal-toolbar .button,
+  .crop-modal-actions .button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .crop-modal-instruction {
+    display: none;
+  }
 }
 
 /* The application window uses a separate plane from the desktop behind it. */
@@ -10663,6 +10995,7 @@ html[data-editor-theme="dark"] {
 @media (max-width: 640px) {
   .mac-menu-bar {
     gap: 4px;
+    min-height: 44px;
     padding-inline: 5px;
   }
 
@@ -10671,7 +11004,19 @@ html[data-editor-theme="dark"] {
   }
 
   .mac-menu-trigger {
+    min-width: 44px;
+    min-height: 44px;
     padding-inline: 6px;
+  }
+
+  .mac-menu-dropdown {
+    max-width: calc(100vw - 8px);
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+
+  .mac-menu-dropdown [role="menuitem"] {
+    min-height: 44px;
   }
 
   .editor-context-palette {
