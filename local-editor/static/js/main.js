@@ -594,9 +594,11 @@ function setAboutCollagePreviewMode(workspace, requestedMode) {
 
 function deselectAboutCollagePhotos(page) {
   const workspace = page?.closest("[data-about-collage-workspace]");
+  const focusedPhoto = document.activeElement?.closest?.("[data-about-collage-photo]");
   page?.querySelectorAll("[data-about-collage-photo]").forEach((photo) => {
     photo.dataset.selected = "false";
   });
+  if (focusedPhoto && page?.contains(focusedPhoto)) workspace?.focus();
   const status = workspace?.querySelector("[data-about-collage-preview-status]");
   if (status) {
     status.querySelector("strong").textContent = "No image selected";

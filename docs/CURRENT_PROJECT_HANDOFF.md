@@ -145,6 +145,7 @@ Implementation started:
 - Added keyboard movement and aspect-locked resizing to the About visual editor, with larger Shift-modified steps, shared Undo support, focus-driven selection, and concise live position/size announcements.
 - The fullscreen About visual editor now isolates the editor behind its modal, traps forward and reverse Tab navigation, and restores focus to its launcher after Apply, Cancel, or Escape.
 - Reduced-motion handling is now enforced by a final editor-wide CSS contract after all component/style passes: smooth scrolling, transitions, crop snapping, and decorative animation resolve immediately when `prefers-reduced-motion: reduce` is active.
+- The cross-route editor-state audit found no unnamed visible controls. About Photos now explains disabled crop editing directly on unused thumbnails, and the About visual editor's disabled arrangement controls are explicitly associated with its selection instructions.
 
 ### 3D gallery polish - follows editor completion
 

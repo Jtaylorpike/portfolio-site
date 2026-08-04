@@ -10412,6 +10412,32 @@ body[data-about-collage-open="true"] {
   outline-offset: 2px;
 }
 
+.about-editor-thumb:disabled {
+  cursor: not-allowed;
+}
+
+.about-editor-thumb:disabled img {
+  filter: grayscale(.72) brightness(.62);
+}
+
+.about-editor-thumb .about-editor-crop-unavailable {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  display: block;
+  padding: 6px 8px;
+  border: 1px solid var(--mac-ink);
+  background: var(--mac-paper);
+  color: var(--mac-ink);
+  font-family: var(--editor-chrome-font);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .about-card-crop-panel {
   padding: 8px;
   border: 1px solid var(--mac-ink);

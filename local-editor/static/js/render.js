@@ -3092,12 +3092,17 @@ function renderAboutPhotoCard(photo, index) {
   const orientation = getAboutPhotoOrientation(photo);
   const aspect = getAboutPhotoAspect(photo);
   const isActive = photo.isActive !== false;
+  const cropUnavailable = getAboutPlacementRole(photo) === "unused";
+  const cropLabel = cropUnavailable
+    ? `Crop unavailable for ${photo.title ?? photo.id}. Assign this photo to an About placement first.`
+    : `Adjust crop for ${photo.title ?? photo.id}`;
 
   return `
     <article class="about-editor-card" data-about-photo-card data-about-photo-id="${escapeHtml(photo.id)}">
-      <button class="about-editor-thumb" type="button" data-open-crop-modal="about" data-crop-image-id="${escapeHtml(photo.sourceImageId ?? "")}" data-crop-about-photo-id="${escapeHtml(photo.id)}" aria-label="Adjust crop for ${escapeHtml(photo.title ?? photo.id)}" ${getAboutPlacementRole(photo) === "unused" ? "disabled" : ""}>
+      <button class="about-editor-thumb" type="button" data-open-crop-modal="about" data-crop-image-id="${escapeHtml(photo.sourceImageId ?? "")}" data-crop-about-photo-id="${escapeHtml(photo.id)}" aria-label="${escapeHtml(cropLabel)}" ${cropUnavailable ? `disabled title="Assign this photo to an About placement before editing its crop."` : ""}>
         <img src="${escapeHtml(photo.thumbSrc ?? photo.src)}" alt="${escapeHtml(photo.alt ?? photo.title)}" loading="lazy" draggable="false" style="object-position:${escapeHtml(photo.aboutPosition ?? "50% 50%")}" />
         <span>${escapeHtml(String(index + 1).padStart(2, "0"))}</span>
+        ${cropUnavailable ? `<small class="about-editor-crop-unavailable" aria-hidden="true">Assign to a collage to edit crop</small>` : ""}
       </button>
 
       <div class="about-editor-fields">
@@ -3522,7 +3527,7 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
     </section>
 
     <div class="about-collage-modal" data-about-collage-modal hidden>
-    <section class="about-collage-workspace panel" data-about-collage-workspace data-about-preview-mode="desktop" data-preview-only="false" role="dialog" aria-modal="true" aria-label="About collage editor">
+    <section class="about-collage-workspace panel" data-about-collage-workspace data-about-preview-mode="desktop" data-preview-only="false" role="dialog" aria-modal="true" aria-label="About collage editor" tabindex="-1">
       <div class="mac-panel-titlebar">
         <strong>Visual About Collage</strong>
         <span class="about-collage-window-controls">
@@ -3548,19 +3553,19 @@ function renderAboutBackgroundPreview(state, backgroundEntries) {
         </div>
         <div class="about-collage-preview-status" data-about-collage-preview-status>
           <strong>No image selected</strong>
-          <span>Choose ✓ to apply this arrangement or × to exit without applying.</span>
+          <span id="about-collage-selection-help">Select an image to enable its arrangement controls.</span>
           <output data-about-collage-values>Position — / Size — / Rotation — / Opacity — / Layer —</output>
           <div class="about-collage-selection-actions">
-            <button type="button" data-about-collage-layer="-1" disabled>Send Backward</button>
-            <button type="button" data-about-collage-layer="1" disabled>Bring Forward</button>
-            <button type="button" data-about-collage-rotate="-1" disabled>Rotate Left</button>
-            <button type="button" data-about-collage-rotate="1" disabled>Rotate Right</button>
+            <button type="button" data-about-collage-layer="-1" aria-describedby="about-collage-selection-help" disabled>Send Backward</button>
+            <button type="button" data-about-collage-layer="1" aria-describedby="about-collage-selection-help" disabled>Bring Forward</button>
+            <button type="button" data-about-collage-rotate="-1" aria-describedby="about-collage-selection-help" disabled>Rotate Left</button>
+            <button type="button" data-about-collage-rotate="1" aria-describedby="about-collage-selection-help" disabled>Rotate Right</button>
             <label class="about-collage-opacity-field">
               <span>Opacity</span>
-              <input type="number" min="0" max="100" step="1" data-about-collage-opacity disabled />
+              <input type="number" min="0" max="100" step="1" data-about-collage-opacity aria-describedby="about-collage-selection-help" disabled />
               <span>%</span>
             </label>
-            <button type="button" data-reset-about-collage-photo disabled>Reset Selected</button>
+            <button type="button" data-reset-about-collage-photo aria-describedby="about-collage-selection-help" disabled>Reset Selected</button>
           </div>
           <span class="sr-only" data-about-collage-announcer role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
