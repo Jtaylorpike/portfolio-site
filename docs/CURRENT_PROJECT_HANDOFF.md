@@ -132,6 +132,10 @@ Implementation started:
 - Consolidate historical editor CSS passes and remove superseded rules only after visual regression checks.
 - Run production build, editor route smoke tests, desktop/mobile public smoke tests, and `git diff --check`.
 
+Implementation started:
+
+- Added a repository-owned `test:editor-contracts` suite covering complete `siteCopy` normalization, fallback preservation, combined site-settings persistence, backup contents, API payload rejection, and successful API response shape without mutating user data.
+
 ### 3D gallery polish - follows editor completion
 
 After E1-E5 are accepted, resume gallery environment work in this order:
