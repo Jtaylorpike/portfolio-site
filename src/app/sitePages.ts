@@ -5,7 +5,7 @@
 // router inserts that markup into the document, then the interaction controller
 // attaches click, keyboard, carousel, and lightbox behavior.
 
-import { galleryImages, type GalleryImage } from '../data/images';
+import { galleryImages, resolvePublicAssetPath, type GalleryImage } from '../data/images';
 import { aboutPhotos, type AboutPhoto } from '../data/aboutPhotos';
 import { aboutCopy, type AboutCopyContactLink } from '../data/aboutCopy';
 import { siteCopy } from '../data/siteCopy';
@@ -732,6 +732,7 @@ function renderAboutFloatingPhotos(): string {
 // Builds the about/contact page.
 export function renderAboutPage(): string {
   const safeContactEmail = getSafeEmailAddress(aboutCopy.contact.email);
+  const portfolioSystemDocument = resolvePublicAssetPath('/documents/building-a-portfolio-system-mockup.pdf');
   const contactEmailHref = safeContactEmail ? `mailto:${encodeURI(safeContactEmail)}` : '';
   const contactEmailLink = safeContactEmail
     ? `<a class="about-contact-email" href="${escapeHtml(contactEmailHref)}" aria-label="Email Taylor Pike at ${escapeHtml(safeContactEmail)}">${escapeHtml(safeContactEmail)}</a>`
@@ -781,6 +782,19 @@ export function renderAboutPage(): string {
           <div class="about-wide-copy-columns">
             ${renderAboutParagraphs(aboutCopy.additional.paragraphs)}
           </div>
+          <aside class="about-project-document" aria-labelledby="about-project-document-title">
+            <div>
+              <p class="eyebrow">Project Document</p>
+              <h3 id="about-project-document-title">Building a Portfolio System</h3>
+              <p>A closer look at the thinking and design behind this evolving portfolio.</p>
+            </div>
+            <a
+              href="${escapeHtml(portfolioSystemDocument)}"
+              target="_blank"
+              rel="noopener"
+              aria-label="Open Building a Portfolio System project mockup PDF in a new tab"
+            >Open PDF <span aria-hidden="true">↗</span></a>
+          </aside>
         </section>
 
         <section class="about-contact-section" aria-labelledby="about-contact-title">
