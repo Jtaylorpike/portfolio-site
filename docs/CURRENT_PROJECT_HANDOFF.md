@@ -166,7 +166,7 @@ After E1-E5 are accepted, resume gallery environment work in this order:
 Gallery polish audit started:
 
 - Confirmed Low, Medium, and High share the same architectural geometry; their differences remain renderer resolution, texture loading, optional lighting, and High-only shadows.
-- Recalibrated the architectural fill toward High's perceived brightness: adaptive Low uses a 55% lift with a warmer amber balance, and its hidden balanced tier uses a 45% lift with a near-neutral warm balance. The adjustment adds no lights or geometry and preserves every High-quality light intensity and color exactly.
+- Recalibrated the architectural fill toward High's perceived brightness: adaptive Low uses a 75% lift with a pronounced orange-amber balance, and its hidden balanced tier uses a 45% lift with a near-neutral warm balance. The adjustment adds no lights or geometry and preserves every High-quality light intensity and color exactly.
 - Simplified the visitor-facing quality control to Low and High. Low is adaptive: it always starts on the least expensive tier, may quietly promote to the internal balanced tier after sustained healthy measurements and texture readiness, and locks back to true Low if balanced performance exceeds the established budget. High remains an explicit choice; Medium is no longer manually selectable.
 - Removed the visible Alpha release badge from the gallery toolbar. The experimental loading and footer disclaimers remain the visitor-facing status notice.
 - Restricted the visible track-light fixture meshes to High quality. Low and Medium now present the brighter architectural fill without suspended light-object geometry, while High retains the complete fixture and artwork-lighting treatment.
