@@ -36,7 +36,9 @@ const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend
 
 const mediumArtworkLightLimit = 5;
 const mediumViewMargin = 1.28;
+const mediumLightRetentionDistance = 13;
 const artworkLightCache = new WeakMap<THREE.Scene, THREE.Light[]>();
+const mediumArtworkSelectionCache = new WeakMap<THREE.Scene, string[]>();
 const artworkPositionById = new Map(
   galleryArtworks.map((artwork) => [artwork.id, new THREE.Vector3(...artwork.position)])
 );
@@ -279,7 +281,7 @@ export function updateMediumArtworkLighting(
     return;
   }
 
-  const selectedArtworkIds = galleryArtworks
+  const candidates = galleryArtworks
     .map((artwork) => {
       const worldPosition = artworkPositionById.get(artwork.id);
       if (!worldPosition) {
@@ -295,17 +297,34 @@ export function updateMediumArtworkLighting(
 
       return {
         id: artwork.id,
+        distanceSquared: camera.position.distanceToSquared(worldPosition),
         score: (outsideViewZone ? 100 : 0) +
           Math.abs(projectedArtworkPosition.x) +
           Math.abs(projectedArtworkPosition.y) * 0.65 +
           camera.position.distanceToSquared(worldPosition) / 900
       };
     })
-    .filter((candidate): candidate is { id: string; score: number } => candidate !== null)
-    .sort((a, b) => a.score - b.score)
-    .slice(0, mediumArtworkLightLimit);
+    .filter((candidate): candidate is { id: string; distanceSquared: number; score: number } => candidate !== null);
 
-  const selectedIdSet = new Set(selectedArtworkIds.map((candidate) => candidate.id));
+  const candidateById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+  const retainedArtworkIds = (mediumArtworkSelectionCache.get(scene) ?? [])
+    .filter((id) => {
+      const candidate = candidateById.get(id);
+      return candidate && candidate.distanceSquared <= mediumLightRetentionDistance ** 2;
+    })
+    .slice(0, mediumArtworkLightLimit);
+  const retainedIdSet = new Set(retainedArtworkIds);
+  const selectedArtworkIds = [
+    ...retainedArtworkIds,
+    ...candidates
+      .filter((candidate) => !retainedIdSet.has(candidate.id))
+      .sort((a, b) => a.score - b.score)
+      .slice(0, mediumArtworkLightLimit - retainedArtworkIds.length)
+      .map((candidate) => candidate.id)
+  ];
+
+  mediumArtworkSelectionCache.set(scene, selectedArtworkIds);
+  const selectedIdSet = new Set(selectedArtworkIds);
   getArtworkLights(scene).forEach((light) => {
     light.visible = light.userData.galleryLighting === 'artwork-wall-wash' &&
       selectedIdSet.has(light.userData.artworkId as string);
