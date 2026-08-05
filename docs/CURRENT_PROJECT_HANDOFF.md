@@ -1,6 +1,6 @@
 # Taylor Pike Photography Portfolio - Current Project Guide
 
-Last updated: 2026-08-03 EDT (UTC-04:00)
+Last updated: 2026-08-05 EDT (UTC-04:00)
 
 This is the authoritative operational and handoff document for the repository. Historical documents, phase records, pack notes, manifests, earlier policies, and superseded handoffs are preserved verbatim in `PROJECT_HISTORY_ARCHIVE.md`. The staged portfolio alt-text dataset remains at `alt-text/portfolio-image-alt-text-20260515.json` because repository tooling consumes that path directly.
 
@@ -183,6 +183,7 @@ Gallery polish audit started:
 - Shortened base-trim segments only at true perimeter endpoints so perpendicular pieces terminate at shared corner centerlines instead of extending through one another. Opening and hallway-cut edges retain their full authored spans, and suppressed sub-minimum trim geometry is disposed immediately.
 - Rebased instanced track-light fixtures on displayed artwork records rather than generic wall blocks. Blank architectural walls no longer receive fixtures, track lengths follow frame width, and both heads aim at the actual artwork center while preserving the accepted lighting setup.
 - Audited quality-tier artwork lighting and removed an unintended eight-artwork cap from the High wall-wash pass. Medium uses a stable pool to reproduce High's rectangular wash on every currently visible or nearby artwork without changing shader light counts while moving. Medium diagnostics vary with camera position; High reports `15/15 artworks lit (23 lights)` and remains the only tier that renders spotlight shadow maps.
+- Local visual review on 2026-08-05 accepted the pooled Medium-lighting behavior as the current baseline. Camera movement runs smoothly, and artwork washes remain active while their artwork is inside the margin-expanded camera view or within the 13-meter proximity zone. Preserve the fixed light pool and the visible-or-nearby retention rule unless later measured testing demonstrates a regression.
 - Began the empty-room composition and wayfinding pass by converting the two existing blank entry guide walls into restrained, surface-applied collection markers. The central approach now directs visitors toward the Climbing left wing and Landscape right wing without adding freestanding props, changing collision geometry, or altering gallery lighting.
 - Confirmed resolved portrait, landscape, and square dimensions already drive frame rails, mat geometry, image planes, and plaque clearance checks.
 - Audited plaque readability and corrected a mismatch that stretched the canvas label across a differently proportioned physical plaque. Plaques now use a matched texture/mesh aspect, a modestly larger label surface, clearer title hierarchy, and up to 8x anisotropic filtering where supported. Existing plaque content, side preferences, and below-frame fallback placement remain intact.
@@ -258,6 +259,23 @@ After the remaining static gallery polish is visually accepted:
 - Confirm reduced-motion, hidden-tab pausing, context-loss recovery, gallery close/reopen, and texture-cache disposal still behave correctly.
 - Reduce or tier optional environment effects if the new pass materially harms cadence or memory use.
 - Record the accepted diagnostic ranges in this handoff before the final gallery checkpoint commit.
+
+### Finish-line checklist
+
+Required before the portfolio is treated as complete:
+
+1. Complete the final gallery runtime pass across Low, Medium, High, and Auto. Confirm Auto promotion remains stable, Medium retains the accepted pooled lighting behavior, High shadows and all-artwork lighting remain correct, and no tier regresses camera movement.
+2. Recheck gallery traversal and collision in the production room and the three-room/two-hallway fixture, including spawn safety, close/reopen, context recovery, keyboard/pointer controls, and touch controls.
+3. Review and intentionally commit the remaining user-authored public copy and SEO data. Do not replace or normalize reviewed wording without user approval.
+4. Run one final public-site regression pass across Home, Portfolio, About, lightbox, and the unsupported-WebGL fallback at representative desktop and compact widths. Confirm keyboard operation, 44px compact targets, metadata, asset loading, footer placement, and absence of document overflow.
+5. Merge the accepted clean `dev` state into `main`, push `main`, and verify the deployed custom domain. A successful push triggers deployment but does not by itself prove the live site is correct.
+
+Not required for the current launch:
+
+- The cancelled Living Environment concept.
+- The optional `64` presentation tier.
+- Cloudflare hosting, authentication, remote storage, crawlable non-hash routes, or a generalized standalone visual-editor platform.
+- Professional social-media links or any return of `Taylor Pike Productions` branding.
 
 ### Deferred optional concept - “64” quality tier
 
