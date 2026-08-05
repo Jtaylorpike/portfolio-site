@@ -149,6 +149,7 @@ Implementation started:
 - Added `npm run test:editor-browser` as a repeatable, non-mutating Chromium audit for all editor routes, visible control names, reduced-motion enforcement, disabled About crop explanations, About modal isolation, focus wrapping, Escape close, and focus restoration. It owns temporary port 5055 so the normal port-5000 editor can remain open and untouched.
 - Began conservative editor CSS consolidation by removing 130 lines of exact duplicate Macintosh control declarations and the superseded early reduced-motion block. All eight routes retained matching computed layout/control styles; the final reduced-motion contract now physically follows every component pass.
 - Completed the exact-duplicate portion of editor CSS consolidation by removing the remaining 13 repeated rule blocks (63 lines) across gallery maps, filters, import state, menus, and application-window surfaces. The stylesheet now reports zero byte-equivalent rule duplicates; broader cascade refactoring remains deferred unless visual regression coverage justifies it.
+- Editor E5 implementation-level closeout passed on 2026-08-05: every editor JavaScript module parsed, Flask/Python sources compiled, all 22 isolated editor contract tests passed, all 66 portfolio records validated with zero errors or warnings, production and three-room/two-hallway layouts validated, and both fixture and production Vite builds completed. E5 is implementation-complete pending the separately owned browser/viewport runtime acceptance pass.
 
 ### 3D gallery polish - follows editor completion
 
