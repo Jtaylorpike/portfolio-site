@@ -270,6 +270,12 @@ Required before the portfolio is treated as complete:
 4. Run one final public-site regression pass across Home, Portfolio, About, lightbox, and the unsupported-WebGL fallback at representative desktop and compact widths. Confirm keyboard operation, 44px compact targets, metadata, asset loading, footer placement, and absence of document overflow.
 5. Merge the accepted clean `dev` state into `main`, push `main`, and verify the deployed custom domain. A successful push triggers deployment but does not by itself prove the live site is correct.
 
+Completion checkpoint on 2026-08-05:
+
+- User direction confirms items 1-3 are accepted and complete.
+- Item 4 passed an automated Chromium regression at 1363x768 and 390x844 after restoring full 44px compact activation areas. Home, Portfolio, and About passed document rendering, horizontal-overflow, image-alt, skip-link, and footer checks. The portfolio lightbox passed persistent-close sizing, background isolation, Escape close, and focus restoration. A browser with WebGL deliberately disabled received the explicit gallery-unavailable message and traditional-portfolio link.
+- Item 5 is the only remaining launch action.
+
 Not required for the current launch:
 
 - The cancelled Living Environment concept.
