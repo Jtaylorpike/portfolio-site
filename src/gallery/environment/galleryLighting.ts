@@ -17,14 +17,31 @@ let rectAreaLightsInitialized = false;
 type QualityIntensityScale = Record<GalleryQualityTier, number>;
 
 const architecturalFillScale: QualityIntensityScale = {
-  low: 1.2,
-  balanced: 1.1,
+  low: 1.35,
+  balanced: 1.25,
   high: 1
+};
+
+const architecturalFillTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
+  low: { color: 0xffc58f, blend: 0.14 },
+  balanced: { color: 0xffd7ae, blend: 0.09 },
+  high: { color: 0xffffff, blend: 0 }
+};
+
+const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
+  low: { color: 0x8b684d, blend: 0.18 },
+  balanced: { color: 0x80634f, blend: 0.12 },
+  high: { color: 0xffffff, blend: 0 }
 };
 
 function markArchitecturalFill(light: THREE.Light) {
   light.userData.galleryLighting = 'architectural-fill';
   light.userData.baseIntensity = light.intensity;
+  light.userData.baseColor = light.color.clone();
+
+  if (light instanceof THREE.HemisphereLight) {
+    light.userData.baseGroundColor = light.groundColor.clone();
+  }
 }
 
 function ensureRectAreaLightsInitialized() {
@@ -189,9 +206,27 @@ export function applyGalleryLightingQuality(scene: THREE.Scene, tier: GalleryQua
   scene.traverse((object) => {
     if (object.userData.galleryLighting === 'architectural-fill' && object instanceof THREE.Light) {
       const baseIntensity = object.userData.baseIntensity as number | undefined;
+      const baseColor = object.userData.baseColor as THREE.Color | undefined;
 
       if (baseIntensity !== undefined) {
         object.intensity = baseIntensity * architecturalFillScale[tier];
+      }
+
+      if (baseColor) {
+        const tone = architecturalFillTone[tier];
+        object.color.copy(baseColor).lerp(new THREE.Color(tone.color), tone.blend);
+      }
+
+      if (object instanceof THREE.HemisphereLight) {
+        const baseGroundColor = object.userData.baseGroundColor as THREE.Color | undefined;
+
+        if (baseGroundColor) {
+          const groundTone = architecturalGroundTone[tier];
+          object.groundColor.copy(baseGroundColor).lerp(
+            new THREE.Color(groundTone.color),
+            groundTone.blend
+          );
+        }
       }
     }
 
