@@ -733,7 +733,7 @@ export function setupGalleryController() {
       'aria-label',
       `Gallery quality is ${modeLabel}${qualityState.mode === 'auto' ? `, currently ${tierLabel}` : ''}.`
     );
-    galleryQualitySelect.title = 'Choose gallery quality';
+    galleryQualitySelect.title = 'Choose automatic, Low, Medium, or High gallery quality';
   }
 
   function handleGalleryQualityChange() {

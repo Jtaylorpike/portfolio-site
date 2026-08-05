@@ -1,6 +1,6 @@
 # Taylor Pike Photography Portfolio - Current Project Guide
 
-Last updated: 2026-08-03 EDT (UTC-04:00)
+Last updated: 2026-08-05 EDT (UTC-04:00)
 
 This is the authoritative operational and handoff document for the repository. Historical documents, phase records, pack notes, manifests, earlier policies, and superseded handoffs are preserved verbatim in `PROJECT_HISTORY_ARCHIVE.md`. The staged portfolio alt-text dataset remains at `alt-text/portfolio-image-alt-text-20260515.json` because repository tooling consumes that path directly.
 
@@ -166,8 +166,10 @@ After E1-E5 are accepted, resume gallery environment work in this order:
 Gallery polish audit started:
 
 - Confirmed Low, Medium, and High share the same architectural geometry; their differences remain renderer resolution, texture loading, optional lighting, and High-only shadows.
-- Increased the existing architectural-fill intensities by 35% on Low and 25% on Medium, with restrained warm color blending in both tiers. The adjustment adds no lights or geometry, leaves artwork-light budgets unchanged, and preserves every High-quality light intensity and color exactly.
-- Restricted the visible track-light fixture meshes to High quality. Low and Medium now present the brighter architectural fill without suspended light-object geometry, while High retains the complete fixture and artwork-lighting treatment.
+- Recalibrated adaptive Low toward High's perceived brightness with a 75% architectural-fill lift and pronounced orange-amber balance. Medium and High use the accepted neutral architectural-light baseline.
+- The visitor-facing quality control again exposes Auto, Low, Medium, and High. Auto always begins at true Low and may promote to Medium after sustained healthy measurements and texture readiness; a failed promotion locks Auto back to Low. Every manual tier remains fixed until the visitor changes it.
+- Removed the visible Alpha release badge from the gallery toolbar. The experimental loading and footer disclaimers remain the visitor-facing status notice.
+- Low hides track fixtures and uses static architectural lighting. Medium retains High's fixtures and a fixed rectangular-light pool sized to the curated artwork set. At 10 Hz, every artwork that is inside the margin-expanded camera view or within 13 meters receives its High-style wall wash; a wash returns to the inactive pool only when the artwork is neither visible nor nearby. Pool size and light type remain constant during movement to avoid shader recompilation hitches. Medium spotlights remain disabled and it otherwise uses Low's 0.95 pixel-ratio cap, 520px preview textures, 1x environment anisotropy, and no shadows. High retains all 23 artwork lights, up to 1.5 pixel ratio, 8x environment anisotropy, 1024px artwork textures, and spotlight shadows.
 - Corrected modular perimeter trim placement so base trim sits on each room wall's visible interior face instead of being centered and mostly buried inside the wall geometry.
 - Preserved the accepted Phase 8AM High-quality intensities, colors, fixtures, and shadow policy.
 - Reviewed the supplied `three-best-practices` package and Utsubo's 100-tip performance guide against the current implementation.
@@ -180,7 +182,8 @@ Gallery polish audit started:
 - Extended world-aligned UV projection to modular ceilings, split perimeter-wall segments, and rotated display walls. Texture coordinates now follow the gallery's shared world axes across module junctions instead of resetting per mesh.
 - Shortened base-trim segments only at true perimeter endpoints so perpendicular pieces terminate at shared corner centerlines instead of extending through one another. Opening and hallway-cut edges retain their full authored spans, and suppressed sub-minimum trim geometry is disposed immediately.
 - Rebased instanced track-light fixtures on displayed artwork records rather than generic wall blocks. Blank architectural walls no longer receive fixtures, track lengths follow frame width, and both heads aim at the actual artwork center while preserving the accepted lighting setup.
-- Audited quality-tier artwork lighting and removed an unintended eight-artwork cap from the High-quality wall-wash pass. Medium retains its restrained first-eight accent spotlights, while High now adds one broad wall wash for every displayed artwork. Runtime diagnostics report lit/displayed artwork coverage and the active artwork-light count; the current 15-piece gallery should report `15/15 artworks lit (23 lights)` on High.
+- Audited quality-tier artwork lighting and removed an unintended eight-artwork cap from the High wall-wash pass. Medium uses a stable pool to reproduce High's rectangular wash on every currently visible or nearby artwork without changing shader light counts while moving. Medium diagnostics vary with camera position; High reports `15/15 artworks lit (23 lights)` and remains the only tier that renders spotlight shadow maps.
+- Local visual review on 2026-08-05 accepted the pooled Medium-lighting behavior as the current baseline. Camera movement runs smoothly, and artwork washes remain active while their artwork is inside the margin-expanded camera view or within the 13-meter proximity zone. Preserve the fixed light pool and the visible-or-nearby retention rule unless later measured testing demonstrates a regression.
 - Began the empty-room composition and wayfinding pass by converting the two existing blank entry guide walls into restrained, surface-applied collection markers. The central approach now directs visitors toward the Climbing left wing and Landscape right wing without adding freestanding props, changing collision geometry, or altering gallery lighting.
 - Confirmed resolved portrait, landscape, and square dimensions already drive frame rails, mat geometry, image planes, and plaque clearance checks.
 - Audited plaque readability and corrected a mismatch that stretched the canvas label across a differently proportioned physical plaque. Plaques now use a matched texture/mesh aspect, a modestly larger label surface, clearer title hierarchy, and up to 8x anisotropic filtering where supported. Existing plaque content, side preferences, and below-frame fallback placement remain intact.
@@ -201,7 +204,7 @@ Pre–Living Environment production smoke results on 2026-07-29:
 - Stabilized desktop pointer-lock camera movement after review found fast mouse input felt like sudden acceleration. Desktop sensitivity was reduced from `0.002` to `0.0012` radians per reported pixel, and each mouse event is capped at 64 pixels per axis to reject large browser/device spikes. Touch sensitivity and touch delta handling remain unchanged.
 - Follow-up review found visible stepping while rotating in place on Low. All 15 artwork records already had complete dimensions, ruling out focus-loaded frame reflow. Desktop mouse events now update a target yaw/pitch and the render loop approaches that target with frame-rate-independent exponential response (`24 s^-1`), smoothing irregular pointer-event timing without adding continued inertial drift. Touch look remains direct.
 - Increased desktop vertical mouse response by 3% after the smoothed motion felt slightly sluggish on the pitch axis. Horizontal response, smoothing strength, delta cap, and touch controls remain unchanged.
-- Post-input production regression at 960x600 confirmed Low at 96 calls with `0/15 artworks lit (0 lights)`, Medium at 96 calls with `8/15 artworks lit (8 lights)`, and Auto remaining locked to Low for all six one-second samples in the constrained headless environment. Close cleanup returned the canvas count to zero with no captured runtime or console errors. The previously recorded High baseline remains 96 calls with `15/15 artworks lit (23 lights)`.
+- The earlier post-input regression recorded Low at 96 calls with `0/15 artworks lit (0 lights)` and a fixed-light Medium at `8/15 artworks lit (8 lights)`. That Medium result is superseded by view-aware artwork lighting and must be remeasured while facing several representative wall groups. The recorded pre-shadow High baseline remains 96 calls with `15/15 artworks lit (23 lights)`.
 - A 390x844 touch production render opened with one canvas, exposed the touch control surface, produced no runtime or console errors, and removed the canvas while restoring the hidden overlay state on close.
 - Headless smoke testing does not replace a visual walkthrough or physical collision/traversal check on representative hardware.
 - The active production layout currently contains one room and no hallways. A separate fixture at `tests/fixtures/gallery-room-multi-module.json` now covers three connected rooms and two hallways without changing production data.
@@ -256,6 +259,29 @@ After the remaining static gallery polish is visually accepted:
 - Confirm reduced-motion, hidden-tab pausing, context-loss recovery, gallery close/reopen, and texture-cache disposal still behave correctly.
 - Reduce or tier optional environment effects if the new pass materially harms cadence or memory use.
 - Record the accepted diagnostic ranges in this handoff before the final gallery checkpoint commit.
+
+### Finish-line checklist
+
+Required before the portfolio is treated as complete:
+
+1. Complete the final gallery runtime pass across Low, Medium, High, and Auto. Confirm Auto promotion remains stable, Medium retains the accepted pooled lighting behavior, High shadows and all-artwork lighting remain correct, and no tier regresses camera movement.
+2. Recheck gallery traversal and collision in the production room and the three-room/two-hallway fixture, including spawn safety, close/reopen, context recovery, keyboard/pointer controls, and touch controls.
+3. Review and intentionally commit the remaining user-authored public copy and SEO data. Do not replace or normalize reviewed wording without user approval.
+4. Run one final public-site regression pass across Home, Portfolio, About, lightbox, and the unsupported-WebGL fallback at representative desktop and compact widths. Confirm keyboard operation, 44px compact targets, metadata, asset loading, footer placement, and absence of document overflow.
+5. Merge the accepted clean `dev` state into `main`, push `main`, and verify the deployed custom domain. A successful push triggers deployment but does not by itself prove the live site is correct.
+
+Completion checkpoint on 2026-08-05:
+
+- User direction confirms items 1-3 are accepted and complete.
+- Item 4 passed an automated Chromium regression at 1363x768 and 390x844 after restoring full 44px compact activation areas. Home, Portfolio, and About passed document rendering, horizontal-overflow, image-alt, skip-link, and footer checks. The portfolio lightbox passed persistent-close sizing, background isolation, Escape close, and focus restoration. A browser with WebGL deliberately disabled received the explicit gallery-unavailable message and traditional-portfolio link.
+- Item 5 is the only remaining launch action.
+
+Not required for the current launch:
+
+- The cancelled Living Environment concept.
+- The optional `64` presentation tier.
+- Cloudflare hosting, authentication, remote storage, crawlable non-hash routes, or a generalized standalone visual-editor platform.
+- Professional social-media links or any return of `Taylor Pike Productions` branding.
 
 ### Deferred optional concept - “64” quality tier
 
@@ -365,10 +391,10 @@ The last accepted editor, gallery, About, accessibility, metadata, and agent-gui
 
 ### Phase 8AO quality and loading
 
-- Modes: Auto, Low, Medium, and High.
-- Manual selection persists in browser local storage.
-- Auto uses local device, connection, viewport, cache-readiness, and sustained frame-time observations. No telemetry is sent.
-- Auto cannot promote from cache readiness alone; stable rendering performance is also required.
+- Visitor-facing modes: Auto, Low, Medium, and High. Medium maps to the internal balanced tier.
+- Selection persists in browser local storage.
+- Auto uses local device, connection, cache-readiness, GPU-readiness, and sustained frame-time observations. No telemetry is sent.
+- Auto cannot promote to Medium from readiness alone; stable rendering performance is also required.
 - High retains the complete Phase 8AM lighting architecture.
 - Lower tiers reduce device-pixel ratio, optional artwork lighting layers, shadows, and texture-loading aggressiveness.
 - Browser-cache warming starts after page load and an idle opportunity, or immediately after gallery-entry intent.
@@ -376,7 +402,7 @@ The last accepted editor, gallery, About, accessibility, metadata, and agent-gui
 - Artwork source textures are released from GPU memory shortly after gallery exit while browser-cached downloads remain.
 - Persistent shared environment textures are not disposed during gallery teardown.
 - Failed browser prewarming clears its attempt marker and can be retried later.
-- Auto promotion stages light visibility, renderer resolution, and High shadow activation across frame/idle boundaries.
+- Auto promotion stages Medium lighting and renderer resolution across frame boundaries. High spotlight shadows remain exclusive to explicit High.
 - High artwork texture uploads are serialized to reduce decode/upload spikes.
 - The loading overlay fades instead of toggling layout display, and its bar uses continuous linear compositor animation.
 - Deferred preview artwork textures bypass optional GPU-idle preparation so frames cannot remain blank while waiting for a large idle deadline.

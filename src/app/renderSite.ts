@@ -20,7 +20,6 @@ export function renderSite(app: HTMLElement) {
 
     <div class="gallery-overlay" id="galleryOverlay" aria-hidden="true">
       <div class="gallery-toolbar" aria-label="Gallery status and settings">
-        <span class="gallery-release-status" data-gallery-release="alpha">${escapeHtml(siteCopy.gallery.releaseStatus)}</span>
         <button class="gallery-diagnostics-toggle" id="galleryDiagnosticsToggle" type="button" aria-controls="galleryDiagnostics" aria-pressed="false">Diagnostics</button>
         <select class="gallery-quality" id="galleryQualitySelect" aria-label="Gallery quality">
           <option value="auto">Quality · Auto</option>

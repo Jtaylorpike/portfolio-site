@@ -6,7 +6,7 @@
 // asset-cache readiness, and sustained in-gallery frame timing.
 
 export type GalleryQualityMode = 'auto' | 'low' | 'balanced' | 'high';
-export type GalleryQualityTier = Exclude<GalleryQualityMode, 'auto'>;
+export type GalleryQualityTier = 'low' | 'balanced' | 'high';
 export type GalleryArtworkTexturePolicy = 'focus' | 'stream' | 'preload';
 
 export type GalleryQualitySettings = {
@@ -63,11 +63,11 @@ const qualitySettings: Record<GalleryQualityTier, GalleryQualitySettings> = {
     fullTextureLoadDelay: null
   },
   balanced: {
-    pixelRatioCap: 1.22,
+    pixelRatioCap: 0.95,
     artworkTexturePolicy: 'stream',
     initialPreviewTextureCount: 5,
     textureLoadBatchSize: 1,
-    fullTextureLoadDelay: 1100
+    fullTextureLoadDelay: null
   },
   high: {
     pixelRatioCap: 1.5,
@@ -115,8 +115,6 @@ function getAutomaticQualityCeiling(): GalleryQualityTier {
   const connection = navigatorWithHints.connection;
   const memory = navigatorWithHints.deviceMemory;
   const cores = navigator.hardwareConcurrency;
-  const devicePixelRatio = window.devicePixelRatio || 1;
-  const viewportPixels = Math.max(1, window.innerWidth * window.innerHeight * devicePixelRatio ** 2);
 
   if (
     connection?.saveData ||
@@ -128,15 +126,8 @@ function getAutomaticQualityCeiling(): GalleryQualityTier {
     return 'low';
   }
 
-  if (
-    (typeof memory !== 'number' || memory >= 8) &&
-    (typeof cores !== 'number' || cores >= 8) &&
-    devicePixelRatio <= 2.25 &&
-    viewportPixels <= 6_500_000
-  ) {
-    return 'high';
-  }
-
+  // Auto may promote only to the balanced tier. High remains
+  // an explicit visitor choice and is never selected automatically.
   return 'balanced';
 }
 
@@ -167,22 +158,13 @@ function getInitialAutomaticCeiling(
     ? tierOrder[Math.max(getTierRank(hintedCeiling), getTierRank(storedTier))]
     : hintedCeiling;
 
-  return clampTierToCeiling(evidenceTier, hardCeiling);
+  return clampTierToCeiling(clampTierToCeiling(evidenceTier, hardCeiling), 'balanced');
 }
 
-function getInitialAutomaticTier(autoCeiling: GalleryQualityTier) {
-  const storedTier = readStorage(observedTierStorageKey);
-
-  // Auto intentionally favors the lower-resolution option. A prior Low
-  // observation remains Low, while capable devices start at Medium rather
-  // than restoring or attempting High automatically.
-  if (storedTier === 'low') {
-    return 'low';
-  }
-
-  // Qualifying hardware starts at High, then Auto only steps down if the
-  // measured gallery workload proves that tier is not sustainable.
-  return autoCeiling;
+function getInitialAutomaticTier(): GalleryQualityTier {
+  // Auto always starts at the least expensive tier. Sustained runtime
+  // evidence may quietly promote it after the gallery is fully prepared.
+  return 'low';
 }
 
 const hintedAutoCeiling = getAutomaticQualityCeiling();
@@ -190,9 +172,7 @@ const hardAutoCeiling = getAutomaticQualityHardCeiling();
 const autoCeiling = getInitialAutomaticCeiling(hintedAutoCeiling, hardAutoCeiling);
 const storedMode = readStorage(qualityModeStorageKey);
 const initialMode: GalleryQualityMode = isQualityMode(storedMode) ? storedMode : 'auto';
-const initialTier = initialMode === 'auto'
-  ? getInitialAutomaticTier(autoCeiling)
-  : initialMode;
+const initialTier = initialMode === 'auto' ? getInitialAutomaticTier() : initialMode;
 
 let state: GalleryQualityState = {
   mode: initialMode,
@@ -266,9 +246,20 @@ function evaluateFrameWindow() {
     return;
   }
 
-  // Auto mode is deliberately one-way. Stable performance never increases
-  // renderer resolution, texture work, or lighting quality during a session;
-  // this prevents quality thrashing and favors the lower-cost presentation.
+  const balancedReady = getTierRank(state.cacheTier) >= getTierRank('balanced') &&
+    getTierRank(state.gpuTier) >= getTierRank('balanced');
+
+  if (
+    state.tier === 'low' &&
+    getTierRank(state.autoCeiling) >= getTierRank('balanced') &&
+    balancedReady &&
+    average <= 18.5 &&
+    p90 <= 22 &&
+    averageWork <= 8 &&
+    p90Work <= 12
+  ) {
+    setTier('balanced', true);
+  }
 }
 
 export function getGalleryQualityState(): GalleryQualityState {
@@ -310,9 +301,7 @@ export function setGalleryQualityMode(mode: GalleryQualityMode) {
 
   writeStorage(qualityModeStorageKey, mode);
 
-  const tier = mode === 'auto'
-    ? getInitialAutomaticTier(state.autoCeiling)
-    : mode;
+  const tier = mode === 'auto' ? getInitialAutomaticTier() : mode;
 
   state = { ...state, mode, tier };
   resetGalleryPerformanceSampling();

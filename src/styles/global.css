@@ -3667,6 +3667,31 @@ button:focus-visible {
   }
 }
 
+/* Final compact-route regression: preserve the established visual scale while
+   ensuring every public-page activation area reaches the 44px touch target. */
+@media (max-width: 700px) {
+  .skip-to-content,
+  .modern-brand,
+  .modern-site[data-page='home'] .hero-index-button,
+  .modern-site[data-page='about'] .about-contact-card a,
+  .modern-site[data-page='about'] .about-contact-links a {
+    min-height: 44px;
+  }
+
+  .modern-brand,
+  .modern-site[data-page='about'] .about-contact-card a,
+  .modern-site[data-page='about'] .about-contact-links a {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .modern-site[data-page='home'] .hero-index-button {
+    min-width: 44px;
+    margin-inline: -2.5px;
+  }
+
+}
+
 /* Phase 2G homepage viewport fit + portfolio header cleanup.
    Keep the hero-only home route from creating unnecessary desktop scroll,
    and remove the extra portfolio gallery CTA/red accent underline that competed
@@ -5706,16 +5731,19 @@ body.gallery-touch-enabled .gallery-close {
 }
 
 .home-hero-portfolio-link {
+  display: inline-flex;
+  align-items: center;
   min-height: 44px;
   padding-block: 12px;
   margin-block: -12px;
 }
 
 @media (max-width: 700px) {
-  .home-hero-portfolio-link {
-    min-height: 40px;
-    padding-block: 10px;
-    margin-block: -10px;
+  .home-hero-portfolio-link,
+  .modern-site[data-page='home'] .home-hero-portfolio-link {
+    min-height: 44px;
+    padding-block: 12px;
+    margin-block: -12px;
   }
 }
 
