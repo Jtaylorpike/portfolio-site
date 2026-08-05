@@ -1197,10 +1197,6 @@ input[type="checkbox"]:disabled {
   border-color: rgba(47, 93, 71, 0.28);
 }
 
-.import-card[data-import-state="warning"] {
-  border-color: rgba(138, 91, 31, 0.34);
-}
-
 .import-card[data-import-state="error"] {
   border-color: rgba(138, 42, 36, 0.42);
 }
@@ -1387,12 +1383,6 @@ button:disabled,
   text-transform: uppercase;
 }
 
-
-.gallery-curation-preview-column {
-  display: grid;
-  gap: 12px;
-  align-self: start;
-}
 
 .gallery-wall-preview {
   --preview-wall-aspect: 1.5;
@@ -1837,12 +1827,6 @@ button:disabled,
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
-}
-
-.gallery-curation-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
 }
 
 .gallery-curation-stat-card {
@@ -2586,10 +2570,6 @@ button:disabled,
 }
 
 @media (max-width: 900px) {
-  .gallery-placement-map-layout {
-    grid-template-columns: 1fr;
-  }
-
   .gallery-placement-sidebar-list {
     max-height: 220px;
   }
@@ -3267,10 +3247,6 @@ body[data-gallery-wall-dragging="true"] .gallery-placement-map-room {
     min-height: 0;
   }
 
-  .gallery-placement-map-room[data-gallery-placement-map] {
-    min-height: 440px;
-  }
-
   .gallery-placement-sidebar-list {
     max-height: 320px;
   }
@@ -3431,12 +3407,6 @@ body[data-gallery-wall-dragging="true"] .gallery-placement-map-room {
 .gallery-placement-map-marker[data-gallery-selected="true"] .gallery-placement-wall-line {
   background: rgba(10, 10, 9, 0.98) !important;
   box-shadow: 0 0 0 2px rgba(255, 253, 248, 0.95), 0 0 0 4px rgba(10, 10, 9, 0.26), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-}
-
-.gallery-placement-map-marker[data-placement-marker-collision="true"] .gallery-placement-wall-line,
-.gallery-placement-drop-preview[data-drop-collision="true"] .gallery-placement-wall-line,
-.gallery-placement-map-marker[data-placement-marker-boundary="true"] .gallery-placement-wall-line {
-  background: rgba(118, 42, 28, 0.92) !important;
 }
 
 /* Gallery map controls height fix. The previous grid container allowed the
@@ -3612,10 +3582,6 @@ body[data-gallery-wall-dragging="true"] .gallery-placement-map-room {
 }
 
 @media (max-width: 1180px) {
-  .gallery-placement-map-layout {
-    grid-template-columns: 1fr !important;
-  }
-
   .gallery-placement-map-room[data-gallery-placement-map] {
     width: min(100%, 680px) !important;
   }
@@ -5565,10 +5531,6 @@ body {
   font-size: 14px;
 }
 
-body::before {
-  display: none !important;
-}
-
 .page {
   width: min(var(--page-max), calc(100% - 28px));
   padding: 14px 0 72px;
@@ -6635,9 +6597,6 @@ input[type="checkbox"]:checked {
     justify-content: flex-start;
   }
 
-  .gallery-filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 900px) {
@@ -6948,11 +6907,6 @@ input[readonly] {
   gap: 18px;
   align-items: end;
   min-width: 0;
-}
-
-.gallery-filter-heading h4,
-.gallery-filter-heading p {
-  margin: 0;
 }
 
 .gallery-filter-heading h4 {
@@ -9714,16 +9668,6 @@ body[data-about-collage-open="true"] {
     padding-inline: 10px;
   }
 
-  .mac-menu-dropdown {
-    max-width: calc(100vw - 8px);
-    max-height: calc(100dvh - 48px);
-    overflow-y: auto;
-  }
-
-  .mac-menu-dropdown [role="menuitem"] {
-    min-height: 44px;
-  }
-
   .about-collage-workspace-heading > div:first-child {
     display: none;
   }
@@ -10542,13 +10486,6 @@ body[data-crop-modal-open="true"] {
   .crop-modal-instruction {
     display: none;
   }
-}
-
-/* The application window uses a separate plane from the desktop behind it. */
-.editor-application-window,
-.editor-application-window > .editor-workspace-shell {
-  background-color: var(--mac-application-workspace);
-  background-image: none;
 }
 
 /* Macintosh editor overhaul — integrated window navigation, slice 16. */
