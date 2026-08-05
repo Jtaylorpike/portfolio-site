@@ -18,19 +18,19 @@ type QualityIntensityScale = Record<GalleryQualityTier, number>;
 
 const architecturalFillScale: QualityIntensityScale = {
   low: 1.75,
-  balanced: 1.45,
+  balanced: 1.75,
   high: 1
 };
 
 const architecturalFillTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
   low: { color: 0xff9f54, blend: 0.3 },
-  balanced: { color: 0xffdfc2, blend: 0.05 },
+  balanced: { color: 0xff9f54, blend: 0.3 },
   high: { color: 0xffffff, blend: 0 }
 };
 
 const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
   low: { color: 0xa85f35, blend: 0.34 },
-  balanced: { color: 0x786253, blend: 0.06 },
+  balanced: { color: 0xa85f35, blend: 0.34 },
   high: { color: 0xffffff, blend: 0 }
 };
 
@@ -107,13 +107,13 @@ function addArtworkAccentSpotlight(scene: THREE.Scene, artwork: typeof galleryAr
     galleryLighting: 'artwork-accent-spot',
     artworkId: artwork.id,
     phase8U: 'readable-ceiling-artwork-presence',
-    minimumGalleryQuality: 'balanced'
+    minimumGalleryQuality: 'high'
   };
   target.userData = {
     galleryLighting: 'artwork-accent-spot-target',
     artworkId: artwork.id,
     phase8U: 'readable-ceiling-artwork-presence-target',
-    minimumGalleryQuality: 'balanced'
+    minimumGalleryQuality: 'high'
   };
 
   scene.add(target);
@@ -184,7 +184,7 @@ export function addGalleryLighting(scene: THREE.Scene) {
   // Phase 8AI keeps the Phase 8AG ceiling rake point lights removed.
   // They added runtime cost without enough visible ceiling improvement.
 
-  // Medium keeps the original restrained eight-piece accent-light budget.
+  // High keeps the original restrained eight-piece accent-light layer.
   galleryArtworks.slice(0, 8).forEach((artwork, index) => {
     addArtworkAccentSpotlight(scene, artwork, index);
   });

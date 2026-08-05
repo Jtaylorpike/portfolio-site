@@ -166,10 +166,10 @@ After E1-E5 are accepted, resume gallery environment work in this order:
 Gallery polish audit started:
 
 - Confirmed Low, Medium, and High share the same architectural geometry; their differences remain renderer resolution, texture loading, optional lighting, and High-only shadows.
-- Recalibrated the architectural fill toward High's perceived brightness: adaptive Low uses a 75% lift with a pronounced orange-amber balance, and its hidden balanced tier uses a 45% lift with a near-neutral warm balance. The adjustment adds no lights or geometry and preserves every High-quality light intensity and color exactly.
+- Recalibrated both adaptive Low tiers toward High's perceived brightness. True Low and the hidden balanced tier now share the same 75% architectural-fill lift and pronounced orange-amber balance; neither tier enables dynamic artwork accent lights. The adjustment adds no lights or geometry and preserves every High-quality light intensity and color exactly.
 - Simplified the visitor-facing quality control to Low and High. Low is adaptive: it always starts on the least expensive tier, may quietly promote to the internal balanced tier after sustained healthy measurements and texture readiness, and locks back to true Low if balanced performance exceeds the established budget. High remains an explicit choice; Medium is no longer manually selectable.
 - Removed the visible Alpha release badge from the gallery toolbar. The experimental loading and footer disclaimers remain the visitor-facing status notice.
-- Restricted the visible track-light fixture meshes to High quality. Low and Medium now present the brighter architectural fill without suspended light-object geometry, while High retains the complete fixture and artwork-lighting treatment.
+- Restricted the visible track-light fixture meshes and artwork accent lights to High quality. True Low and hidden balanced now use identical static architectural lighting without suspended light-object geometry, while High retains the complete fixture and artwork-lighting treatment.
 - Corrected modular perimeter trim placement so base trim sits on each room wall's visible interior face instead of being centered and mostly buried inside the wall geometry.
 - Preserved the accepted Phase 8AM High-quality intensities, colors, fixtures, and shadow policy.
 - Reviewed the supplied `three-best-practices` package and Utsubo's 100-tip performance guide against the current implementation.
