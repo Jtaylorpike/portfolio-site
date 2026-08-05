@@ -716,6 +716,7 @@ export function setupGalleryController() {
 
     const qualityState = getGalleryQualityState();
     const modeLabel = getGalleryQualityModeLabel(qualityState.mode);
+    const tierLabel = getGalleryQualityTierLabel(qualityState.tier);
 
     galleryQualitySelect.value = qualityState.mode;
     galleryQualitySelect.dataset.qualityTier = qualityState.tier;
@@ -724,13 +725,15 @@ export function setupGalleryController() {
     galleryQualitySelect.dataset.qualityGpuTier = qualityState.gpuTier;
     const autoOption = galleryQualitySelect.querySelector<HTMLOptionElement>('option[value="auto"]');
     if (autoOption) {
-      autoOption.textContent = 'Quality · Low';
+      autoOption.textContent = qualityState.mode === 'auto'
+        ? `Quality · Auto / ${tierLabel}`
+        : 'Quality · Auto';
     }
     galleryQualitySelect.setAttribute(
       'aria-label',
-      `Gallery quality is ${modeLabel}${qualityState.mode === 'auto' ? ', with adaptive background optimization' : ''}.`
+      `Gallery quality is ${modeLabel}${qualityState.mode === 'auto' ? `, currently ${tierLabel}` : ''}.`
     );
-    galleryQualitySelect.title = 'Choose Low adaptive or High gallery quality';
+    galleryQualitySelect.title = 'Choose automatic, Low, Medium, or High gallery quality';
   }
 
   function handleGalleryQualityChange() {

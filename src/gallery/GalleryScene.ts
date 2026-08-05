@@ -866,7 +866,7 @@ export class GalleryScene {
   private applyEnvironmentTextureFiltering(tier: GalleryQualityTier) {
     const requestedAnisotropy: Record<GalleryQualityTier, number> = {
       low: 1,
-      balanced: 4,
+      balanced: 2,
       high: 8
     };
     const anisotropy = Math.min(

@@ -150,7 +150,7 @@ function addArtworkWallWash(scene: THREE.Scene, artwork: typeof galleryArtworks[
     galleryLighting: 'artwork-wall-wash',
     artworkId: artwork.id,
     phase8U: 'readable-ceiling-wall-and-frame-wash',
-    minimumGalleryQuality: 'balanced'
+    minimumGalleryQuality: 'high'
   };
 
   scene.add(light);
