@@ -23,6 +23,7 @@ export function renderSite(app: HTMLElement) {
         <button class="gallery-diagnostics-toggle" id="galleryDiagnosticsToggle" type="button" aria-controls="galleryDiagnostics" aria-pressed="false">Diagnostics</button>
         <select class="gallery-quality" id="galleryQualitySelect" aria-label="Gallery quality">
           <option value="auto">Quality · Low</option>
+          <option value="balanced">Quality · Medium</option>
           <option value="high">Quality · High</option>
         </select>
       </div>

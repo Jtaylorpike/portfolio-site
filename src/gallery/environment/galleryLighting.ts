@@ -18,19 +18,19 @@ type QualityIntensityScale = Record<GalleryQualityTier, number>;
 
 const architecturalFillScale: QualityIntensityScale = {
   low: 1.75,
-  balanced: 1.75,
+  balanced: 1,
   high: 1
 };
 
 const architecturalFillTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
   low: { color: 0xff9f54, blend: 0.3 },
-  balanced: { color: 0xff9f54, blend: 0.3 },
+  balanced: { color: 0xffffff, blend: 0 },
   high: { color: 0xffffff, blend: 0 }
 };
 
 const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
   low: { color: 0xa85f35, blend: 0.34 },
-  balanced: { color: 0xa85f35, blend: 0.34 },
+  balanced: { color: 0xffffff, blend: 0 },
   high: { color: 0xffffff, blend: 0 }
 };
 
@@ -97,6 +97,13 @@ function addArtworkAccentSpotlight(scene: THREE.Scene, artwork: typeof galleryAr
     artwork.position[2] + normal.z * 0.9 + tangent.z * sideBias
   );
   light.target = target;
+  light.castShadow = true;
+  light.shadow.mapSize.set(512, 512);
+  light.shadow.camera.near = 0.2;
+  light.shadow.camera.far = 5.35;
+  light.shadow.bias = -0.0004;
+  light.shadow.normalBias = 0.025;
+  light.shadow.radius = 2;
   target.position.set(
     artwork.position[0],
     Math.min(galleryRoom.height - 0.85, artwork.position[1] - 0.02),
@@ -107,13 +114,13 @@ function addArtworkAccentSpotlight(scene: THREE.Scene, artwork: typeof galleryAr
     galleryLighting: 'artwork-accent-spot',
     artworkId: artwork.id,
     phase8U: 'readable-ceiling-artwork-presence',
-    minimumGalleryQuality: 'high'
+    minimumGalleryQuality: 'balanced'
   };
   target.userData = {
     galleryLighting: 'artwork-accent-spot-target',
     artworkId: artwork.id,
     phase8U: 'readable-ceiling-artwork-presence-target',
-    minimumGalleryQuality: 'high'
+    minimumGalleryQuality: 'balanced'
   };
 
   scene.add(target);
@@ -143,7 +150,7 @@ function addArtworkWallWash(scene: THREE.Scene, artwork: typeof galleryArtworks[
     galleryLighting: 'artwork-wall-wash',
     artworkId: artwork.id,
     phase8U: 'readable-ceiling-wall-and-frame-wash',
-    minimumGalleryQuality: 'high'
+    minimumGalleryQuality: 'balanced'
   };
 
   scene.add(light);
@@ -184,7 +191,7 @@ export function addGalleryLighting(scene: THREE.Scene) {
   // Phase 8AI keeps the Phase 8AG ceiling rake point lights removed.
   // They added runtime cost without enough visible ceiling improvement.
 
-  // High keeps the original restrained eight-piece accent-light layer.
+  // Medium and High share the restrained eight-piece accent-light layer.
   galleryArtworks.slice(0, 8).forEach((artwork, index) => {
     addArtworkAccentSpotlight(scene, artwork, index);
   });

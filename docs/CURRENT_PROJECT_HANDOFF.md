@@ -166,10 +166,10 @@ After E1-E5 are accepted, resume gallery environment work in this order:
 Gallery polish audit started:
 
 - Confirmed Low, Medium, and High share the same architectural geometry; their differences remain renderer resolution, texture loading, optional lighting, and High-only shadows.
-- Recalibrated both adaptive Low tiers toward High's perceived brightness. True Low and the hidden balanced tier now share the same 75% architectural-fill lift and pronounced orange-amber balance; neither tier enables dynamic artwork accent lights. The adjustment adds no lights or geometry and preserves every High-quality light intensity and color exactly.
-- Simplified the visitor-facing quality control to Low and High. Low is adaptive: it always starts on the least expensive tier, may quietly promote to the internal balanced tier after sustained healthy measurements and texture readiness, and locks back to true Low if balanced performance exceeds the established budget. High remains an explicit choice; Medium is no longer manually selectable.
+- Recalibrated adaptive Low toward High's perceived brightness with a 75% architectural-fill lift and pronounced orange-amber balance. Medium and High use the accepted neutral architectural-light baseline.
+- The visitor-facing quality control exposes Low, Medium, and High. Low remains adaptive and may quietly promote to the same internal balanced tier represented by Medium after sustained healthy measurements and texture readiness; a failed adaptive promotion locks back to true Low. Explicit Medium remains fixed until the visitor changes it.
 - Removed the visible Alpha release badge from the gallery toolbar. The experimental loading and footer disclaimers remain the visitor-facing status notice.
-- Restricted the visible track-light fixture meshes and artwork accent lights to High quality. True Low and hidden balanced now use identical static architectural lighting without suspended light-object geometry, while High retains the complete fixture and artwork-lighting treatment.
+- Low hides track fixtures and uses static architectural lighting. Medium and High share the complete fixture, eight-spotlight accent, and fifteen-wall-wash presentation. Medium disables shadow rendering and retains preview-resolution artwork textures; High enables spotlight shadows and promotes artwork to the 1024px texture rendition.
 - Corrected modular perimeter trim placement so base trim sits on each room wall's visible interior face instead of being centered and mostly buried inside the wall geometry.
 - Preserved the accepted Phase 8AM High-quality intensities, colors, fixtures, and shadow policy.
 - Reviewed the supplied `three-best-practices` package and Utsubo's 100-tip performance guide against the current implementation.
@@ -182,7 +182,7 @@ Gallery polish audit started:
 - Extended world-aligned UV projection to modular ceilings, split perimeter-wall segments, and rotated display walls. Texture coordinates now follow the gallery's shared world axes across module junctions instead of resetting per mesh.
 - Shortened base-trim segments only at true perimeter endpoints so perpendicular pieces terminate at shared corner centerlines instead of extending through one another. Opening and hallway-cut edges retain their full authored spans, and suppressed sub-minimum trim geometry is disposed immediately.
 - Rebased instanced track-light fixtures on displayed artwork records rather than generic wall blocks. Blank architectural walls no longer receive fixtures, track lengths follow frame width, and both heads aim at the actual artwork center while preserving the accepted lighting setup.
-- Audited quality-tier artwork lighting and removed an unintended eight-artwork cap from the High-quality wall-wash pass. Medium retains its restrained first-eight accent spotlights, while High now adds one broad wall wash for every displayed artwork. Runtime diagnostics report lit/displayed artwork coverage and the active artwork-light count; the current 15-piece gallery should report `15/15 artworks lit (23 lights)` on High.
+- Audited quality-tier artwork lighting and removed an unintended eight-artwork cap from the wall-wash pass. Medium and High each use eight restrained accent spotlights plus one broad wall wash for every displayed artwork. Runtime diagnostics should report `15/15 artworks lit (23 lights)` on both tiers; only High renders the spotlight shadow maps.
 - Began the empty-room composition and wayfinding pass by converting the two existing blank entry guide walls into restrained, surface-applied collection markers. The central approach now directs visitors toward the Climbing left wing and Landscape right wing without adding freestanding props, changing collision geometry, or altering gallery lighting.
 - Confirmed resolved portrait, landscape, and square dimensions already drive frame rails, mat geometry, image planes, and plaque clearance checks.
 - Audited plaque readability and corrected a mismatch that stretched the canvas label across a differently proportioned physical plaque. Plaques now use a matched texture/mesh aspect, a modestly larger label surface, clearer title hierarchy, and up to 8x anisotropic filtering where supported. Existing plaque content, side preferences, and below-frame fallback placement remain intact.
@@ -203,7 +203,7 @@ Pre–Living Environment production smoke results on 2026-07-29:
 - Stabilized desktop pointer-lock camera movement after review found fast mouse input felt like sudden acceleration. Desktop sensitivity was reduced from `0.002` to `0.0012` radians per reported pixel, and each mouse event is capped at 64 pixels per axis to reject large browser/device spikes. Touch sensitivity and touch delta handling remain unchanged.
 - Follow-up review found visible stepping while rotating in place on Low. All 15 artwork records already had complete dimensions, ruling out focus-loaded frame reflow. Desktop mouse events now update a target yaw/pitch and the render loop approaches that target with frame-rate-independent exponential response (`24 s^-1`), smoothing irregular pointer-event timing without adding continued inertial drift. Touch look remains direct.
 - Increased desktop vertical mouse response by 3% after the smoothed motion felt slightly sluggish on the pitch axis. Horizontal response, smoothing strength, delta cap, and touch controls remain unchanged.
-- Post-input production regression at 960x600 confirmed Low at 96 calls with `0/15 artworks lit (0 lights)`, Medium at 96 calls with `8/15 artworks lit (8 lights)`, and Auto remaining locked to Low for all six one-second samples in the constrained headless environment. Close cleanup returned the canvas count to zero with no captured runtime or console errors. The previously recorded High baseline remains 96 calls with `15/15 artworks lit (23 lights)`.
+- The earlier post-input regression recorded Low at 96 calls with `0/15 artworks lit (0 lights)` and the former Medium at `8/15 artworks lit (8 lights)`. That Medium result is superseded by the new High-lighting/no-shadow Medium tier and must be remeasured during final validation. The recorded High baseline remains 96 calls with `15/15 artworks lit (23 lights)`.
 - A 390x844 touch production render opened with one canvas, exposed the touch control surface, produced no runtime or console errors, and removed the canvas while restoring the hidden overlay state on close.
 - Headless smoke testing does not replace a visual walkthrough or physical collision/traversal check on representative hardware.
 - The active production layout currently contains one room and no hallways. A separate fixture at `tests/fixtures/gallery-room-multi-module.json` now covers three connected rooms and two hallways without changing production data.
@@ -367,8 +367,8 @@ The last accepted editor, gallery, About, accessibility, metadata, and agent-gui
 
 ### Phase 8AO quality and loading
 
-- Visitor-facing modes: adaptive Low and explicit High. The internal balanced tier is not manually selectable.
-- Selection persists in browser local storage; legacy Auto, Low, or Medium preferences normalize to adaptive Low.
+- Visitor-facing modes: adaptive Low, explicit Medium, and explicit High. Medium maps to the internal balanced tier.
+- Selection persists in browser local storage; legacy Auto or Low preferences normalize to adaptive Low.
 - Adaptive Low uses local device, connection, cache-readiness, GPU-readiness, and sustained frame-time observations. No telemetry is sent.
 - Adaptive Low cannot promote to balanced from readiness alone; stable rendering performance is also required.
 - High retains the complete Phase 8AM lighting architecture.
@@ -378,12 +378,12 @@ The last accepted editor, gallery, About, accessibility, metadata, and agent-gui
 - Artwork source textures are released from GPU memory shortly after gallery exit while browser-cached downloads remain.
 - Persistent shared environment textures are not disposed during gallery teardown.
 - Failed browser prewarming clears its attempt marker and can be retried later.
-- Adaptive promotion stages balanced-tier light visibility and renderer resolution across frame boundaries. High shadows remain exclusive to explicit High.
+- Adaptive promotion stages Medium lighting and renderer resolution across frame boundaries. High spotlight shadows remain exclusive to explicit High.
 - High artwork texture uploads are serialized to reduce decode/upload spikes.
 - The loading overlay fades instead of toggling layout display, and its bar uses continuous linear compositor animation.
 - Deferred preview artwork textures bypass optional GPU-idle preparation so frames cannot remain blank while waiting for a large idle deadline.
 - Automatic demotion avoids a duplicate drawing-buffer resize and stages shadows, optional lighting, and resolution across separate frames.
-- Quality is selected directly from a Low/High menu rather than requiring cyclic traversal.
+- Quality is selected directly from a Low/Medium/High menu rather than requiring cyclic traversal.
 
 ## Validation baseline - 2026-07-22
 
