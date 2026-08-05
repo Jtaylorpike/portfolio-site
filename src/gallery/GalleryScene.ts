@@ -52,7 +52,11 @@ import {
   createTrackLightHousingMaterial,
   createTrackLightLensMaterial
 } from './environment/galleryMaterials';
-import { addGalleryLighting, applyGalleryLightingQuality } from './environment/galleryLighting';
+import {
+  addGalleryLighting,
+  applyGalleryLightingQuality,
+  updateMediumArtworkLighting
+} from './environment/galleryLighting';
 import {
   getGalleryQualitySettings,
   getGalleryQualityState,
@@ -145,6 +149,7 @@ export class GalleryScene {
   private inputMode: GalleryInputMode;
   private unsubscribeFromTextureUpdates: (() => void) | null = null;
   private qualityTransitionId = 0;
+  private lastMediumLightingUpdate = 0;
   private framedTextures = new Set<THREE.Texture>();
   private pendingTextureUpdates = new Map<string, THREE.Texture>();
   private texturePreparationScheduled = false;
@@ -866,7 +871,7 @@ export class GalleryScene {
   private applyEnvironmentTextureFiltering(tier: GalleryQualityTier) {
     const requestedAnisotropy: Record<GalleryQualityTier, number> = {
       low: 1,
-      balanced: 2,
+      balanced: 1,
       high: 8
     };
     const anisotropy = Math.min(
@@ -2222,6 +2227,14 @@ export class GalleryScene {
     if (!this.contextLost) {
       this.lookController.update(delta);
       this.movementController.update(this.camera, this.lookController.getYaw(), delta);
+      if (
+        this.qualityTier === 'balanced' &&
+        typeof timestamp === 'number' &&
+        timestamp - this.lastMediumLightingUpdate >= 100
+      ) {
+        updateMediumArtworkLighting(this.scene, this.camera, this.qualityTier);
+        this.lastMediumLightingUpdate = timestamp;
+      }
       this.updateArtworkFocus();
       this.renderer.render(this.scene, this.camera);
     }

@@ -63,7 +63,7 @@ const qualitySettings: Record<GalleryQualityTier, GalleryQualitySettings> = {
     fullTextureLoadDelay: null
   },
   balanced: {
-    pixelRatioCap: 1.05,
+    pixelRatioCap: 0.95,
     artworkTexturePolicy: 'stream',
     initialPreviewTextureCount: 5,
     textureLoadBatchSize: 1,
