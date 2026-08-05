@@ -772,7 +772,7 @@ export class GalleryScene {
       mesh.userData = {
         gallerySurface: 'track-light-fixture',
         fixtureSource: 'displayed-artwork',
-        minimumGalleryQuality: 'low'
+        minimumGalleryQuality: 'high'
       };
       mesh.instanceMatrix.needsUpdate = true;
       this.scene.add(mesh);

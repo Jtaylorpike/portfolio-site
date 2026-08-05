@@ -167,6 +167,7 @@ Gallery polish audit started:
 
 - Confirmed Low, Medium, and High share the same architectural geometry; their differences remain renderer resolution, texture loading, optional lighting, and High-only shadows.
 - Increased the existing architectural-fill intensities by 35% on Low and 25% on Medium, with restrained warm color blending in both tiers. The adjustment adds no lights or geometry, leaves artwork-light budgets unchanged, and preserves every High-quality light intensity and color exactly.
+- Restricted the visible track-light fixture meshes to High quality. Low and Medium now present the brighter architectural fill without suspended light-object geometry, while High retains the complete fixture and artwork-lighting treatment.
 - Corrected modular perimeter trim placement so base trim sits on each room wall's visible interior face instead of being centered and mostly buried inside the wall geometry.
 - Preserved the accepted Phase 8AM High-quality intensities, colors, fixtures, and shadow policy.
 - Reviewed the supplied `three-best-practices` package and Utsubo's 100-tip performance guide against the current implementation.
