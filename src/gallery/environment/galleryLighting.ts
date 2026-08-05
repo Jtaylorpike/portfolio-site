@@ -287,18 +287,16 @@ export function updateMediumArtworkLighting(
       }
 
       projectedArtworkPosition.copy(worldPosition).project(camera);
-      if (
+      const outsideViewZone =
         projectedArtworkPosition.z < -1 ||
         projectedArtworkPosition.z > 1 ||
         Math.abs(projectedArtworkPosition.x) > mediumViewMargin ||
-        Math.abs(projectedArtworkPosition.y) > mediumViewMargin
-      ) {
-        return null;
-      }
+        Math.abs(projectedArtworkPosition.y) > mediumViewMargin;
 
       return {
         id: artwork.id,
-        score: Math.abs(projectedArtworkPosition.x) +
+        score: (outsideViewZone ? 100 : 0) +
+          Math.abs(projectedArtworkPosition.x) +
           Math.abs(projectedArtworkPosition.y) * 0.65 +
           camera.position.distanceToSquared(worldPosition) / 900
       };
@@ -309,6 +307,7 @@ export function updateMediumArtworkLighting(
 
   const selectedIdSet = new Set(selectedArtworkIds.map((candidate) => candidate.id));
   getArtworkLights(scene).forEach((light) => {
-    light.visible = selectedIdSet.has(light.userData.artworkId as string);
+    light.visible = light.userData.galleryLighting === 'artwork-wall-wash' &&
+      selectedIdSet.has(light.userData.artworkId as string);
   });
 }
