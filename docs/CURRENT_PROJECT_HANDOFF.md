@@ -166,7 +166,9 @@ After E1-E5 are accepted, resume gallery environment work in this order:
 Gallery polish audit started:
 
 - Confirmed Low, Medium, and High share the same architectural geometry; their differences remain renderer resolution, texture loading, optional lighting, and High-only shadows.
-- Increased the existing architectural-fill intensities by 35% on Low and 25% on Medium, with restrained warm color blending in both tiers. The adjustment adds no lights or geometry, leaves artwork-light budgets unchanged, and preserves every High-quality light intensity and color exactly.
+- Recalibrated the architectural fill toward High's perceived brightness: adaptive Low uses a 55% lift with a warmer amber balance, and its hidden balanced tier uses a 45% lift with a near-neutral warm balance. The adjustment adds no lights or geometry and preserves every High-quality light intensity and color exactly.
+- Simplified the visitor-facing quality control to Low and High. Low is adaptive: it always starts on the least expensive tier, may quietly promote to the internal balanced tier after sustained healthy measurements and texture readiness, and locks back to true Low if balanced performance exceeds the established budget. High remains an explicit choice; Medium is no longer manually selectable.
+- Removed the visible Alpha release badge from the gallery toolbar. The experimental loading and footer disclaimers remain the visitor-facing status notice.
 - Restricted the visible track-light fixture meshes to High quality. Low and Medium now present the brighter architectural fill without suspended light-object geometry, while High retains the complete fixture and artwork-lighting treatment.
 - Corrected modular perimeter trim placement so base trim sits on each room wall's visible interior face instead of being centered and mostly buried inside the wall geometry.
 - Preserved the accepted Phase 8AM High-quality intensities, colors, fixtures, and shadow policy.
@@ -365,10 +367,10 @@ The last accepted editor, gallery, About, accessibility, metadata, and agent-gui
 
 ### Phase 8AO quality and loading
 
-- Modes: Auto, Low, Medium, and High.
-- Manual selection persists in browser local storage.
-- Auto uses local device, connection, viewport, cache-readiness, and sustained frame-time observations. No telemetry is sent.
-- Auto cannot promote from cache readiness alone; stable rendering performance is also required.
+- Visitor-facing modes: adaptive Low and explicit High. The internal balanced tier is not manually selectable.
+- Selection persists in browser local storage; legacy Auto, Low, or Medium preferences normalize to adaptive Low.
+- Adaptive Low uses local device, connection, cache-readiness, GPU-readiness, and sustained frame-time observations. No telemetry is sent.
+- Adaptive Low cannot promote to balanced from readiness alone; stable rendering performance is also required.
 - High retains the complete Phase 8AM lighting architecture.
 - Lower tiers reduce device-pixel ratio, optional artwork lighting layers, shadows, and texture-loading aggressiveness.
 - Browser-cache warming starts after page load and an idle opportunity, or immediately after gallery-entry intent.
@@ -376,12 +378,12 @@ The last accepted editor, gallery, About, accessibility, metadata, and agent-gui
 - Artwork source textures are released from GPU memory shortly after gallery exit while browser-cached downloads remain.
 - Persistent shared environment textures are not disposed during gallery teardown.
 - Failed browser prewarming clears its attempt marker and can be retried later.
-- Auto promotion stages light visibility, renderer resolution, and High shadow activation across frame/idle boundaries.
+- Adaptive promotion stages balanced-tier light visibility and renderer resolution across frame boundaries. High shadows remain exclusive to explicit High.
 - High artwork texture uploads are serialized to reduce decode/upload spikes.
 - The loading overlay fades instead of toggling layout display, and its bar uses continuous linear compositor animation.
 - Deferred preview artwork textures bypass optional GPU-idle preparation so frames cannot remain blank while waiting for a large idle deadline.
 - Automatic demotion avoids a duplicate drawing-buffer resize and stages shadows, optional lighting, and resolution across separate frames.
-- Quality is selected directly from an Auto/Low/Medium/High menu rather than requiring cyclic traversal.
+- Quality is selected directly from a Low/High menu rather than requiring cyclic traversal.
 
 ## Validation baseline - 2026-07-22
 

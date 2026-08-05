@@ -17,20 +17,20 @@ let rectAreaLightsInitialized = false;
 type QualityIntensityScale = Record<GalleryQualityTier, number>;
 
 const architecturalFillScale: QualityIntensityScale = {
-  low: 1.35,
-  balanced: 1.25,
+  low: 1.55,
+  balanced: 1.45,
   high: 1
 };
 
 const architecturalFillTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
-  low: { color: 0xffc58f, blend: 0.14 },
-  balanced: { color: 0xffd7ae, blend: 0.09 },
+  low: { color: 0xffb873, blend: 0.2 },
+  balanced: { color: 0xffdfc2, blend: 0.05 },
   high: { color: 0xffffff, blend: 0 }
 };
 
 const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
-  low: { color: 0x8b684d, blend: 0.18 },
-  balanced: { color: 0x80634f, blend: 0.12 },
+  low: { color: 0x9a6844, blend: 0.24 },
+  balanced: { color: 0x786253, blend: 0.06 },
   high: { color: 0xffffff, blend: 0 }
 };
 
