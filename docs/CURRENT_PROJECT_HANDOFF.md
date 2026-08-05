@@ -161,8 +161,7 @@ After E1-E5 are accepted, resume gallery environment work in this order:
 4. Improve empty-room composition and wayfinding without adding game-like props.
 5. Tune artwork presentation and plaque readability while preserving accepted curation.
 6. Validate collision, traversal, loading, Auto quality, diagnostics, touch controls, and close/reopen behavior.
-7. Complete the gallery's final feature phase with the deferred Living Environment pass described below. It begins only after the current visual, interaction, and lifecycle checks are accepted.
-8. Run the required post-environment performance validation across Low, Medium, High, and Auto before the gallery is considered complete.
+7. Run final performance validation across Low, Medium, High, and Auto before the gallery is considered complete.
 
 Gallery polish audit started:
 
@@ -209,11 +208,11 @@ Pre–Living Environment production smoke results on 2026-07-29:
 - The fixture currently validates the shared data/topology contract. A future browser-render fixture pass should supplement it before shipping a real multi-room production layout.
 - Added a fixture-only Vite build that substitutes the three-room/two-hallway JSON without modifying production data. A static 1440x900 browser smoke pass confirmed the runtime rendered `3 rooms + 2 halls`, created one canvas, closed back to zero canvases, and produced no captured runtime or console errors.
 
-### Final gallery phase - Living Environment
+### Cancelled gallery concept - Living Environment
 
-The previously deferred “time-aware window environment” is now defined more broadly as the final Living Environment pass. Its purpose is to make the gallery feel inhabited by a changing world without filling it with props, game-like effects, or movement that competes with the photographs.
+The Living Environment pass, including time-aware ambience and exterior movement, was cancelled by user direction on 2026-08-05. Do not continue or revive this concept unless the user explicitly requests it. The accepted static gallery environment remains the target.
 
-Planned scope:
+Earlier planning notes retained for context only:
 
 - Use the visitor's local browser time to select restrained dawn, day, dusk, and night environment states. This remains local-only: no location, weather service, account, telemetry, or network lookup is required.
 - The shallow pyramidal/hipped glass-roof prototype was reviewed and rejected. Rooms retain their original flat ceilings, and this direction should not be revisited unless explicitly requested.
@@ -225,11 +224,11 @@ Planned scope:
 - Scale the effect by quality tier: Low receives a static time-appropriate state, Medium receives restrained transitions, and High may include the full exterior-light treatment only if diagnostics remain healthy.
 - Preserve a deterministic fallback state when local time cannot be read or when automatic quality reduces the effect.
 
-Foundation implemented:
+Existing local-only foundation:
 
 - A local-only dawn/day/dusk/night resolver now derives the environment state from the visitor's browser clock, with deterministic hour bands and a noon fallback.
 - Diagnostics now includes a persistent Local time/Dawn/Day/Dusk/Night preview selector and reports whether the resolved state is automatic or manually overridden.
-- The resolver was introduced independently before the first visual environment treatment so its state could be validated without conflating it with geometry or lighting changes.
+- The resolver was introduced independently before the first visual environment treatment. It may remain as dormant diagnostics infrastructure, but no additional Living Environment behavior should be built around it.
 
 Reviewed visual prototype:
 
@@ -243,16 +242,16 @@ Acceptance boundaries:
 - The feature must not cause Auto quality oscillation or introduce an ongoing network dependency.
 - Existing accepted gallery lighting is the reference baseline; the Living Environment pass supplements architectural ambience rather than replacing the artwork-lighting system.
 - Avoid real-time refraction, dynamic cubemaps, and mirror-like roof reflections. Low should use a static sky-colored treatment; Medium may add restrained time-state color; High may add directional exterior light or extremely slow sky motion only if the diagnostics baseline holds.
-- This is the last feature phase. It starts after the current room walkthrough and Low/Medium/High regression checks, and it is followed by the required post-environment performance validation.
+- These boundaries are historical and no longer define planned implementation work.
 
-### Required post-environment performance validation
+### Required final gallery performance validation
 
-The Living Environment pass is not the end of technical validation. After it is visually accepted:
+After the remaining static gallery polish is visually accepted:
 
 - Recheck Low, Medium, High, and Auto on representative desktop and touch hardware.
-- Confirm the time-aware environment does not reintroduce Auto-quality oscillation.
-- Compare frame cadence, renderer work time, draw calls, triangles, geometry count, texture count, and active light count against the pre-environment baseline.
-- Validate every dawn/day/dusk/night state, including High-quality shadows and all-artwork lighting coverage.
+- Confirm Auto quality does not oscillate.
+- Compare frame cadence, renderer work time, draw calls, triangles, geometry count, texture count, and active light count against the accepted static baseline.
+- Validate High-quality shadows and all-artwork lighting coverage.
 - Confirm reduced-motion, hidden-tab pausing, context-loss recovery, gallery close/reopen, and texture-cache disposal still behave correctly.
 - Reduce or tier optional environment effects if the new pass materially harms cadence or memory use.
 - Record the accepted diagnostic ranges in this handoff before the final gallery checkpoint commit.
@@ -267,7 +266,7 @@ An optional future experiment may add a manually selected `64` tier that restyle
 - Preserve readable controls, plaques, navigation, collision, and artwork metadata even when the visual treatment is deliberately coarse.
 - Avoid downloading both normal and `64` texture sets unless the visitor selects the mode.
 - Keep the mode isolated behind the existing texture/material boundary so it does not fork gallery movement, architecture, lighting logic, or editor data.
-- Prototype it only after the Living Environment and required post-environment performance validation are complete, and retain it only if its memory and loading behavior remain acceptable.
+- Prototype it only after the required final gallery performance validation is complete, and retain it only if its memory and loading behavior remain acceptable.
 
 Three.js practices audit priorities:
 
@@ -306,7 +305,7 @@ Phase 8AN surface hierarchy and Phase 8AO adaptive quality are implemented and a
 
 Phase 9A launch-readiness QA is active. Home, Portfolio, and About passed desktop/mobile production rendering, metadata, asset-response, skip-link, image-alt, runtime-error, and overflow checks. The About page now includes a third data-backed copy section; its temporary filler remains intentionally user-editable through the local editor.
 
-Final launch closure is deferred by user direction while gallery development continues. The remaining gallery sequence ends with the Living Environment feature pass followed by a required performance-validation gate. The optional `64` texture tier remains a separate post-completion experiment.
+Final launch closure is deferred by user direction while gallery development continues. The remaining gallery sequence ends with static-environment polish followed by a required performance-validation gate. The Living Environment concept was cancelled, and the optional `64` texture tier remains a separate post-completion experiment.
 
 Auto quality now reassesses sustained performance using both refresh cadence and measured gallery work. Stable 60 Hz rendering can promote, conservative device hints may be overridden by repeated real performance, and Save-Data/slow-network hints remain hard limits. Artwork textures present before scene subscription are now included in GPU-readiness accounting so cached initial textures cannot leave Auto permanently blocked at Low.
 
