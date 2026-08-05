@@ -34,11 +34,10 @@ const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend
   high: { color: 0xffffff, blend: 0 }
 };
 
-const mediumArtworkLightLimit = 5;
+const mediumArtworkLightPoolSize = galleryArtworks.length;
 const mediumViewMargin = 1.28;
-const mediumLightRetentionDistance = 13;
-const artworkLightCache = new WeakMap<THREE.Scene, THREE.Light[]>();
-const mediumArtworkSelectionCache = new WeakMap<THREE.Scene, string[]>();
+const mediumNearbyDistance = 13;
+const mediumArtworkLightPoolCache = new WeakMap<THREE.Scene, THREE.RectAreaLight[]>();
 const artworkPositionById = new Map(
   galleryArtworks.map((artwork) => [artwork.id, new THREE.Vector3(...artwork.position)])
 );
@@ -124,13 +123,13 @@ function addArtworkAccentSpotlight(scene: THREE.Scene, artwork: typeof galleryAr
     galleryLighting: 'artwork-accent-spot',
     artworkId: artwork.id,
     phase8U: 'readable-ceiling-artwork-presence',
-    minimumGalleryQuality: 'balanced'
+    minimumGalleryQuality: 'high'
   };
   target.userData = {
     galleryLighting: 'artwork-accent-spot-target',
     artworkId: artwork.id,
     phase8U: 'readable-ceiling-artwork-presence-target',
-    minimumGalleryQuality: 'balanced'
+    minimumGalleryQuality: 'high'
   };
 
   scene.add(target);
@@ -138,13 +137,29 @@ function addArtworkAccentSpotlight(scene: THREE.Scene, artwork: typeof galleryAr
 }
 
 function addArtworkWallWash(scene: THREE.Scene, artwork: typeof galleryArtworks[number]) {
-  const normal = new THREE.Vector3(Math.sin(artwork.rotationY), 0, Math.cos(artwork.rotationY));
   const light = new THREE.RectAreaLight(
     0xffd2ad,
-    getArtworkAreaIntensity(artwork) * 0.9,
-    Math.max(1.35, artwork.width * 1.1),
-    Math.max(0.8, artwork.height * 0.52)
+    0,
+    1,
+    1
   );
+
+  configureArtworkWallWash(light, artwork);
+  light.userData.minimumGalleryQuality = 'high';
+  light.userData.phase8U = 'readable-ceiling-wall-and-frame-wash';
+
+  scene.add(light);
+}
+
+function configureArtworkWallWash(
+  light: THREE.RectAreaLight,
+  artwork: typeof galleryArtworks[number]
+) {
+  const normal = new THREE.Vector3(Math.sin(artwork.rotationY), 0, Math.cos(artwork.rotationY));
+
+  light.intensity = getArtworkAreaIntensity(artwork) * 0.9;
+  light.width = Math.max(1.35, artwork.width * 1.1);
+  light.height = Math.max(0.8, artwork.height * 0.52);
 
   light.position.set(
     artwork.position[0] + normal.x * 0.78,
@@ -158,12 +173,24 @@ function addArtworkWallWash(scene: THREE.Scene, artwork: typeof galleryArtworks[
   );
   light.userData = {
     galleryLighting: 'artwork-wall-wash',
-    artworkId: artwork.id,
-    phase8U: 'readable-ceiling-wall-and-frame-wash',
-    minimumGalleryQuality: 'balanced'
+    artworkId: artwork.id
   };
+}
 
-  scene.add(light);
+function addMediumArtworkLightPool(scene: THREE.Scene) {
+  const pool = Array.from({ length: mediumArtworkLightPoolSize }, (_, index) => {
+    const light = new THREE.RectAreaLight(0xffd2ad, 0, 1, 1);
+    light.userData = {
+      galleryLighting: 'medium-artwork-wall-wash',
+      mediumPoolIndex: index,
+      minimumGalleryQuality: 'balanced',
+      maximumGalleryQuality: 'balanced'
+    };
+    scene.add(light);
+    return light;
+  });
+
+  mediumArtworkLightPoolCache.set(scene, pool);
 }
 
 export function addGalleryLighting(scene: THREE.Scene) {
@@ -210,6 +237,8 @@ export function addGalleryLighting(scene: THREE.Scene) {
   galleryArtworks.forEach((artwork) => {
     addArtworkWallWash(scene, artwork);
   });
+
+  addMediumArtworkLightPool(scene);
 }
 
 
@@ -248,28 +277,17 @@ export function applyGalleryLightingQuality(scene: THREE.Scene, tier: GalleryQua
     }
 
     const minimumQuality = object.userData.minimumGalleryQuality as GalleryQualityTier | undefined;
+    const maximumQuality = object.userData.maximumGalleryQuality as GalleryQualityTier | undefined;
 
-    if (minimumQuality) {
-      object.visible = galleryQualityRank[tier] >= galleryQualityRank[minimumQuality];
+    if (minimumQuality || maximumQuality) {
+      const meetsMinimum = !minimumQuality ||
+        galleryQualityRank[tier] >= galleryQualityRank[minimumQuality];
+      const meetsMaximum = !maximumQuality ||
+        galleryQualityRank[tier] <= galleryQualityRank[maximumQuality];
+      object.visible = meetsMinimum && meetsMaximum;
     }
 
   });
-}
-
-function getArtworkLights(scene: THREE.Scene) {
-  const cachedLights = artworkLightCache.get(scene);
-  if (cachedLights) {
-    return cachedLights;
-  }
-
-  const lights: THREE.Light[] = [];
-  scene.traverse((object) => {
-    if (object instanceof THREE.Light && object.userData.artworkId) {
-      lights.push(object);
-    }
-  });
-  artworkLightCache.set(scene, lights);
-  return lights;
 }
 
 export function updateMediumArtworkLighting(
@@ -289,44 +307,42 @@ export function updateMediumArtworkLighting(
       }
 
       projectedArtworkPosition.copy(worldPosition).project(camera);
-      const outsideViewZone =
-        projectedArtworkPosition.z < -1 ||
-        projectedArtworkPosition.z > 1 ||
-        Math.abs(projectedArtworkPosition.x) > mediumViewMargin ||
-        Math.abs(projectedArtworkPosition.y) > mediumViewMargin;
+      const distanceSquared = camera.position.distanceToSquared(worldPosition);
+      const visible =
+        projectedArtworkPosition.z >= -1 &&
+        projectedArtworkPosition.z <= 1 &&
+        Math.abs(projectedArtworkPosition.x) <= mediumViewMargin &&
+        Math.abs(projectedArtworkPosition.y) <= mediumViewMargin;
+      const nearby = distanceSquared <= mediumNearbyDistance ** 2;
+
+      if (!visible && !nearby) {
+        return null;
+      }
 
       return {
-        id: artwork.id,
-        distanceSquared: camera.position.distanceToSquared(worldPosition),
-        score: (outsideViewZone ? 100 : 0) +
+        artwork,
+        score: (visible ? 0 : 10) +
           Math.abs(projectedArtworkPosition.x) +
           Math.abs(projectedArtworkPosition.y) * 0.65 +
-          camera.position.distanceToSquared(worldPosition) / 900
+          distanceSquared / 900
       };
     })
-    .filter((candidate): candidate is { id: string; distanceSquared: number; score: number } => candidate !== null);
+    .filter((candidate): candidate is { artwork: typeof galleryArtworks[number]; score: number } => candidate !== null)
+    .sort((a, b) => a.score - b.score);
 
-  const candidateById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
-  const retainedArtworkIds = (mediumArtworkSelectionCache.get(scene) ?? [])
-    .filter((id) => {
-      const candidate = candidateById.get(id);
-      return candidate && candidate.distanceSquared <= mediumLightRetentionDistance ** 2;
-    })
-    .slice(0, mediumArtworkLightLimit);
-  const retainedIdSet = new Set(retainedArtworkIds);
-  const selectedArtworkIds = [
-    ...retainedArtworkIds,
-    ...candidates
-      .filter((candidate) => !retainedIdSet.has(candidate.id))
-      .sort((a, b) => a.score - b.score)
-      .slice(0, mediumArtworkLightLimit - retainedArtworkIds.length)
-      .map((candidate) => candidate.id)
-  ];
+  const pool = mediumArtworkLightPoolCache.get(scene) ?? [];
+  pool.forEach((light, index) => {
+    const candidate = candidates[index];
+    if (!candidate) {
+      light.intensity = 0;
+      delete light.userData.artworkId;
+      return;
+    }
 
-  mediumArtworkSelectionCache.set(scene, selectedArtworkIds);
-  const selectedIdSet = new Set(selectedArtworkIds);
-  getArtworkLights(scene).forEach((light) => {
-    light.visible = light.userData.galleryLighting === 'artwork-wall-wash' &&
-      selectedIdSet.has(light.userData.artworkId as string);
+    configureArtworkWallWash(light, candidate.artwork);
+    light.userData.galleryLighting = 'medium-artwork-wall-wash';
+    light.userData.mediumPoolIndex = index;
+    light.userData.minimumGalleryQuality = 'balanced';
+    light.userData.maximumGalleryQuality = 'balanced';
   });
 }
