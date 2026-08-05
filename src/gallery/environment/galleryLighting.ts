@@ -14,6 +14,19 @@ import type { GalleryQualityTier } from '../performance/galleryQuality';
 
 let rectAreaLightsInitialized = false;
 
+type QualityIntensityScale = Record<GalleryQualityTier, number>;
+
+const architecturalFillScale: QualityIntensityScale = {
+  low: 1.2,
+  balanced: 1.1,
+  high: 1
+};
+
+function markArchitecturalFill(light: THREE.Light) {
+  light.userData.galleryLighting = 'architectural-fill';
+  light.userData.baseIntensity = light.intensity;
+}
+
 function ensureRectAreaLightsInitialized() {
   if (rectAreaLightsInitialized) {
     return;
@@ -128,22 +141,27 @@ export function addGalleryLighting(scene: THREE.Scene) {
     0.425
   );
 
+  markArchitecturalFill(ambientLight);
   scene.add(ambientLight);
 
   const overheadWash = new THREE.DirectionalLight(0xffefde, 0.235);
   overheadWash.position.set(0, galleryRoom.height + 2.2, 2.8);
+  markArchitecturalFill(overheadWash);
   scene.add(overheadWash);
 
   const entryFillLight = new THREE.DirectionalLight(0xffead2, 0.076);
   entryFillLight.position.set(0, 3.8, 10.5);
+  markArchitecturalFill(entryFillLight);
   scene.add(entryFillLight);
 
   const rearFillLight = new THREE.DirectionalLight(0xd2bfa9, 0.058);
   rearFillLight.position.set(0, 3.8, -10.5);
+  markArchitecturalFill(rearFillLight);
   scene.add(rearFillLight);
 
   const lowWarmRoomFill = new THREE.PointLight(0x9a8068, 0.128, 14.5, 2.05);
   lowWarmRoomFill.position.set(0, 1.05, 0.8);
+  markArchitecturalFill(lowWarmRoomFill);
   scene.add(lowWarmRoomFill);
 
   // Phase 8AI keeps the Phase 8AG ceiling rake point lights removed.
@@ -169,6 +187,14 @@ const galleryQualityRank: Record<GalleryQualityTier, number> = {
 
 export function applyGalleryLightingQuality(scene: THREE.Scene, tier: GalleryQualityTier) {
   scene.traverse((object) => {
+    if (object.userData.galleryLighting === 'architectural-fill' && object instanceof THREE.Light) {
+      const baseIntensity = object.userData.baseIntensity as number | undefined;
+
+      if (baseIntensity !== undefined) {
+        object.intensity = baseIntensity * architecturalFillScale[tier];
+      }
+    }
+
     const minimumQuality = object.userData.minimumGalleryQuality as GalleryQualityTier | undefined;
 
     if (minimumQuality) {
