@@ -18,30 +18,21 @@ type QualityIntensityScale = Record<GalleryQualityTier, number>;
 
 const architecturalFillScale: QualityIntensityScale = {
   low: 1.75,
-  balanced: 1,
+  balanced: 1.75,
   high: 1
 };
 
 const architecturalFillTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
   low: { color: 0xff9f54, blend: 0.3 },
-  balanced: { color: 0xffffff, blend: 0 },
+  balanced: { color: 0xff9f54, blend: 0.3 },
   high: { color: 0xffffff, blend: 0 }
 };
 
 const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
   low: { color: 0xa85f35, blend: 0.34 },
-  balanced: { color: 0xffffff, blend: 0 },
+  balanced: { color: 0xa85f35, blend: 0.34 },
   high: { color: 0xffffff, blend: 0 }
 };
-
-const mediumArtworkLightPoolSize = galleryArtworks.length;
-const mediumViewMargin = 1.28;
-const mediumNearbyDistance = 13;
-const mediumArtworkLightPoolCache = new WeakMap<THREE.Scene, THREE.RectAreaLight[]>();
-const artworkPositionById = new Map(
-  galleryArtworks.map((artwork) => [artwork.id, new THREE.Vector3(...artwork.position)])
-);
-const projectedArtworkPosition = new THREE.Vector3();
 
 function markArchitecturalFill(light: THREE.Light) {
   light.userData.galleryLighting = 'architectural-fill';
@@ -177,22 +168,6 @@ function configureArtworkWallWash(
   };
 }
 
-function addMediumArtworkLightPool(scene: THREE.Scene) {
-  const pool = Array.from({ length: mediumArtworkLightPoolSize }, (_, index) => {
-    const light = new THREE.RectAreaLight(0xffd2ad, 0, 1, 1);
-    light.userData = {
-      galleryLighting: 'medium-artwork-wall-wash',
-      mediumPoolIndex: index,
-      minimumGalleryQuality: 'balanced',
-      maximumGalleryQuality: 'balanced'
-    };
-    scene.add(light);
-    return light;
-  });
-
-  mediumArtworkLightPoolCache.set(scene, pool);
-}
-
 export function addGalleryLighting(scene: THREE.Scene) {
   ensureRectAreaLightsInitialized();
 
@@ -228,7 +203,7 @@ export function addGalleryLighting(scene: THREE.Scene) {
   // Phase 8AI keeps the Phase 8AG ceiling rake point lights removed.
   // They added runtime cost without enough visible ceiling improvement.
 
-  // Medium and High share the restrained eight-piece accent-light layer.
+  // High alone uses the restrained eight-piece accent-light layer.
   galleryArtworks.slice(0, 8).forEach((artwork, index) => {
     addArtworkAccentSpotlight(scene, artwork, index);
   });
@@ -237,11 +212,7 @@ export function addGalleryLighting(scene: THREE.Scene) {
   galleryArtworks.forEach((artwork) => {
     addArtworkWallWash(scene, artwork);
   });
-
-  addMediumArtworkLightPool(scene);
 }
-
-
 const galleryQualityRank: Record<GalleryQualityTier, number> = {
   low: 0,
   balanced: 1,
@@ -286,63 +257,5 @@ export function applyGalleryLightingQuality(scene: THREE.Scene, tier: GalleryQua
         galleryQualityRank[tier] <= galleryQualityRank[maximumQuality];
       object.visible = meetsMinimum && meetsMaximum;
     }
-
-  });
-}
-
-export function updateMediumArtworkLighting(
-  scene: THREE.Scene,
-  camera: THREE.PerspectiveCamera,
-  tier: GalleryQualityTier
-) {
-  if (tier !== 'balanced') {
-    return;
-  }
-
-  const candidates = galleryArtworks
-    .map((artwork) => {
-      const worldPosition = artworkPositionById.get(artwork.id);
-      if (!worldPosition) {
-        return null;
-      }
-
-      projectedArtworkPosition.copy(worldPosition).project(camera);
-      const distanceSquared = camera.position.distanceToSquared(worldPosition);
-      const visible =
-        projectedArtworkPosition.z >= -1 &&
-        projectedArtworkPosition.z <= 1 &&
-        Math.abs(projectedArtworkPosition.x) <= mediumViewMargin &&
-        Math.abs(projectedArtworkPosition.y) <= mediumViewMargin;
-      const nearby = distanceSquared <= mediumNearbyDistance ** 2;
-
-      if (!visible && !nearby) {
-        return null;
-      }
-
-      return {
-        artwork,
-        score: (visible ? 0 : 10) +
-          Math.abs(projectedArtworkPosition.x) +
-          Math.abs(projectedArtworkPosition.y) * 0.65 +
-          distanceSquared / 900
-      };
-    })
-    .filter((candidate): candidate is { artwork: typeof galleryArtworks[number]; score: number } => candidate !== null)
-    .sort((a, b) => a.score - b.score);
-
-  const pool = mediumArtworkLightPoolCache.get(scene) ?? [];
-  pool.forEach((light, index) => {
-    const candidate = candidates[index];
-    if (!candidate) {
-      light.intensity = 0;
-      delete light.userData.artworkId;
-      return;
-    }
-
-    configureArtworkWallWash(light, candidate.artwork);
-    light.userData.galleryLighting = 'medium-artwork-wall-wash';
-    light.userData.mediumPoolIndex = index;
-    light.userData.minimumGalleryQuality = 'balanced';
-    light.userData.maximumGalleryQuality = 'balanced';
   });
 }
