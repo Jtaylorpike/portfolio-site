@@ -40,7 +40,9 @@ const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend
 const mediumArtworkLightPoolSize = Math.min(5, galleryArtworks.length);
 const mediumViewMargin = 1.28;
 const mediumNearbyDistance = 13;
+const mediumReleaseDistance = 15;
 const mediumArtworkLightPoolCache = new WeakMap<THREE.Scene, THREE.RectAreaLight[]>();
+const mediumArtworkSelectionCache = new WeakMap<THREE.Scene, string[]>();
 const artworkPositionById = new Map(
   galleryArtworks.map((artwork) => [artwork.id, new THREE.Vector3(...artwork.position)])
 );
@@ -315,24 +317,74 @@ export function updateMediumArtworkLighting(
         Math.abs(projectedArtworkPosition.y) <= mediumViewMargin;
       const nearby = distanceSquared <= mediumNearbyDistance ** 2;
 
-      if (!visible && !nearby) {
-        return null;
-      }
-
       return {
         artwork,
+        visible,
+        nearby,
+        distanceSquared,
         score: (visible ? 0 : 10) +
           Math.abs(projectedArtworkPosition.x) +
           Math.abs(projectedArtworkPosition.y) * 0.65 +
           distanceSquared / 900
       };
     })
-    .filter((candidate): candidate is { artwork: typeof galleryArtworks[number]; score: number } => candidate !== null)
-    .sort((a, b) => a.score - b.score);
+    .filter((candidate): candidate is {
+      artwork: typeof galleryArtworks[number];
+      visible: boolean;
+      nearby: boolean;
+      distanceSquared: number;
+      score: number;
+    } => candidate !== null);
 
   const pool = mediumArtworkLightPoolCache.get(scene) ?? [];
+  const candidateById = new Map(candidates.map((candidate) => [candidate.artwork.id, candidate]));
+  const previousSelection = mediumArtworkSelectionCache.get(scene) ?? pool
+    .map((light) => light.userData.artworkId as string | undefined)
+    .filter((artworkId): artworkId is string => Boolean(artworkId));
+  const selectedArtworkIds: string[] = [];
+  const selectedArtworkIdSet = new Set<string>();
+  const selectArtwork = (artworkId: string) => {
+    if (
+      selectedArtworkIds.length >= mediumArtworkLightPoolSize ||
+      selectedArtworkIdSet.has(artworkId)
+    ) {
+      return;
+    }
+
+    selectedArtworkIds.push(artworkId);
+    selectedArtworkIdSet.add(artworkId);
+  };
+
+  // Preserve visible assignments first so small score changes cannot make
+  // neighboring works trade lights while the visitor is standing still.
+  previousSelection.forEach((artworkId) => {
+    if (candidateById.get(artworkId)?.visible) {
+      selectArtwork(artworkId);
+    }
+  });
+  candidates
+    .filter((candidate) => candidate.visible)
+    .sort((a, b) => a.score - b.score)
+    .forEach((candidate) => selectArtwork(candidate.artwork.id));
+
+  // Retain nearby-only assignments beyond the activation boundary. This
+  // hysteresis prevents edge flicker, while newly visible works still take
+  // priority over photographs that are merely behind or beside the visitor.
+  previousSelection.forEach((artworkId) => {
+    const candidate = candidateById.get(artworkId);
+    if (candidate && candidate.distanceSquared <= mediumReleaseDistance ** 2) {
+      selectArtwork(artworkId);
+    }
+  });
+  candidates
+    .filter((candidate) => candidate.nearby)
+    .sort((a, b) => a.score - b.score)
+    .forEach((candidate) => selectArtwork(candidate.artwork.id));
+
+  mediumArtworkSelectionCache.set(scene, selectedArtworkIds);
   pool.forEach((light, index) => {
-    const candidate = candidates[index];
+    const artworkId = selectedArtworkIds[index];
+    const candidate = artworkId ? candidateById.get(artworkId) : undefined;
     if (!candidate) {
       light.intensity = 0;
       delete light.userData.artworkId;
