@@ -39,10 +39,12 @@ const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend
 // cost without toggling light objects and recompiling while the camera moves.
 const mediumArtworkLightPoolSize = Math.min(5, galleryArtworks.length);
 const mediumViewMargin = 1.28;
-const mediumNearbyDistance = 13;
-const mediumForwardDistance = 22;
-const mediumForwardReleaseDistance = 25;
-const mediumReleaseDistance = 15;
+const mediumPrelightMargin = 1.72;
+const mediumPrelightReleaseMargin = 1.9;
+const mediumPrelightDistance = 13;
+const mediumPrelightReleaseDistance = 15;
+const mediumForwardDistance = 30;
+const mediumForwardReleaseDistance = 34;
 const mediumArtworkLightPoolCache = new WeakMap<THREE.Scene, THREE.RectAreaLight[]>();
 const mediumArtworkSelectionCache = new WeakMap<THREE.Scene, string[]>();
 const artworkPositionById = new Map(
@@ -312,19 +314,33 @@ export function updateMediumArtworkLighting(
 
       projectedArtworkPosition.copy(worldPosition).project(camera);
       const distanceSquared = camera.position.distanceToSquared(worldPosition);
-      const visible =
+      const inFront =
         projectedArtworkPosition.z >= -1 &&
-        projectedArtworkPosition.z <= 1 &&
+        projectedArtworkPosition.z <= 1;
+      const visible =
+        inFront &&
         Math.abs(projectedArtworkPosition.x) <= mediumViewMargin &&
         Math.abs(projectedArtworkPosition.y) <= mediumViewMargin;
-      const nearby = distanceSquared <= mediumNearbyDistance ** 2;
-      const forwardNearby = visible && distanceSquared <= mediumForwardDistance ** 2;
+      const prelit =
+        inFront &&
+        Math.abs(projectedArtworkPosition.x) <= mediumPrelightMargin &&
+        Math.abs(projectedArtworkPosition.y) <= mediumPrelightMargin &&
+        distanceSquared <= mediumPrelightDistance ** 2;
+      const prelightRetained =
+        inFront &&
+        Math.abs(projectedArtworkPosition.x) <= mediumPrelightReleaseMargin &&
+        Math.abs(projectedArtworkPosition.y) <= mediumPrelightReleaseMargin &&
+        distanceSquared <= mediumPrelightReleaseDistance ** 2;
+      const forwardLit = visible && distanceSquared <= mediumForwardDistance ** 2;
+      const forwardRetained = visible && distanceSquared <= mediumForwardReleaseDistance ** 2;
 
       return {
         artwork,
         visible,
-        nearby,
-        forwardNearby,
+        prelit,
+        prelightRetained,
+        forwardLit,
+        forwardRetained,
         distanceSquared,
         score: (visible ? 0 : 10) +
           Math.abs(projectedArtworkPosition.x) +
@@ -335,8 +351,10 @@ export function updateMediumArtworkLighting(
     .filter((candidate): candidate is {
       artwork: typeof galleryArtworks[number];
       visible: boolean;
-      nearby: boolean;
-      forwardNearby: boolean;
+      prelit: boolean;
+      prelightRetained: boolean;
+      forwardLit: boolean;
+      forwardRetained: boolean;
       distanceSquared: number;
       score: number;
     } => candidate !== null);
@@ -361,14 +379,11 @@ export function updateMediumArtworkLighting(
     selectedArtworkIdSet.add(artworkId);
   };
 
-  // Proximity is authoritative. A close photograph must stay illuminated even
-  // when it is beside or behind the camera. Previously selected works receive
-  // a modest distance bias and a wider release radius so tiny movements do not
-  // cause neighboring works to trade slots at either boundary.
+  // A close photograph just outside the visible frame is prelit so it is ready
+  // before the camera reaches it. The cone never extends behind the camera.
   candidates
-    .filter((candidate) => candidate.nearby || (
-      previousSelectionSet.has(candidate.artwork.id) &&
-      candidate.distanceSquared <= mediumReleaseDistance ** 2
+    .filter((candidate) => candidate.prelit || (
+      previousSelectionSet.has(candidate.artwork.id) && candidate.prelightRetained
     ))
     .sort((a, b) => {
       const aDistance = a.distanceSquared - (previousSelectionSet.has(a.artwork.id) ? 25 : 0);
@@ -377,34 +392,18 @@ export function updateMediumArtworkLighting(
     })
     .forEach((candidate) => selectArtwork(candidate.artwork.id));
 
-  // Extend activation only into the camera-facing view. This reaches farther
-  // down the room without spending light slots on equally distant work behind
-  // the visitor.
-  previousSelection.forEach((artworkId) => {
-    const candidate = candidateById.get(artworkId);
-    if (
-      candidate?.visible &&
-      candidate.distanceSquared <= mediumForwardReleaseDistance ** 2
-    ) {
-      selectArtwork(artworkId);
-    }
-  });
+  // The main view extends farther down the room. Retained assignments get a
+  // small score advantage but become ineligible as soon as they leave the
+  // camera-facing cone, so work behind the visitor is always switched off.
   candidates
-    .filter((candidate) => candidate.forwardNearby)
-    .sort((a, b) => a.score - b.score)
-    .forEach((candidate) => selectArtwork(candidate.artwork.id));
-
-  // Once proximity has been satisfied, retain and then add visible artwork to
-  // any remaining slots. Gaze direction cannot evict a closer photograph.
-  previousSelection.forEach((artworkId) => {
-    const candidate = candidateById.get(artworkId);
-    if (candidate?.visible) {
-      selectArtwork(artworkId);
-    }
-  });
-  candidates
-    .filter((candidate) => candidate.visible)
-    .sort((a, b) => a.score - b.score)
+    .filter((candidate) => candidate.forwardLit || (
+      previousSelectionSet.has(candidate.artwork.id) && candidate.forwardRetained
+    ))
+    .sort((a, b) => {
+      const aScore = a.score - (previousSelectionSet.has(a.artwork.id) ? 0.2 : 0);
+      const bScore = b.score - (previousSelectionSet.has(b.artwork.id) ? 0.2 : 0);
+      return aScore - bScore;
+    })
     .forEach((candidate) => selectArtwork(candidate.artwork.id));
 
   mediumArtworkSelectionCache.set(scene, selectedArtworkIds);
