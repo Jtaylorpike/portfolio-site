@@ -17,20 +17,24 @@ let rectAreaLightsInitialized = false;
 type QualityIntensityScale = Record<GalleryQualityTier, number>;
 
 const architecturalFillScale: QualityIntensityScale = {
-  low: 1.75,
-  balanced: 1.75,
+  low: 2.05,
+  balanced: 2.05,
   high: 1
 };
 
+// The earlier 30% blend was present in code but was visually neutralized by
+// the warm-gray materials and ACES tone mapping. Low and Medium deliberately
+// share this stronger architectural palette; artwork image materials are not
+// tagged as architectural fill, so their photographic color remains intact.
 const architecturalFillTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
-  low: { color: 0xff9f54, blend: 0.3 },
-  balanced: { color: 0xff9f54, blend: 0.3 },
+  low: { color: 0xff7a24, blend: 0.72 },
+  balanced: { color: 0xff7a24, blend: 0.72 },
   high: { color: 0xffffff, blend: 0 }
 };
 
 const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
-  low: { color: 0xa85f35, blend: 0.34 },
-  balanced: { color: 0xa85f35, blend: 0.34 },
+  low: { color: 0xb94f1c, blend: 0.68 },
+  balanced: { color: 0xb94f1c, blend: 0.68 },
   high: { color: 0xffffff, blend: 0 }
 };
 
