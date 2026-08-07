@@ -34,6 +34,15 @@ const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend
   high: { color: 0xffffff, blend: 0 }
 };
 
+const mediumArtworkLightPoolSize = galleryArtworks.length;
+const mediumViewMargin = 1.28;
+const mediumNearbyDistance = 13;
+const mediumArtworkLightPoolCache = new WeakMap<THREE.Scene, THREE.RectAreaLight[]>();
+const artworkPositionById = new Map(
+  galleryArtworks.map((artwork) => [artwork.id, new THREE.Vector3(...artwork.position)])
+);
+const projectedArtworkPosition = new THREE.Vector3();
+
 function markArchitecturalFill(light: THREE.Light) {
   light.userData.galleryLighting = 'architectural-fill';
   light.userData.baseIntensity = light.intensity;
@@ -168,6 +177,22 @@ function configureArtworkWallWash(
   };
 }
 
+function addMediumArtworkLightPool(scene: THREE.Scene) {
+  const pool = Array.from({ length: mediumArtworkLightPoolSize }, (_, index) => {
+    const light = new THREE.RectAreaLight(0xffd2ad, 0, 1, 1);
+    light.userData = {
+      galleryLighting: 'medium-artwork-wall-wash',
+      mediumPoolIndex: index,
+      minimumGalleryQuality: 'balanced',
+      maximumGalleryQuality: 'balanced'
+    };
+    scene.add(light);
+    return light;
+  });
+
+  mediumArtworkLightPoolCache.set(scene, pool);
+}
+
 export function addGalleryLighting(scene: THREE.Scene) {
   ensureRectAreaLightsInitialized();
 
@@ -212,6 +237,8 @@ export function addGalleryLighting(scene: THREE.Scene) {
   galleryArtworks.forEach((artwork) => {
     addArtworkWallWash(scene, artwork);
   });
+
+  addMediumArtworkLightPool(scene);
 }
 const galleryQualityRank: Record<GalleryQualityTier, number> = {
   low: 0,
@@ -257,5 +284,62 @@ export function applyGalleryLightingQuality(scene: THREE.Scene, tier: GalleryQua
         galleryQualityRank[tier] <= galleryQualityRank[maximumQuality];
       object.visible = meetsMinimum && meetsMaximum;
     }
+  });
+}
+
+export function updateMediumArtworkLighting(
+  scene: THREE.Scene,
+  camera: THREE.PerspectiveCamera,
+  tier: GalleryQualityTier
+) {
+  if (tier !== 'balanced') {
+    return;
+  }
+
+  const candidates = galleryArtworks
+    .map((artwork) => {
+      const worldPosition = artworkPositionById.get(artwork.id);
+      if (!worldPosition) {
+        return null;
+      }
+
+      projectedArtworkPosition.copy(worldPosition).project(camera);
+      const distanceSquared = camera.position.distanceToSquared(worldPosition);
+      const visible =
+        projectedArtworkPosition.z >= -1 &&
+        projectedArtworkPosition.z <= 1 &&
+        Math.abs(projectedArtworkPosition.x) <= mediumViewMargin &&
+        Math.abs(projectedArtworkPosition.y) <= mediumViewMargin;
+      const nearby = distanceSquared <= mediumNearbyDistance ** 2;
+
+      if (!visible && !nearby) {
+        return null;
+      }
+
+      return {
+        artwork,
+        score: (visible ? 0 : 10) +
+          Math.abs(projectedArtworkPosition.x) +
+          Math.abs(projectedArtworkPosition.y) * 0.65 +
+          distanceSquared / 900
+      };
+    })
+    .filter((candidate): candidate is { artwork: typeof galleryArtworks[number]; score: number } => candidate !== null)
+    .sort((a, b) => a.score - b.score);
+
+  const pool = mediumArtworkLightPoolCache.get(scene) ?? [];
+  pool.forEach((light, index) => {
+    const candidate = candidates[index];
+    if (!candidate) {
+      light.intensity = 0;
+      delete light.userData.artworkId;
+      return;
+    }
+
+    configureArtworkWallWash(light, candidate.artwork);
+    light.userData.galleryLighting = 'medium-artwork-wall-wash';
+    light.userData.mediumPoolIndex = index;
+    light.userData.minimumGalleryQuality = 'balanced';
+    light.userData.maximumGalleryQuality = 'balanced';
   });
 }
