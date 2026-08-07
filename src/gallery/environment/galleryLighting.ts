@@ -47,7 +47,7 @@ const mediumForwardDistance = 30;
 const mediumForwardReleaseDistance = 34;
 const mediumSideBehindAllowance = 1.5;
 const mediumSideReleaseBehindAllowance = 2.5;
-const mediumWallWashIntensityScale = 1.12;
+const mediumWallWashIntensity = 1.95;
 const mediumWallWashWidthScale = 1.18;
 const mediumWallWashHeightScale = 1.08;
 const mediumWallWashColor = 0xffdbb8;
@@ -172,7 +172,7 @@ function configureArtworkWallWash(
   light: THREE.RectAreaLight,
   artwork: typeof galleryArtworks[number],
   options: {
-    intensityScale?: number;
+    intensity?: number;
     widthScale?: number;
     heightScale?: number;
     color?: number;
@@ -180,7 +180,7 @@ function configureArtworkWallWash(
 ) {
   const normal = new THREE.Vector3(Math.sin(artwork.rotationY), 0, Math.cos(artwork.rotationY));
 
-  light.intensity = getArtworkAreaIntensity(artwork) * 0.9 * (options.intensityScale ?? 1);
+  light.intensity = options.intensity ?? getArtworkAreaIntensity(artwork) * 0.9;
   light.width = Math.max(1.35, artwork.width * 1.1) * (options.widthScale ?? 1);
   light.height = Math.max(0.8, artwork.height * 0.52) * (options.heightScale ?? 1);
   light.color.setHex(options.color ?? 0xffd2ad);
@@ -464,7 +464,7 @@ export function updateMediumArtworkLighting(
     }
 
     configureArtworkWallWash(light, candidate.artwork, {
-      intensityScale: mediumWallWashIntensityScale,
+      intensity: mediumWallWashIntensity,
       widthScale: mediumWallWashWidthScale,
       heightScale: mediumWallWashHeightScale,
       color: mediumWallWashColor
