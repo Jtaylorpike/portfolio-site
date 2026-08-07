@@ -34,7 +34,10 @@ const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend
   high: { color: 0xffffff, blend: 0 }
 };
 
-const mediumArtworkLightPoolSize = galleryArtworks.length;
+// Five was the accepted Medium performance budget before the pool was made
+// structurally stable. Keeping five fixed slots preserves that lower shader
+// cost without toggling light objects and recompiling while the camera moves.
+const mediumArtworkLightPoolSize = Math.min(5, galleryArtworks.length);
 const mediumViewMargin = 1.28;
 const mediumNearbyDistance = 13;
 const mediumArtworkLightPoolCache = new WeakMap<THREE.Scene, THREE.RectAreaLight[]>();
