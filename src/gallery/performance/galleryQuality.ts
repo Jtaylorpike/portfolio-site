@@ -5,7 +5,7 @@
 // conservative device/network hints, the last locally observed gallery tier,
 // asset-cache readiness, and sustained in-gallery frame timing.
 
-export type GalleryQualityMode = 'auto' | 'low' | 'balanced' | 'high';
+export type GalleryQualityMode = 'auto' | 'high';
 export type GalleryQualityTier = 'low' | 'balanced' | 'high';
 export type GalleryArtworkTexturePolicy = 'focus' | 'stream' | 'preload';
 
@@ -63,11 +63,11 @@ const qualitySettings: Record<GalleryQualityTier, GalleryQualitySettings> = {
     fullTextureLoadDelay: null
   },
   balanced: {
-    pixelRatioCap: 0.95,
+    pixelRatioCap: 1.22,
     artworkTexturePolicy: 'stream',
     initialPreviewTextureCount: 5,
     textureLoadBatchSize: 1,
-    fullTextureLoadDelay: null
+    fullTextureLoadDelay: 1100
   },
   high: {
     pixelRatioCap: 1.5,
@@ -79,7 +79,7 @@ const qualitySettings: Record<GalleryQualityTier, GalleryQualitySettings> = {
 };
 
 function isQualityMode(value: string | null): value is GalleryQualityMode {
-  return value === 'auto' || value === 'low' || value === 'balanced' || value === 'high';
+  return value === 'auto' || value === 'high';
 }
 
 function isQualityTier(value: string | null): value is GalleryQualityTier {
@@ -126,7 +126,7 @@ function getAutomaticQualityCeiling(): GalleryQualityTier {
     return 'low';
   }
 
-  // Auto may promote only to the balanced tier. High remains
+  // Adaptive Low may promote only to the hidden balanced tier. High remains
   // an explicit visitor choice and is never selected automatically.
   return 'balanced';
 }
@@ -162,7 +162,7 @@ function getInitialAutomaticCeiling(
 }
 
 function getInitialAutomaticTier(): GalleryQualityTier {
-  // Auto always starts at the least expensive tier. Sustained runtime
+  // Adaptive Low always starts at the least expensive tier. Sustained runtime
   // evidence may quietly promote it after the gallery is fully prepared.
   return 'low';
 }
@@ -172,7 +172,7 @@ const hardAutoCeiling = getAutomaticQualityHardCeiling();
 const autoCeiling = getInitialAutomaticCeiling(hintedAutoCeiling, hardAutoCeiling);
 const storedMode = readStorage(qualityModeStorageKey);
 const initialMode: GalleryQualityMode = isQualityMode(storedMode) ? storedMode : 'auto';
-const initialTier = initialMode === 'auto' ? getInitialAutomaticTier() : initialMode;
+const initialTier = initialMode === 'auto' ? getInitialAutomaticTier() : 'high';
 
 let state: GalleryQualityState = {
   mode: initialMode,
@@ -301,7 +301,7 @@ export function setGalleryQualityMode(mode: GalleryQualityMode) {
 
   writeStorage(qualityModeStorageKey, mode);
 
-  const tier = mode === 'auto' ? getInitialAutomaticTier() : mode;
+  const tier = mode === 'auto' ? getInitialAutomaticTier() : 'high';
 
   state = { ...state, mode, tier };
   resetGalleryPerformanceSampling();
@@ -309,7 +309,7 @@ export function setGalleryQualityMode(mode: GalleryQualityMode) {
 }
 
 export function cycleGalleryQualityMode() {
-  const modes: GalleryQualityMode[] = ['auto', 'low', 'balanced', 'high'];
+  const modes: GalleryQualityMode[] = ['auto', 'high'];
   const currentIndex = modes.indexOf(state.mode);
   const nextMode = modes[(currentIndex + 1) % modes.length];
   setGalleryQualityMode(nextMode);
@@ -406,11 +406,7 @@ export function recordGalleryFrame(timestamp: number, workDuration = 0) {
 export function getGalleryQualityModeLabel(mode: GalleryQualityMode) {
   switch (mode) {
     case 'auto':
-      return 'Auto';
-    case 'low':
       return 'Low';
-    case 'balanced':
-      return 'Medium';
     case 'high':
       return 'High';
   }
