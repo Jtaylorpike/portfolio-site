@@ -45,12 +45,16 @@ const mediumPrelightDistance = 13;
 const mediumPrelightReleaseDistance = 15;
 const mediumForwardDistance = 30;
 const mediumForwardReleaseDistance = 34;
+const mediumSideBehindAllowance = 1.5;
+const mediumSideReleaseBehindAllowance = 2.5;
 const mediumArtworkLightPoolCache = new WeakMap<THREE.Scene, THREE.RectAreaLight[]>();
 const mediumArtworkSelectionCache = new WeakMap<THREE.Scene, string[]>();
 const artworkPositionById = new Map(
   galleryArtworks.map((artwork) => [artwork.id, new THREE.Vector3(...artwork.position)])
 );
 const projectedArtworkPosition = new THREE.Vector3();
+const cameraRelativeArtworkPosition = new THREE.Vector3();
+const inverseCameraQuaternion = new THREE.Quaternion();
 
 function markArchitecturalFill(light: THREE.Light) {
   light.userData.galleryLighting = 'architectural-fill';
@@ -305,6 +309,8 @@ export function updateMediumArtworkLighting(
     return;
   }
 
+  inverseCameraQuaternion.copy(camera.quaternion).invert();
+
   const candidates = galleryArtworks
     .map((artwork) => {
       const worldPosition = artworkPositionById.get(artwork.id);
@@ -313,6 +319,10 @@ export function updateMediumArtworkLighting(
       }
 
       projectedArtworkPosition.copy(worldPosition).project(camera);
+      cameraRelativeArtworkPosition
+        .copy(worldPosition)
+        .sub(camera.position)
+        .applyQuaternion(inverseCameraQuaternion);
       const distanceSquared = camera.position.distanceToSquared(worldPosition);
       const inFront =
         projectedArtworkPosition.z >= -1 &&
@@ -331,6 +341,17 @@ export function updateMediumArtworkLighting(
         Math.abs(projectedArtworkPosition.x) <= mediumPrelightReleaseMargin &&
         Math.abs(projectedArtworkPosition.y) <= mediumPrelightReleaseMargin &&
         distanceSquared <= mediumPrelightReleaseDistance ** 2;
+      const lateral =
+        Math.abs(cameraRelativeArtworkPosition.x) >=
+        Math.abs(cameraRelativeArtworkPosition.z) * 0.55;
+      const sideLit =
+        lateral &&
+        cameraRelativeArtworkPosition.z <= mediumSideBehindAllowance &&
+        distanceSquared <= mediumPrelightDistance ** 2;
+      const sideRetained =
+        lateral &&
+        cameraRelativeArtworkPosition.z <= mediumSideReleaseBehindAllowance &&
+        distanceSquared <= mediumPrelightReleaseDistance ** 2;
       const forwardLit = visible && distanceSquared <= mediumForwardDistance ** 2;
       const forwardRetained = visible && distanceSquared <= mediumForwardReleaseDistance ** 2;
 
@@ -339,6 +360,8 @@ export function updateMediumArtworkLighting(
         visible,
         prelit,
         prelightRetained,
+        sideLit,
+        sideRetained,
         forwardLit,
         forwardRetained,
         distanceSquared,
@@ -353,6 +376,8 @@ export function updateMediumArtworkLighting(
       visible: boolean;
       prelit: boolean;
       prelightRetained: boolean;
+      sideLit: boolean;
+      sideRetained: boolean;
       forwardLit: boolean;
       forwardRetained: boolean;
       distanceSquared: number;
@@ -379,11 +404,13 @@ export function updateMediumArtworkLighting(
     selectedArtworkIdSet.add(artworkId);
   };
 
-  // A close photograph just outside the visible frame is prelit so it is ready
-  // before the camera reaches it. The cone never extends behind the camera.
+  // A close photograph just outside the visible frame or directly beside the
+  // camera is prelit so it is ready before the camera reaches it. Meaningfully
+  // rearward work remains ineligible.
   candidates
-    .filter((candidate) => candidate.prelit || (
-      previousSelectionSet.has(candidate.artwork.id) && candidate.prelightRetained
+    .filter((candidate) => candidate.prelit || candidate.sideLit || (
+      previousSelectionSet.has(candidate.artwork.id) &&
+      (candidate.prelightRetained || candidate.sideRetained)
     ))
     .sort((a, b) => {
       const aDistance = a.distanceSquared - (previousSelectionSet.has(a.artwork.id) ? 25 : 0);
