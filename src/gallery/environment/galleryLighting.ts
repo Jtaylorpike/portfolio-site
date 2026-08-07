@@ -34,10 +34,10 @@ const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend
   high: { color: 0xffffff, blend: 0 }
 };
 
-// Seven fixed slots improve visible artwork coverage while preserving the
+// Six fixed slots improve visible artwork coverage while preserving the
 // stable-pool architecture: lights are reassigned rather than created,
 // removed, or visibility-toggled while the camera moves.
-const mediumArtworkLightPoolSize = Math.min(7, galleryArtworks.length);
+const mediumArtworkLightPoolSize = Math.min(6, galleryArtworks.length);
 const mediumViewMargin = 1.28;
 const mediumPrelightMargin = 1.72;
 const mediumPrelightReleaseMargin = 1.9;
