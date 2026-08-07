@@ -17,27 +17,27 @@ let rectAreaLightsInitialized = false;
 type QualityIntensityScale = Record<GalleryQualityTier, number>;
 
 const architecturalFillScale: QualityIntensityScale = {
-  low: 1.75,
+  low: 2.65,
   balanced: 1.75,
   high: 1
 };
 
 const architecturalFillTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
-  low: { color: 0xff9f54, blend: 0.3 },
+  low: { color: 0xffad70, blend: 0.34 },
   balanced: { color: 0xff9f54, blend: 0.3 },
   high: { color: 0xffffff, blend: 0 }
 };
 
 const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
-  low: { color: 0xa85f35, blend: 0.34 },
+  low: { color: 0xa56642, blend: 0.36 },
   balanced: { color: 0xa85f35, blend: 0.34 },
   high: { color: 0xffffff, blend: 0 }
 };
 
-// Five was the accepted Medium performance budget before the pool was made
-// structurally stable. Keeping five fixed slots preserves that lower shader
-// cost without toggling light objects and recompiling while the camera moves.
-const mediumArtworkLightPoolSize = Math.min(5, galleryArtworks.length);
+// Six fixed slots improve visible artwork coverage while preserving the
+// stable-pool architecture: lights are reassigned rather than created,
+// removed, or visibility-toggled while the camera moves.
+const mediumArtworkLightPoolSize = Math.min(6, galleryArtworks.length);
 const mediumViewMargin = 1.28;
 const mediumPrelightMargin = 1.72;
 const mediumPrelightReleaseMargin = 1.9;
@@ -47,6 +47,10 @@ const mediumForwardDistance = 30;
 const mediumForwardReleaseDistance = 34;
 const mediumSideBehindAllowance = 1.5;
 const mediumSideReleaseBehindAllowance = 2.5;
+const mediumWallWashIntensity = 1.95;
+const mediumWallWashWidthScale = 1.18;
+const mediumWallWashHeightScale = 1.08;
+const mediumWallWashColor = 0xffdbb8;
 const mediumArtworkLightPoolCache = new WeakMap<THREE.Scene, THREE.RectAreaLight[]>();
 const mediumArtworkSelectionCache = new WeakMap<THREE.Scene, string[]>();
 const artworkPositionById = new Map(
@@ -166,13 +170,20 @@ function addArtworkWallWash(scene: THREE.Scene, artwork: typeof galleryArtworks[
 
 function configureArtworkWallWash(
   light: THREE.RectAreaLight,
-  artwork: typeof galleryArtworks[number]
+  artwork: typeof galleryArtworks[number],
+  options: {
+    intensity?: number;
+    widthScale?: number;
+    heightScale?: number;
+    color?: number;
+  } = {}
 ) {
   const normal = new THREE.Vector3(Math.sin(artwork.rotationY), 0, Math.cos(artwork.rotationY));
 
-  light.intensity = getArtworkAreaIntensity(artwork) * 0.9;
-  light.width = Math.max(1.35, artwork.width * 1.1);
-  light.height = Math.max(0.8, artwork.height * 0.52);
+  light.intensity = options.intensity ?? getArtworkAreaIntensity(artwork) * 0.9;
+  light.width = Math.max(1.35, artwork.width * 1.1) * (options.widthScale ?? 1);
+  light.height = Math.max(0.8, artwork.height * 0.52) * (options.heightScale ?? 1);
+  light.color.setHex(options.color ?? 0xffd2ad);
 
   light.position.set(
     artwork.position[0] + normal.x * 0.78,
@@ -354,6 +365,10 @@ export function updateMediumArtworkLighting(
         distanceSquared <= mediumPrelightReleaseDistance ** 2;
       const forwardLit = visible && distanceSquared <= mediumForwardDistance ** 2;
       const forwardRetained = visible && distanceSquared <= mediumForwardReleaseDistance ** 2;
+      const artworkArea = artwork.width * artwork.height;
+      const featurePriority = artwork.wallType === 'feature-wall' ? 0.55 : 0;
+      const sizePriority = Math.min(0.3, artworkArea * 0.025);
+      const priorityBonus = featurePriority + sizePriority;
 
       return {
         artwork,
@@ -365,10 +380,12 @@ export function updateMediumArtworkLighting(
         forwardLit,
         forwardRetained,
         distanceSquared,
+        priorityBonus,
         score: (visible ? 0 : 10) +
           Math.abs(projectedArtworkPosition.x) +
           Math.abs(projectedArtworkPosition.y) * 0.65 +
-          distanceSquared / 900
+          distanceSquared / 900 -
+          priorityBonus
       };
     })
     .filter((candidate): candidate is {
@@ -381,6 +398,7 @@ export function updateMediumArtworkLighting(
       forwardLit: boolean;
       forwardRetained: boolean;
       distanceSquared: number;
+      priorityBonus: number;
       score: number;
     } => candidate !== null);
 
@@ -413,8 +431,10 @@ export function updateMediumArtworkLighting(
       (candidate.prelightRetained || candidate.sideRetained)
     ))
     .sort((a, b) => {
-      const aDistance = a.distanceSquared - (previousSelectionSet.has(a.artwork.id) ? 25 : 0);
-      const bDistance = b.distanceSquared - (previousSelectionSet.has(b.artwork.id) ? 25 : 0);
+      const aDistance = a.distanceSquared - a.priorityBonus * 48 -
+        (previousSelectionSet.has(a.artwork.id) ? 25 : 0);
+      const bDistance = b.distanceSquared - b.priorityBonus * 48 -
+        (previousSelectionSet.has(b.artwork.id) ? 25 : 0);
       return aDistance - bDistance;
     })
     .forEach((candidate) => selectArtwork(candidate.artwork.id));
@@ -443,7 +463,12 @@ export function updateMediumArtworkLighting(
       return;
     }
 
-    configureArtworkWallWash(light, candidate.artwork);
+    configureArtworkWallWash(light, candidate.artwork, {
+      intensity: mediumWallWashIntensity,
+      widthScale: mediumWallWashWidthScale,
+      heightScale: mediumWallWashHeightScale,
+      color: mediumWallWashColor
+    });
     light.userData.galleryLighting = 'medium-artwork-wall-wash';
     light.userData.mediumPoolIndex = index;
     light.userData.minimumGalleryQuality = 'balanced';
