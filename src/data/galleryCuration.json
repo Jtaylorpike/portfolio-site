@@ -72,7 +72,7 @@
   {
     "wallId": "wall-left-inner-portfolio-08",
     "roomId": "room-main",
-    "artworkId": "left-into-center-45",
+    "artworkId": "a-moment-of-contemplation",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 6,
@@ -86,15 +86,15 @@
   {
     "wallId": "wall-left-inner-portfolio-09",
     "roomId": "room-main",
-    "artworkId": "a-moment-of-contemplation",
+    "artworkId": "left-into-center-45",
     "showInGallery": true,
     "placedInGallery": true,
     "displayOrder": 7,
-    "wallType": "standard-display-wall",
+    "wallType": "compact-display-wall",
     "plaqueEnabled": true,
     "plaqueSide": "auto",
     "positionX": -5.5,
-    "positionZ": -6.0,
+    "positionZ": -5.0,
     "rotationYDegrees": -90.0
   },
   {
@@ -164,7 +164,7 @@
     "plaqueEnabled": true,
     "plaqueSide": "auto",
     "positionX": 5.5,
-    "positionZ": -3.0,
+    "positionZ": -3.5,
     "rotationYDegrees": 90.0
   },
   {
@@ -208,5 +208,47 @@
     "positionX": 12.0,
     "positionZ": -8.0,
     "rotationYDegrees": -90.0
+  },
+  {
+    "wallId": "custom-wall-16",
+    "roomId": "room-main",
+    "artworkId": "a-soft-landing",
+    "showInGallery": true,
+    "placedInGallery": true,
+    "displayOrder": 16,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto",
+    "positionX": 0.0,
+    "positionZ": 0.0,
+    "rotationYDegrees": 180.0
+  },
+  {
+    "wallId": "custom-wall-17",
+    "roomId": "room-main",
+    "artworkId": "a-glimpse-of-gondor",
+    "showInGallery": true,
+    "placedInGallery": true,
+    "displayOrder": 17,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto",
+    "positionX": 4.0,
+    "positionZ": -3.5,
+    "rotationYDegrees": -90.0
+  },
+  {
+    "wallId": "custom-wall-18",
+    "roomId": "room-main",
+    "artworkId": "sunset-at-joe-s",
+    "showInGallery": true,
+    "placedInGallery": true,
+    "displayOrder": 18,
+    "wallType": "wide-display-wall",
+    "plaqueEnabled": true,
+    "plaqueSide": "auto",
+    "positionX": -4.0,
+    "positionZ": -3.5,
+    "rotationYDegrees": 90.0
   }
 ]
