@@ -34,6 +34,28 @@ const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend
   high: { color: 0xffffff, blend: 0 }
 };
 
+// Five was the accepted Medium performance budget before the pool was made
+// structurally stable. Keeping five fixed slots preserves that lower shader
+// cost without toggling light objects and recompiling while the camera moves.
+const mediumArtworkLightPoolSize = Math.min(5, galleryArtworks.length);
+const mediumViewMargin = 1.28;
+const mediumPrelightMargin = 1.72;
+const mediumPrelightReleaseMargin = 1.9;
+const mediumPrelightDistance = 13;
+const mediumPrelightReleaseDistance = 15;
+const mediumForwardDistance = 30;
+const mediumForwardReleaseDistance = 34;
+const mediumSideBehindAllowance = 1.5;
+const mediumSideReleaseBehindAllowance = 2.5;
+const mediumArtworkLightPoolCache = new WeakMap<THREE.Scene, THREE.RectAreaLight[]>();
+const mediumArtworkSelectionCache = new WeakMap<THREE.Scene, string[]>();
+const artworkPositionById = new Map(
+  galleryArtworks.map((artwork) => [artwork.id, new THREE.Vector3(...artwork.position)])
+);
+const projectedArtworkPosition = new THREE.Vector3();
+const cameraRelativeArtworkPosition = new THREE.Vector3();
+const inverseCameraQuaternion = new THREE.Quaternion();
+
 function markArchitecturalFill(light: THREE.Light) {
   light.userData.galleryLighting = 'architectural-fill';
   light.userData.baseIntensity = light.intensity;
@@ -168,6 +190,22 @@ function configureArtworkWallWash(
   };
 }
 
+function addMediumArtworkLightPool(scene: THREE.Scene) {
+  const pool = Array.from({ length: mediumArtworkLightPoolSize }, (_, index) => {
+    const light = new THREE.RectAreaLight(0xffd2ad, 0, 1, 1);
+    light.userData = {
+      galleryLighting: 'medium-artwork-wall-wash',
+      mediumPoolIndex: index,
+      minimumGalleryQuality: 'balanced',
+      maximumGalleryQuality: 'balanced'
+    };
+    scene.add(light);
+    return light;
+  });
+
+  mediumArtworkLightPoolCache.set(scene, pool);
+}
+
 export function addGalleryLighting(scene: THREE.Scene) {
   ensureRectAreaLightsInitialized();
 
@@ -212,6 +250,8 @@ export function addGalleryLighting(scene: THREE.Scene) {
   galleryArtworks.forEach((artwork) => {
     addArtworkWallWash(scene, artwork);
   });
+
+  addMediumArtworkLightPool(scene);
 }
 const galleryQualityRank: Record<GalleryQualityTier, number> = {
   low: 0,
@@ -257,5 +297,156 @@ export function applyGalleryLightingQuality(scene: THREE.Scene, tier: GalleryQua
         galleryQualityRank[tier] <= galleryQualityRank[maximumQuality];
       object.visible = meetsMinimum && meetsMaximum;
     }
+  });
+}
+
+export function updateMediumArtworkLighting(
+  scene: THREE.Scene,
+  camera: THREE.PerspectiveCamera,
+  tier: GalleryQualityTier
+) {
+  if (tier !== 'balanced') {
+    return;
+  }
+
+  inverseCameraQuaternion.copy(camera.quaternion).invert();
+
+  const candidates = galleryArtworks
+    .map((artwork) => {
+      const worldPosition = artworkPositionById.get(artwork.id);
+      if (!worldPosition) {
+        return null;
+      }
+
+      projectedArtworkPosition.copy(worldPosition).project(camera);
+      cameraRelativeArtworkPosition
+        .copy(worldPosition)
+        .sub(camera.position)
+        .applyQuaternion(inverseCameraQuaternion);
+      const distanceSquared = camera.position.distanceToSquared(worldPosition);
+      const inFront =
+        projectedArtworkPosition.z >= -1 &&
+        projectedArtworkPosition.z <= 1;
+      const visible =
+        inFront &&
+        Math.abs(projectedArtworkPosition.x) <= mediumViewMargin &&
+        Math.abs(projectedArtworkPosition.y) <= mediumViewMargin;
+      const prelit =
+        inFront &&
+        Math.abs(projectedArtworkPosition.x) <= mediumPrelightMargin &&
+        Math.abs(projectedArtworkPosition.y) <= mediumPrelightMargin &&
+        distanceSquared <= mediumPrelightDistance ** 2;
+      const prelightRetained =
+        inFront &&
+        Math.abs(projectedArtworkPosition.x) <= mediumPrelightReleaseMargin &&
+        Math.abs(projectedArtworkPosition.y) <= mediumPrelightReleaseMargin &&
+        distanceSquared <= mediumPrelightReleaseDistance ** 2;
+      const lateral =
+        Math.abs(cameraRelativeArtworkPosition.x) >=
+        Math.abs(cameraRelativeArtworkPosition.z) * 0.55;
+      const sideLit =
+        lateral &&
+        cameraRelativeArtworkPosition.z <= mediumSideBehindAllowance &&
+        distanceSquared <= mediumPrelightDistance ** 2;
+      const sideRetained =
+        lateral &&
+        cameraRelativeArtworkPosition.z <= mediumSideReleaseBehindAllowance &&
+        distanceSquared <= mediumPrelightReleaseDistance ** 2;
+      const forwardLit = visible && distanceSquared <= mediumForwardDistance ** 2;
+      const forwardRetained = visible && distanceSquared <= mediumForwardReleaseDistance ** 2;
+
+      return {
+        artwork,
+        visible,
+        prelit,
+        prelightRetained,
+        sideLit,
+        sideRetained,
+        forwardLit,
+        forwardRetained,
+        distanceSquared,
+        score: (visible ? 0 : 10) +
+          Math.abs(projectedArtworkPosition.x) +
+          Math.abs(projectedArtworkPosition.y) * 0.65 +
+          distanceSquared / 900
+      };
+    })
+    .filter((candidate): candidate is {
+      artwork: typeof galleryArtworks[number];
+      visible: boolean;
+      prelit: boolean;
+      prelightRetained: boolean;
+      sideLit: boolean;
+      sideRetained: boolean;
+      forwardLit: boolean;
+      forwardRetained: boolean;
+      distanceSquared: number;
+      score: number;
+    } => candidate !== null);
+
+  const pool = mediumArtworkLightPoolCache.get(scene) ?? [];
+  const candidateById = new Map(candidates.map((candidate) => [candidate.artwork.id, candidate]));
+  const previousSelection = mediumArtworkSelectionCache.get(scene) ?? pool
+    .map((light) => light.userData.artworkId as string | undefined)
+    .filter((artworkId): artworkId is string => Boolean(artworkId));
+  const previousSelectionSet = new Set(previousSelection);
+  const selectedArtworkIds: string[] = [];
+  const selectedArtworkIdSet = new Set<string>();
+  const selectArtwork = (artworkId: string) => {
+    if (
+      selectedArtworkIds.length >= mediumArtworkLightPoolSize ||
+      selectedArtworkIdSet.has(artworkId)
+    ) {
+      return;
+    }
+
+    selectedArtworkIds.push(artworkId);
+    selectedArtworkIdSet.add(artworkId);
+  };
+
+  // A close photograph just outside the visible frame or directly beside the
+  // camera is prelit so it is ready before the camera reaches it. Meaningfully
+  // rearward work remains ineligible.
+  candidates
+    .filter((candidate) => candidate.prelit || candidate.sideLit || (
+      previousSelectionSet.has(candidate.artwork.id) &&
+      (candidate.prelightRetained || candidate.sideRetained)
+    ))
+    .sort((a, b) => {
+      const aDistance = a.distanceSquared - (previousSelectionSet.has(a.artwork.id) ? 25 : 0);
+      const bDistance = b.distanceSquared - (previousSelectionSet.has(b.artwork.id) ? 25 : 0);
+      return aDistance - bDistance;
+    })
+    .forEach((candidate) => selectArtwork(candidate.artwork.id));
+
+  // The main view extends farther down the room. Retained assignments get a
+  // small score advantage but become ineligible as soon as they leave the
+  // camera-facing cone, so work behind the visitor is always switched off.
+  candidates
+    .filter((candidate) => candidate.forwardLit || (
+      previousSelectionSet.has(candidate.artwork.id) && candidate.forwardRetained
+    ))
+    .sort((a, b) => {
+      const aScore = a.score - (previousSelectionSet.has(a.artwork.id) ? 0.2 : 0);
+      const bScore = b.score - (previousSelectionSet.has(b.artwork.id) ? 0.2 : 0);
+      return aScore - bScore;
+    })
+    .forEach((candidate) => selectArtwork(candidate.artwork.id));
+
+  mediumArtworkSelectionCache.set(scene, selectedArtworkIds);
+  pool.forEach((light, index) => {
+    const artworkId = selectedArtworkIds[index];
+    const candidate = artworkId ? candidateById.get(artworkId) : undefined;
+    if (!candidate) {
+      light.intensity = 0;
+      delete light.userData.artworkId;
+      return;
+    }
+
+    configureArtworkWallWash(light, candidate.artwork);
+    light.userData.galleryLighting = 'medium-artwork-wall-wash';
+    light.userData.mediumPoolIndex = index;
+    light.userData.minimumGalleryQuality = 'balanced';
+    light.userData.maximumGalleryQuality = 'balanced';
   });
 }
