@@ -34,10 +34,10 @@ const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend
   high: { color: 0xffffff, blend: 0 }
 };
 
-// Five was the accepted Medium performance budget before the pool was made
-// structurally stable. Keeping five fixed slots preserves that lower shader
-// cost without toggling light objects and recompiling while the camera moves.
-const mediumArtworkLightPoolSize = Math.min(5, galleryArtworks.length);
+// Seven fixed slots improve visible artwork coverage while preserving the
+// stable-pool architecture: lights are reassigned rather than created,
+// removed, or visibility-toggled while the camera moves.
+const mediumArtworkLightPoolSize = Math.min(7, galleryArtworks.length);
 const mediumViewMargin = 1.28;
 const mediumPrelightMargin = 1.72;
 const mediumPrelightReleaseMargin = 1.9;
