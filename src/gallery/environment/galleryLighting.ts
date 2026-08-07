@@ -23,13 +23,13 @@ const architecturalFillScale: QualityIntensityScale = {
 };
 
 const architecturalFillTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
-  low: { color: 0xffc28f, blend: 0.24 },
+  low: { color: 0xffad70, blend: 0.34 },
   balanced: { color: 0xff9f54, blend: 0.3 },
   high: { color: 0xffffff, blend: 0 }
 };
 
 const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend: number }> = {
-  low: { color: 0x9a7257, blend: 0.26 },
+  low: { color: 0xa56642, blend: 0.36 },
   balanced: { color: 0xa85f35, blend: 0.34 },
   high: { color: 0xffffff, blend: 0 }
 };
