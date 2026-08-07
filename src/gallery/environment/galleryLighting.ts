@@ -341,6 +341,7 @@ export function updateMediumArtworkLighting(
   const previousSelection = mediumArtworkSelectionCache.get(scene) ?? pool
     .map((light) => light.userData.artworkId as string | undefined)
     .filter((artworkId): artworkId is string => Boolean(artworkId));
+  const previousSelectionSet = new Set(previousSelection);
   const selectedArtworkIds: string[] = [];
   const selectedArtworkIdSet = new Set<string>();
   const selectArtwork = (artworkId: string) => {
@@ -355,29 +356,32 @@ export function updateMediumArtworkLighting(
     selectedArtworkIdSet.add(artworkId);
   };
 
-  // Preserve visible assignments first so small score changes cannot make
-  // neighboring works trade lights while the visitor is standing still.
+  // Proximity is authoritative. A close photograph must stay illuminated even
+  // when it is beside or behind the camera. Previously selected works receive
+  // a modest distance bias and a wider release radius so tiny movements do not
+  // cause neighboring works to trade slots at either boundary.
+  candidates
+    .filter((candidate) => candidate.nearby || (
+      previousSelectionSet.has(candidate.artwork.id) &&
+      candidate.distanceSquared <= mediumReleaseDistance ** 2
+    ))
+    .sort((a, b) => {
+      const aDistance = a.distanceSquared - (previousSelectionSet.has(a.artwork.id) ? 25 : 0);
+      const bDistance = b.distanceSquared - (previousSelectionSet.has(b.artwork.id) ? 25 : 0);
+      return aDistance - bDistance;
+    })
+    .forEach((candidate) => selectArtwork(candidate.artwork.id));
+
+  // Once proximity has been satisfied, retain and then add visible artwork to
+  // any remaining slots. Gaze direction cannot evict a closer photograph.
   previousSelection.forEach((artworkId) => {
-    if (candidateById.get(artworkId)?.visible) {
+    const candidate = candidateById.get(artworkId);
+    if (candidate?.visible) {
       selectArtwork(artworkId);
     }
   });
   candidates
     .filter((candidate) => candidate.visible)
-    .sort((a, b) => a.score - b.score)
-    .forEach((candidate) => selectArtwork(candidate.artwork.id));
-
-  // Retain nearby-only assignments beyond the activation boundary. This
-  // hysteresis prevents edge flicker, while newly visible works still take
-  // priority over photographs that are merely behind or beside the visitor.
-  previousSelection.forEach((artworkId) => {
-    const candidate = candidateById.get(artworkId);
-    if (candidate && candidate.distanceSquared <= mediumReleaseDistance ** 2) {
-      selectArtwork(artworkId);
-    }
-  });
-  candidates
-    .filter((candidate) => candidate.nearby)
     .sort((a, b) => a.score - b.score)
     .forEach((candidate) => selectArtwork(candidate.artwork.id));
 
