@@ -40,6 +40,8 @@ const architecturalGroundTone: Record<GalleryQualityTier, { color: number; blend
 const mediumArtworkLightPoolSize = Math.min(5, galleryArtworks.length);
 const mediumViewMargin = 1.28;
 const mediumNearbyDistance = 13;
+const mediumForwardDistance = 22;
+const mediumForwardReleaseDistance = 25;
 const mediumReleaseDistance = 15;
 const mediumArtworkLightPoolCache = new WeakMap<THREE.Scene, THREE.RectAreaLight[]>();
 const mediumArtworkSelectionCache = new WeakMap<THREE.Scene, string[]>();
@@ -316,11 +318,13 @@ export function updateMediumArtworkLighting(
         Math.abs(projectedArtworkPosition.x) <= mediumViewMargin &&
         Math.abs(projectedArtworkPosition.y) <= mediumViewMargin;
       const nearby = distanceSquared <= mediumNearbyDistance ** 2;
+      const forwardNearby = visible && distanceSquared <= mediumForwardDistance ** 2;
 
       return {
         artwork,
         visible,
         nearby,
+        forwardNearby,
         distanceSquared,
         score: (visible ? 0 : 10) +
           Math.abs(projectedArtworkPosition.x) +
@@ -332,6 +336,7 @@ export function updateMediumArtworkLighting(
       artwork: typeof galleryArtworks[number];
       visible: boolean;
       nearby: boolean;
+      forwardNearby: boolean;
       distanceSquared: number;
       score: number;
     } => candidate !== null);
@@ -370,6 +375,23 @@ export function updateMediumArtworkLighting(
       const bDistance = b.distanceSquared - (previousSelectionSet.has(b.artwork.id) ? 25 : 0);
       return aDistance - bDistance;
     })
+    .forEach((candidate) => selectArtwork(candidate.artwork.id));
+
+  // Extend activation only into the camera-facing view. This reaches farther
+  // down the room without spending light slots on equally distant work behind
+  // the visitor.
+  previousSelection.forEach((artworkId) => {
+    const candidate = candidateById.get(artworkId);
+    if (
+      candidate?.visible &&
+      candidate.distanceSquared <= mediumForwardReleaseDistance ** 2
+    ) {
+      selectArtwork(artworkId);
+    }
+  });
+  candidates
+    .filter((candidate) => candidate.forwardNearby)
+    .sort((a, b) => a.score - b.score)
     .forEach((candidate) => selectArtwork(candidate.artwork.id));
 
   // Once proximity has been satisfied, retain and then add visible artwork to
